@@ -391,8 +391,8 @@ def parse_URI(uri, on_pr=None):
         return {'address': uri}
 
     u = urlparse.urlparse(uri)
-    if u.scheme != 'bitcoin':
-        raise BaseException("Not a bitcoin URI")
+    if u.scheme != 'bitcoincash':
+        raise BaseException("Not a bitcoincash URI")
     address = u.path
 
     # python for android fails to parse query
@@ -460,7 +460,7 @@ def create_URI(addr, amount, message):
         if type(message) == unicode:
             message = message.encode('utf8')
         query.append('message=%s'%urllib.quote(message))
-    p = urlparse.ParseResult(scheme='bitcoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
+    p = urlparse.ParseResult(scheme='bitcoincash', netloc='', path=addr, params='', query='&'.join(query), fragment='')
     return urlparse.urlunparse(p)
 
 
