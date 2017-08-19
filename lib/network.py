@@ -51,14 +51,18 @@ DEFAULT_PORTS = {'t':'50001', 's':'50002'}
 #then gradually switch remaining nodes to e-x nodes
 
 DEFAULT_SERVERS = {
-    'electroncash.cascharia.com': {'s': '50002'},
-    'electrum-abc.criptolayer.net': {'s': '50012'},
-    '180.235.49.196': DEFAULT_PORTS,
     '35.185.209.69': DEFAULT_PORTS,
     '35.197.25.235': DEFAULT_PORTS,
-    '35.158.236.146': DEFAULT_PORTS,
+    'abc.vom-stausee.de': {'t': '52001', 's': '52002'},
+    'abc1.hsmiths.com': {'t': '60001', 's': '60002'},
     'bcc.arihanc.com': {'t':'52001', 's':'52002'},
     'electron.coinucopia.io': DEFAULT_PORTS,
+    'electron.ueo.ch': DEFAULT_PORTS,
+    'electroncash.bitcoinplug.com': DEFAULT_PORTS,
+    'electroncash.cascharia.com': {'s': '50002'},
+    'electrum-abc.criptolayer.net': {'s': '50012'},
+    'mash.1209k.com': DEFAULT_PORTS,
+    'shsmithgoggryfbx.onion': {'t': '60001', 's': '60002'},
 }
 
 def set_testnet():
