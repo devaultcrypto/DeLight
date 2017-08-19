@@ -100,6 +100,9 @@ class SimpleConfig(PrintError):
             if os.path.exists(electrum_path):
                 # Deliberately don't copy config
                 shutil.copytree(os.path.join(electrum_path, 'wallets'), os.path.join(path, 'wallets'))
+        obsolete_file = os.path.join(path, 'recent_servers')
+        if os.path.exists(obsolete_file):
+            os.remove(obsolete_file)
         self.print_error("electron-cash directory", path)
         return path
 
