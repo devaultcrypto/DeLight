@@ -101,3 +101,11 @@ Menu "Tools") to see information about chain forks your client knows about), you
   * fix initial headers download
   * validate contacts on import
   * command-line option for locktime
+
+# Release 2.9.3
+  * Improved code to force wallet to stay on Bitcoin Cash chain
+  * Removed dynamic fees.  Fees are now simple Sat/Byte model 
+  * Add Coin_Type 145 for Bitcoin Cash for bip39 seed imports
+  * Use bitcoincash URI prefix for receiving and QR codes
+
+
