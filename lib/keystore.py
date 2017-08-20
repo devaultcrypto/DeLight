@@ -683,6 +683,9 @@ def bip44_derivation(account_id):
     else:
         return "m/44'/0'/%d'"% int(account_id)
 
+def bip44_derivation_145(account_id):
+	return "m/44'/145'/%d'"% int(account_id)
+
 def from_seed(seed, passphrase):
     t = seed_type(seed)
     if t == 'old':
