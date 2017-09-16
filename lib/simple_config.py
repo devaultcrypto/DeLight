@@ -83,8 +83,6 @@ class SimpleConfig(PrintError):
 
         if self.get('testnet'):
             path = os.path.join(path, 'testnet')
-        elif self.get('nolnet'):
-            path = os.path.join(path, 'nolnet')
 
         # Make directory if it does not yet exist.
         if not os.path.exists(path):
@@ -95,8 +93,6 @@ class SimpleConfig(PrintError):
             electrum_path = user_dir(True)
             if self.get('testnet'):
                 electrum_path = os.path.join(electrum_path, 'testnet')
-            elif self.get('nolnet'):
-                electrum_path = os.path.join(electrum_path, 'nolnet')
             if os.path.exists(electrum_path):
                 # Deliberately don't copy config
                 shutil.copytree(os.path.join(electrum_path, 'wallets'), os.path.join(path, 'wallets'))
