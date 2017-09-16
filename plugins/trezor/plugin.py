@@ -8,7 +8,7 @@ from functools import partial
 from electrum.bitcoin import (bc_address_to_hash_160, xpub_from_pubkey,
                               public_key_to_p2pkh, EncodeBase58Check,
                               TYPE_ADDRESS, TYPE_SCRIPT,
-                              TESTNET, ADDRTYPE_P2PKH, ADDRTYPE_P2SH)
+                              ADDRTYPE_P2PKH, ADDRTYPE_P2SH)
 from electrum.i18n import _
 from electrum.plugins import BasePlugin, hook
 from electrum.transaction import deserialize, Transaction
@@ -145,9 +145,6 @@ class TrezorCompatiblePlugin(HW_PluginBase):
         if client:
             client.used()
         return client
-
-    def get_coin_name(self):
-        return "Bcash Testnet" if TESTNET else "Bcash"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method
