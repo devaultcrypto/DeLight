@@ -63,6 +63,7 @@ DEFAULT_SERVERS = {
     'electrum-abc.criptolayer.net': {'s': '50012'},
     'mash.1209k.com': DEFAULT_PORTS,
     'shsmithgoggryfbx.onion': {'t': '60001', 's': '60002'},
+    '35.157.238.5': DEFAULT_PORTS,
 }
 
 def set_testnet():
