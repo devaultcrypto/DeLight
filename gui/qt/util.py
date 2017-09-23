@@ -107,7 +107,7 @@ class HelpLabel(QLabel):
         self.font = QFont()
 
     def mouseReleaseEvent(self, x):
-        QMessageBox.information(self, 'Help', self.help_text, 'OK')
+        QMessageBox.information(self, 'Help', self.help_text)
 
     def enterEvent(self, event):
         self.font.setUnderline(True)
@@ -131,7 +131,7 @@ class HelpButton(QPushButton):
         self.clicked.connect(self.onclick)
 
     def onclick(self):
-        QMessageBox.information(self, 'Help', self.help_text, 'OK')
+        QMessageBox.information(self, 'Help', self.help_text)
 
 class Buttons(QHBoxLayout):
     def __init__(self, *buttons):
@@ -598,6 +598,6 @@ class TaskThread(QThread):
 
 if __name__ == "__main__":
     app = QApplication([])
-    t = WaitingDialog(None, 'testing ...', lambda: [time.sleep(1)], lambda x: QMessageBox.information(None, 'done', "done", _('OK')))
+    t = WaitingDialog(None, 'testing ...', lambda: [time.sleep(1)], lambda x: QMessageBox.information(None, 'done', "done"))
     t.start()
     app.exec_()
