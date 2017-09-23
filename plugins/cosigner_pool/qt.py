@@ -28,8 +28,9 @@ import threading
 import time
 import xmlrpclib
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import QPushButton
 
 from electroncash import bitcoin, util
 from electroncash import transaction
@@ -81,10 +82,14 @@ class Listener(util.DaemonThread):
                 if message:
                     self.received.add(keyhash)
                     self.print_error("received message for", keyhash)
-                    self.parent.obj.emit(SIGNAL("cosigner:receive"), keyhash,
-                                         message)
+                    self.parent.obj.cosigner_receive_signal.emit(
+                        keyhash, message)
             # poll every 30 seconds
             time.sleep(30)
+
+
+class QReceiveSignalObject(QObject):
+    cosigner_receive_signal = pyqtSignal(object, object)
 
 
 class Plugin(BasePlugin):
@@ -92,8 +97,8 @@ class Plugin(BasePlugin):
     def __init__(self, parent, config, name):
         BasePlugin.__init__(self, parent, config, name)
         self.listener = None
-        self.obj = QObject()
-        self.obj.connect(self.obj, SIGNAL('cosigner:receive'), self.on_receive)
+        self.obj = QReceiveSignalObject()
+        self.obj.cosigner_receive_signal.connect(self.on_receive)
         self.keys = []
         self.cosigner_list = []
 

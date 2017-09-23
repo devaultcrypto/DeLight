@@ -9,8 +9,9 @@ from collections import namedtuple
 from functools import partial
 
 from electroncash.i18n import _
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
 
 if platform.system() == 'Windows':
     MONOSPACE_FONT = 'Lucida Console'
@@ -51,10 +52,11 @@ expiration_values = [
 
 class Timer(QThread):
     stopped = False
+    timer_signal = pyqtSignal()
 
     def run(self):
         while not self.stopped:
-            self.emit(SIGNAL('timersignal'))
+            self.timer_signal.emit()
             time.sleep(0.5)
 
     def stop(self):
@@ -399,7 +401,7 @@ class MyTreeWidget(QTreeWidget):
         self.header().setStretchLastSection(False)
         for col in range(len(headers)):
             sm = QHeaderView.Stretch if col == self.stretch_column else QHeaderView.ResizeToContents
-            self.header().setResizeMode(col, sm)
+            self.header().setSectionResizeMode(col, sm)
 
     def editItem(self, item, column):
         if column in self.editable_columns:
@@ -430,13 +432,12 @@ class MyTreeWidget(QTreeWidget):
         # on 'enter' we show the menu
         pt = self.visualItemRect(item).bottomLeft()
         pt.setX(50)
-        self.emit(SIGNAL('customContextMenuRequested(const QPoint&)'), pt)
+        self.customContextMenuRequested.emit(pt)
 
     def createEditor(self, parent, option, index):
         self.editor = QStyledItemDelegate.createEditor(self.itemDelegate(),
                                                        parent, option, index)
-        self.editor.connect(self.editor, SIGNAL("editingFinished()"),
-                            self.editing_finished)
+        self.editor.editingFinished.connect(self.editing_finished)
         return self.editor
 
     def editing_finished(self):

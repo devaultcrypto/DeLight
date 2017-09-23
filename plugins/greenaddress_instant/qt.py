@@ -28,7 +28,7 @@ import urllib
 import sys
 import requests
 
-from PyQt4.QtGui import QApplication, QPushButton
+from PyQt5.QtWidgets import QApplication, QPushButton
 
 from electroncash.plugins import BasePlugin, hook
 from electroncash.i18n import _

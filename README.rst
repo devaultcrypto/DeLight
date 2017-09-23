@@ -8,8 +8,8 @@ Electron Cash - Lightweight Bitcoin Cash client
   Language: Python
   Homepage: https://electroncash.org/
 
-  
- 
+
+
 
 Getting started
 ===============
@@ -17,7 +17,7 @@ Getting started
 Electron Cash is a pure python application forked from Electrum. If you want to use the
 Qt interface, install the Qt dependencies::
 
-    sudo apt-get install python-qt4
+    sudo apt-get install python-pyqt5
 
 If you downloaded the official package (tar.gz), you can run
 Electron Cash from its root directory (called Electrum), without installing it on your
@@ -53,8 +53,8 @@ Run install (this should install dependencies)::
 
 Compile the icons file for Qt::
 
-    sudo apt-get install pyqt4-dev-tools
-    pyrcc4 icons.qrc -o gui/qt/icons_rc.py
+    sudo apt-get install pyqt5-dev-tools
+    pyrcc5 icons.qrc -o gui/qt/icons_rc.py
 
 Compile the protobuf description file::
 

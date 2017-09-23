@@ -10,8 +10,9 @@ from electroncash_gui.qt.util import WaitingDialog, EnterButton, WindowModalDial
 from electroncash.util import print_msg, print_error
 from electroncash.i18n import _
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton)
 
 try:
     import amodem.audio
