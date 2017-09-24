@@ -345,9 +345,9 @@ def filename_field(parent, config, defaultname, select_msg):
     def func():
         text = unicode(filename_e.text())
         _filter = "*.csv" if text.endswith(".csv") else "*.json" if text.endswith(".json") else None
-        p = unicode( QFileDialog.getSaveFileName(None, select_msg, text, _filter))
+        p, __ = QFileDialog.getSaveFileName(None, select_msg, text, _filter)
         if p:
-            filename_e.setText(p)
+            filename_e.setText(unicode(p))
 
     button = QPushButton(_('File'))
     button.clicked.connect(func)
