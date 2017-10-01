@@ -4,11 +4,11 @@ from PyQt4.Qt import (QDialog, QInputDialog, QLineEdit, QTextEdit, QVBoxLayout, 
 import PyQt4.QtCore as QtCore
 
 from electrum.i18n import _
-from electrum_gui.qt.util import *
+from electroncash_gui.qt.util import *
 from electrum.util import print_msg
 
 import os, hashlib, websocket, threading, logging, json, copy
-from electrum_gui.qt.qrcodewidget import QRCodeWidget, QRDialog
+from electroncash_gui.qt.qrcodewidget import QRCodeWidget, QRDialog
 from btchip.btchip import *
 
 DEBUG = False

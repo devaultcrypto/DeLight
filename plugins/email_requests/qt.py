@@ -45,8 +45,8 @@ import PyQt4.QtGui as QtGui
 from electrum.plugins import BasePlugin, hook
 from electrum.paymentrequest import PaymentRequest
 from electrum.i18n import _
-from electrum_gui.qt.util import EnterButton, Buttons, CloseButton
-from electrum_gui.qt.util import OkButton, WindowModalDialog
+from electroncash_gui.qt.util import EnterButton, Buttons, CloseButton
+from electroncash_gui.qt.util import OkButton, WindowModalDialog
 
 
 

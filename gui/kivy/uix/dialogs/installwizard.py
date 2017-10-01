@@ -14,8 +14,8 @@ from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.utils import platform
 
-from electrum_gui.kivy.uix.dialogs import EventsDialog
-from electrum_gui.kivy.i18n import _
+from electroncash_gui.kivy.uix.dialogs import EventsDialog
+from electroncash_gui.kivy.i18n import _
 from electrum.base_wizard import BaseWizard
 
 from password_dialog import PasswordDialog
@@ -29,7 +29,7 @@ test_xpub = "xpub661MyMwAqRbcEbvVtRRSjqxVnaWVUMewVzMiURAKyYratih4TtBpMypzzefmv8z
 
 Builder.load_string('''
 #:import Window kivy.core.window.Window
-#:import _ electrum_gui.kivy.i18n._
+#:import _ electroncash_gui.kivy.i18n._
 
 
 <WizardTextInput@TextInput>

@@ -4,7 +4,7 @@ import threading
 from PyQt4.Qt import Qt
 from PyQt4.Qt import QGridLayout, QInputDialog, QPushButton
 from PyQt4.Qt import QVBoxLayout, QLabel, SIGNAL
-from electrum_gui.qt.util import *
+from electroncash_gui.qt.util import *
 from .plugin import TIM_NEW, TIM_RECOVER, TIM_MNEMONIC
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase
 
