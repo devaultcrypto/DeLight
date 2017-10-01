@@ -36,13 +36,13 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import PyQt4.QtCore as QtCore
 
-from electrum.i18n import _, set_language
-from electrum.plugins import run_hook
-from electrum import SimpleConfig, Wallet, WalletStorage
-from electrum.synchronizer import Synchronizer
-from electrum.verifier import SPV
-from electrum.util import DebugMem, UserCancelled, InvalidPassword
-from electrum.wallet import Abstract_Wallet
+from electroncash.i18n import _, set_language
+from electroncash.plugins import run_hook
+from electroncash import SimpleConfig, Wallet, WalletStorage
+from electroncash.synchronizer import Synchronizer
+from electroncash.verifier import SPV
+from electroncash.util import DebugMem, UserCancelled, InvalidPassword
+from electroncash.wallet import Abstract_Wallet
 from installwizard import InstallWizard, GoBack
 
 

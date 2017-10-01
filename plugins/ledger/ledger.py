@@ -6,14 +6,14 @@ import sys
 import traceback
 
 import electrum
-from electrum import bitcoin
-from electrum.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
-from electrum.i18n import _
-from electrum.plugins import BasePlugin, hook
-from electrum.keystore import Hardware_KeyStore, parse_xpubkey
-from electrum.transaction import push_script, Transaction
+from electroncash import bitcoin
+from electroncash.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
+from electroncash.i18n import _
+from electroncash.plugins import BasePlugin, hook
+from electroncash.keystore import Hardware_KeyStore, parse_xpubkey
+from electroncash.transaction import push_script, Transaction
 from ..hw_wallet import HW_PluginBase
-from electrum.util import format_satoshis_plain, print_error, is_verbose
+from electroncash.util import format_satoshis_plain, print_error, is_verbose
 
 try:
     import hid

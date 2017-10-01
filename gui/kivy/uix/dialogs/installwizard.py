@@ -16,7 +16,7 @@ from kivy.utils import platform
 
 from electroncash_gui.kivy.uix.dialogs import EventsDialog
 from electroncash_gui.kivy.i18n import _
-from electrum.base_wizard import BaseWizard
+from electroncash.base_wizard import BaseWizard
 
 from password_dialog import PasswordDialog
 
@@ -556,8 +556,8 @@ class RestoreSeedDialog(WizardDialog):
     def __init__(self, wizard, **kwargs):
         super(RestoreSeedDialog, self).__init__(wizard, **kwargs)
         self._test = kwargs['test']
-        from electrum.mnemonic import Mnemonic
-        from electrum.old_mnemonic import words as old_wordlist
+        from electroncash.mnemonic import Mnemonic
+        from electroncash.old_mnemonic import words as old_wordlist
         self.words = set(Mnemonic('en').wordlist).union(set(old_wordlist))
         self.ids.text_input_seed.text = test_seed if is_test else ''
         self.message = _('Please type your seed phrase using the virtual keyboard.')

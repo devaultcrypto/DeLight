@@ -3,9 +3,9 @@ import threading
 from PyQt4.Qt import (QDialog, QInputDialog, QLineEdit, QTextEdit, QVBoxLayout, QLabel, SIGNAL)
 import PyQt4.QtCore as QtCore
 
-from electrum.i18n import _
+from electroncash.i18n import _
 from electroncash_gui.qt.util import *
-from electrum.util import print_msg
+from electroncash.util import print_msg
 
 import os, hashlib, websocket, threading, logging, json, copy
 from electroncash_gui.qt.qrcodewidget import QRCodeWidget, QRDialog

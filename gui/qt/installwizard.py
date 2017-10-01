@@ -6,10 +6,10 @@ from PyQt4.QtCore import *
 import PyQt4.QtCore as QtCore
 
 import electrum
-from electrum import Wallet, WalletStorage
-from electrum.util import UserCancelled, InvalidPassword
-from electrum.base_wizard import BaseWizard
-from electrum.i18n import _
+from electroncash import Wallet, WalletStorage
+from electroncash.util import UserCancelled, InvalidPassword
+from electroncash.base_wizard import BaseWizard
+from electroncash.i18n import _
 
 from seed_dialog import SeedLayout, KeysLayout
 from network_dialog import NetworkChoiceLayout

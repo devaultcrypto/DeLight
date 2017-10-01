@@ -42,9 +42,9 @@ from PyQt4.QtCore import *
 import PyQt4.QtCore as QtCore
 import PyQt4.QtGui as QtGui
 
-from electrum.plugins import BasePlugin, hook
-from electrum.paymentrequest import PaymentRequest
-from electrum.i18n import _
+from electroncash.plugins import BasePlugin, hook
+from electroncash.paymentrequest import PaymentRequest
+from electroncash.i18n import _
 from electroncash_gui.qt.util import EnterButton, Buttons, CloseButton
 from electroncash_gui.qt.util import OkButton, WindowModalDialog
 
@@ -142,7 +142,7 @@ class Plugin(BasePlugin):
         menu.addAction(_("Send via e-mail"), lambda: self.send(window, addr))
 
     def send(self, window, addr):
-        from electrum import paymentrequest
+        from electroncash import paymentrequest
         r = window.wallet.receive_requests.get(addr)
         message = r.get('memo', '')
         if r.get('signature'):
