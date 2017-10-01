@@ -4,7 +4,6 @@
 #
 
 try:
-    import electrum
     from electroncash.bitcoin import TYPE_ADDRESS, var_int, msg_magic, Hash, verify_message, pubkey_from_signature, point_to_ser, public_key_to_p2pkh, EncodeAES, DecodeAES, MyVerifyingKey
     from electroncash.i18n import _
     from electroncash.keystore import Hardware_KeyStore

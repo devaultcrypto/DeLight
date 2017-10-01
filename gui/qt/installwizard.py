@@ -5,7 +5,6 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import PyQt4.QtCore as QtCore
 
-import electrum
 from electroncash import Wallet, WalletStorage
 from electroncash.util import UserCancelled, InvalidPassword
 from electroncash.base_wizard import BaseWizard

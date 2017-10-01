@@ -5,7 +5,6 @@ import time
 import sys
 import traceback
 
-import electrum
 from electroncash import bitcoin
 from electroncash.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
 from electroncash.i18n import _
