@@ -354,7 +354,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def watching_only_changed(self):
         title = 'Electron Cash %s  -  %s' % (self.wallet.electrum_version,
-                                        self.wallet.basename().decode('utf8'))
+                                        self.wallet.basename().decode('utf-8'))
         extra = [self.wallet.storage.get('wallet_type', '?')]
         if self.wallet.is_watching_only():
             self.warn_if_watching_only()
@@ -399,7 +399,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.show_critical(_("Electrum was unable to copy your wallet file to the specified location.") + "\n" + str(reason), title=_("Unable to create backup"))
 
     def update_recently_visited(self, filename):
-        filename = filename.decode('utf8')
+        filename = filename.decode('utf-8')
         recent = self.config.get('recently_open', [])
         try:
             sorted(recent)
@@ -414,7 +414,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         for i, k in enumerate(sorted(recent)):
             b = os.path.basename(k)
             def loader(k):
-                return lambda: self.gui_object.new_window(k.encode('utf8'))
+                return lambda: self.gui_object.new_window(k.encode('utf-8'))
             self.recently_visited_menu.addAction(b, loader(k)).setShortcut(QKeySequence("Ctrl+%d"%(i+1)))
         self.recently_visited_menu.setEnabled(len(recent))
 
@@ -700,7 +700,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             text = _("Not connected")
             icon = QIcon(":icons/status_disconnected.png")
 
-        self.tray.setToolTip("%s (%s)" % (text, self.wallet.basename().decode('utf8')))
+        self.tray.setToolTip("%s (%s)" % (text, self.wallet.basename().decode('utf-8')))
         self.balance_label.setText(text)
         self.status_button.setIcon( icon )
 
@@ -975,7 +975,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def update_receive_qr(self):
         addr = str(self.receive_address_e.text())
         amount = self.receive_amount_e.get_amount()
-        message = unicode(self.receive_message_e.text()).encode('utf8')
+        message = unicode(self.receive_message_e.text()).encode('utf-8')
         self.save_request_button.setEnabled((amount is not None) or (message != ""))
         uri = util.create_URI(addr, amount, message)
         self.receive_qr.setData(uri)
@@ -2022,7 +2022,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
         # else if the user scanned an offline signed tx
         # transactions are binary, but qrcode seems to return utf8...
-        data = data.decode('utf8')
+        data = data.decode('utf-8')
         z = bitcoin.base_decode(data, length=None, base=43)
         data = ''.join(chr(ord(b)) for b in z).encode('hex')
         tx = self.tx_from_text(data)
