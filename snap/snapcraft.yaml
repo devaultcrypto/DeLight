@@ -19,5 +19,5 @@ parts:
     python-version: python2
     stage-packages: [python-qt4]
     build-packages: [pyqt4-dev-tools]
-    install: pyrcc4 icons.qrc -o $SNAPCRAFT_PART_INSTALL/lib/python2.7/site-packages/electrum_gui/qt/icons_rc.py
+    install: pyrcc4 icons.qrc -o $SNAPCRAFT_PART_INSTALL/lib/python2.7/site-packages/electroncash_gui/qt/icons_rc.py
     after: [desktop-qt4]

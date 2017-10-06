@@ -4,13 +4,12 @@
 #
 
 try:
-    import electrum
-    from electrum.bitcoin import TYPE_ADDRESS, var_int, msg_magic, Hash, verify_message, pubkey_from_signature, point_to_ser, public_key_to_p2pkh, EncodeAES, DecodeAES, MyVerifyingKey, int_to_hex
-    from electrum.i18n import _
-    from electrum.keystore import Hardware_KeyStore
-    from electrum.transaction import Transaction
+    from electroncash.bitcoin import TYPE_ADDRESS, var_int, msg_magic, Hash, verify_message, pubkey_from_signature, point_to_ser, public_key_to_p2pkh, EncodeAES, DecodeAES, MyVerifyingKey, int_to_hex
+    from electroncash.i18n import _
+    from electroncash.keystore import Hardware_KeyStore
+    from electroncash.transaction import Transaction
     from ..hw_wallet import HW_PluginBase
-    from electrum.util import print_error
+    from electroncash.util import print_error
 
     import time
     import hid
