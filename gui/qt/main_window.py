@@ -380,7 +380,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         filename = QFileDialog.getOpenFileName(self, "Select your wallet file", wallet_folder)
         if not filename:
             return
-        self.gui_object.new_window(filename)
+        self.gui_object.new_window(str(filename))
 
 
     def backup_wallet(self):
@@ -390,7 +390,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if not filename:
             return
 
-        new_path = os.path.join(wallet_folder, filename)
+        new_path = os.path.join(wallet_folder, str(filename))
         if new_path != path:
             try:
                 shutil.copy2(path, new_path)
@@ -574,7 +574,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         fileName = QFileDialog.getOpenFileName(self, title, directory, filter)
         if fileName and directory != os.path.dirname(fileName):
             self.config.set_key('io_dir', os.path.dirname(fileName), True)
-        return fileName
+        return str(fileName)
 
     def getSaveFileName(self, title, filename, filter = ""):
         directory = self.config.get('io_dir', os.path.expanduser('~'))
@@ -582,7 +582,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         fileName = QFileDialog.getSaveFileName(self, title, path, filter)
         if fileName and directory != os.path.dirname(fileName):
             self.config.set_key('io_dir', os.path.dirname(fileName), True)
-        return fileName
+        return str(fileName)
 
     def connect_slots(self, sender):
         self.connect(sender, QtCore.SIGNAL('timersignal'), self.timer_actions)
