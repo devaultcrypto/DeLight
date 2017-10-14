@@ -205,7 +205,7 @@ class PayToEdit(ScanQRTextEdit):
         if self.c.widget() != self:
             return
         tc = self.textCursor()
-        extra = completion.length() - self.c.completionPrefix().length()
+        extra = len(completion) - len(self.c.completionPrefix())
         tc.movePosition(QTextCursor.Left)
         tc.movePosition(QTextCursor.EndOfWord)
         tc.insertText(completion.right(extra))
@@ -238,14 +238,14 @@ class PayToEdit(ScanQRTextEdit):
         QPlainTextEdit.keyPressEvent(self, e)
 
         ctrlOrShift = e.modifiers() and (Qt.ControlModifier or Qt.ShiftModifier)
-        if self.c is None or (ctrlOrShift and e.text().isEmpty()):
+        if self.c is None or (ctrlOrShift and not e.text()):
             return
 
-        eow = QString("~!@#$%^&*()_+{}|:\"<>?,./;'[]\\-=")
+        eow = "~!@#$%^&*()_+{}|:\"<>?,./;'[]\\-="
         hasModifier = (e.modifiers() != Qt.NoModifier) and not ctrlOrShift;
         completionPrefix = self.textUnderCursor()
 
-        if hasModifier or e.text().isEmpty() or completionPrefix.length() < 1 or eow.contains(e.text().right(1)):
+        if hasModifier or not e.text() or len(completionPrefix) < 1 or eow.find(e.text()[-1]) >= 0:
             self.c.popup().hide()
             return
 

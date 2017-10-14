@@ -89,7 +89,7 @@ class ContactList(MyTreeWidget):
 
     def on_update(self):
         item = self.currentItem()
-        current_key = item.data(0, Qt.UserRole).toString() if item else None
+        current_key = str(item.data(0, Qt.UserRole)) if item else None
         self.clear()
         for key in sorted(self.parent.contacts.keys()):
             _type, name = self.parent.contacts[key]
