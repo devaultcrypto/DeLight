@@ -55,7 +55,7 @@ DEFAULT_SERVERS = {
     '35.197.25.235': DEFAULT_PORTS,
     'abc.vom-stausee.de': {'t': '52001', 's': '52002'},
     'abc1.hsmiths.com': {'t': '60001', 's': '60002'},
-    'bcc.arihanc.com': {'t':'52001', 's':'52002'},
+    'bch.arihanc.com': {'t':'52001', 's':'52002'},
     'electron.coinucopia.io': DEFAULT_PORTS,
     'electron.ueo.ch': DEFAULT_PORTS,
     'electroncash.bitcoinplug.com': DEFAULT_PORTS,
