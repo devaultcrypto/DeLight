@@ -318,6 +318,8 @@ class Blockchain(util.PrintError):
         return sum([self.BIP9(h-i, 2) for i in range(N)])*10000/N/100.
 
     def get_median_time_past(self, height):
+        if height < 0:
+            return 0
         times = [self.read_header(h)['timestamp']
                  for h in range(max(0, height - 10), height + 1)]
         return sorted(times)[len(times) // 2]
@@ -345,9 +347,19 @@ class Blockchain(util.PrintError):
         # Difficulty adjustment interval?
         height = header['block_height']
 	print ("testing for height ",height)
+
+        prior = self.read_header(height - 1)
+        bits = prior['bits']
+
+        # testnet 20 minute rule
+        if bitcoin.TESTNET:
+            if header['timestamp'] - prior['timestamp'] > 20*60:
+                return MAX_BITS
+
+
 	#NOV 13 HF DAA
 	
-	prevheight = height -1 
+	prevheight = height -1
         daa_mtp=self.get_median_time_past(prevheight)
 	
 	#######FOR TESTING        
@@ -366,9 +378,10 @@ class Blockchain(util.PrintError):
                     daa_ending_timestamp=daa_prior['timestamp']
                 if (daa_i == daa_starting_height):
                     daa_starting_timestamp=daa_prior['timestamp']
-                daa_bits_for_a_block=daa_prior['bits']
-                daa_work_for_a_block=bits_to_work(daa_bits_for_a_block)
-                daa_cumulative_work += daa_work_for_a_block
+                else:
+                    daa_bits_for_a_block=daa_prior['bits']
+                    daa_work_for_a_block=bits_to_work(daa_bits_for_a_block)
+                    daa_cumulative_work += daa_work_for_a_block
 	    daa_elapsed_time=daa_ending_timestamp-daa_starting_timestamp
 	    if (daa_elapsed_time>172800):
                 daa_elapsed_time=172800
@@ -384,19 +397,13 @@ class Blockchain(util.PrintError):
 	    print ("daa_retval is ",daa_retval)
             return daa_retval
 
-         #END OF NOV-2017 DAA 
+         #END OF NOV-2017 DAA
 
         if height % 2016 == 0:
             return self.get_new_bits(height)
-        prior = self.read_header(height - 1)
-        bits = prior['bits']
 
-        # testnet 20 minute rule
         if bitcoin.TESTNET:
-            if header['timestamp'] - prior['timestamp'] > 20*60:
-                return MAX_BITS
-            else:
-                return self.read_header(int(height/2016)*2016)['bits']
+            return self.read_header(int(height / 2016) * 2016)['bits']
 
         # bitcoin cash EDA
         # Can't go below minimum, so early bail
