@@ -349,8 +349,6 @@ class Blockchain(util.PrintError):
         if height == 0:
             return MAX_BITS
 
-        print ("testing for height ",height)
-
         prior = self.read_header(height - 1)
         bits = prior['bits']
 
@@ -359,48 +357,43 @@ class Blockchain(util.PrintError):
             if header['timestamp'] - prior['timestamp'] > 20*60:
                 return MAX_BITS
 
-
         #NOV 13 HF DAA
 
         prevheight = height -1
         daa_mtp=self.get_median_time_past(prevheight)
 
-        #######FOR TESTING
-        print ("debug, mtp is ",daa_mtp)
-        print ("VALIDATING BLOCK HEIGHT ",height)
-        if (daa_mtp >= 1509559291):  #leave this here for testing
-            #if (daa_mtp >= 1510600000):
+        #if (daa_mtp >= 1509559291):  #leave this here for testing
+        if (daa_mtp >= 1510600000):
+
+            # determine block range
             daa_starting_height=self.get_suitable_block_height(prevheight-144)
             daa_ending_height=self.get_suitable_block_height(prevheight)
+
+            # calculate cumulative work (EXcluding work from block daa_starting_height, INcluding work from block daa_ending_height)
             daa_cumulative_work=0
-            daa_starting_timestamp=0
-            daa_ending_timestamp=0
-            for daa_i in range (daa_starting_height,daa_ending_height+1):
+            for daa_i in range (daa_starting_height+1,daa_ending_height+1):
                 daa_prior = self.read_header(daa_i)
-                if (daa_i == daa_ending_height):
-                    daa_ending_timestamp=daa_prior['timestamp']
-                if (daa_i == daa_starting_height):
-                    daa_starting_timestamp=daa_prior['timestamp']
-                else:
-                    daa_bits_for_a_block=daa_prior['bits']
-                    daa_work_for_a_block=bits_to_work(daa_bits_for_a_block)
-                    daa_cumulative_work += daa_work_for_a_block
+                daa_bits_for_a_block=daa_prior['bits']
+                daa_work_for_a_block=bits_to_work(daa_bits_for_a_block)
+                daa_cumulative_work += daa_work_for_a_block
+
+            # calculate and sanitize elapsed time
+            daa_starting_timestamp = self.read_header(daa_starting_height)['timestamp']
+            daa_ending_timestamp = self.read_header(daa_ending_height)['timestamp']
             daa_elapsed_time=daa_ending_timestamp-daa_starting_timestamp
             if (daa_elapsed_time>172800):
                 daa_elapsed_time=172800
             if (daa_elapsed_time<43200):
                 daa_elapsed_time=43200
+
+            # calculate and return new target
             daa_Wn= (daa_cumulative_work*600)//daa_elapsed_time
             daa_target= (1 << 256) // daa_Wn -1
             daa_retval = target_to_bits(daa_target)
             daa_retval = int(daa_retval)
-            #####FOR TESTING
-            print ("at height ",height)
-            print ("daa_Wn ",daa_Wn)
-            print ("daa_retval is ",daa_retval)
             return daa_retval
 
-            #END OF NOV-2017 DAA
+        #END OF NOV-2017 DAA
 
         if height % 2016 == 0:
             return self.get_new_bits(height)
