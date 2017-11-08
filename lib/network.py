@@ -57,14 +57,10 @@ DEFAULT_SERVERS = {
     '35.157.238.5': DEFAULT_PORTS, #Is ABC 0.16
     'electrumx-cash.1209k.com': DEFAULT_PORTS, # Is ABC 0.16
     'shsmithgoggryfbx.onion': {'t': '60001', 's': '60002'}, #Cant check atm
-    #'electron.coinucopia.io': DEFAULT_PORTS, #Does not say in banner
-    #'electroncash.bitcoinplug.com': DEFAULT_PORTS, #Does not say in banner
-    #'35.185.209.69': DEFAULT_PORTS,  #couldn't connect
-    #'35.197.25.235': DEFAULT_PORTS, #couldn't connect
-    #'electrum-abc.criptolayer.net': {'s': '50012'}, #is 0.15
-    #'mash.1209k.com': DEFAULT_PORTS, #could not connect
-    #'electron.ueo.ch': DEFAULT_PORTS, #ABC 0.15
-    #'electroncash.cascharia.com': {'s': '50002'}, #BUCash:1.1.1
+    'mash.1209k.com': DEFAULT_PORTS, # Is ABC 0.16
+    'electroncash.bitcoinplug.com': DEFAULT_PORTS,  
+    'bch.curalle.ovh': DEFAULT_PORTS,    
+    'electroncash.cascharia.com': {'s': '50002'} #BUCash:1.1.1
 }
 
 def set_testnet():
