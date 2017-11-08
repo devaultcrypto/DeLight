@@ -61,7 +61,7 @@ def extra_datas(mydir):
 # append dirs
 
 # cacert.pem
-a.datas += [ ('requests/cacert.pem', home+'packages/requests/cacert.pem', 'DATA') ]
+a.datas += [ ('certifi/cacert.pem', home+'packages/certifi/cacert.pem', 'DATA') ]
 
 # Py folders that are needed because of the magic import finding
 a.datas += extra_datas(home+'gui')

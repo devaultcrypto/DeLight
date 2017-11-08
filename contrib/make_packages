@@ -25,6 +25,12 @@ if __name__ == '__main__':
         'six',
         'jsonrpclib',
 	'socks',
+	'urllib3',
+	'certifi',
+	'chardet',
+	'idna',
+	'pyexpat',
+	'win_inet_pton'
     ]
     for module in deps:
         if module == 'google/protobuf':

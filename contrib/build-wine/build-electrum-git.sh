@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # You probably need to update only this link
-ELECTRUM_GIT_URL=git://github.com/spesmilo/electrum.git
-BRANCH=master
+ELECTRUM_GIT_URL=git://github.com/fyookball/electrum.git
+BRANCH=cash
 NAME_ROOT=electrum
 
 
