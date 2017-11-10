@@ -12,7 +12,7 @@ else:
 home = 'C:\\electrum\\'
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
-a = Analysis([home+'electrum',
+a = Analysis([home+'electron-cash',
               home+'gui/qt/main_window.py',
               home+'gui/text.py',
               home+'lib/util.py',
@@ -84,7 +84,7 @@ exe = EXE(pyz,
           debug=False,
           strip=None,
           upx=False,
-          icon=home+'icons/electrum.ico',
+          icon=home+'icons/electron.ico',
           console=False)
           # The console True makes an annoying black box pop up, but it does make Electrum output command line commands, with this turned off no output will be given but commands can still be used
 
@@ -95,6 +95,6 @@ coll = COLLECT(exe,
                strip=None,
                upx=True,
                debug=False,
-               icon=home+'icons/electrum.ico',
+               icon=home+'icons/electron.ico',
                console=False,
                name=os.path.join('dist', 'electrum'))
