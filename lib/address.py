@@ -291,6 +291,7 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
     FMT_CASHADDR = 0
     FMT_LEGACY = 1
     FMT_BITPAY = 2   # Supported temporarily only for compatibility
+    FMT_SLPADDR = 3
 
     # Default to CashAddr
     FMT_UI = FMT_CASHADDR
@@ -303,7 +304,7 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
 
     @classmethod
     def show_cashaddr(cls, on):
-        cls.FMT_UI = cls.FMT_CASHADDR if on else cls.FMT_LEGACY
+        cls.FMT_UI = cls.FMT_CASHADDR if on else cls.FMT_SLPADDR
 
     @classmethod
     def from_cashaddr_string(cls, string):
@@ -324,10 +325,35 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
             return cls(addr_hash, cls.ADDR_P2SH)
 
     @classmethod
+    def from_slpaddr_string(cls, string):
+        '''Construct from a slpaddress string.'''
+        prefix = NetworkConstants.SLPADDR_PREFIX
+        if string.upper() == string:
+            prefix = prefix.upper()
+        if not string.startswith(prefix + ':'):
+            string = ':'.join([prefix, string])
+        addr_prefix, kind, addr_hash = cashaddr.decode(string)
+        if addr_prefix != prefix:
+            raise AddressError('address has unexpected prefix {}'
+                               .format(addr_prefix))
+        if kind == cashaddr.PUBKEY_TYPE:
+            return cls(addr_hash, cls.ADDR_P2PKH)
+        else:
+            assert kind == cashaddr.SCRIPT_TYPE
+            return cls(addr_hash, cls.ADDR_P2SH)
+  
+    @classmethod
     def from_string(cls, string):
-        '''Construct from an address string.'''
+        '''Construct from an address string.''' 
         if len(string) > 35:
-            return cls.from_cashaddr_string(string)
+            if ":" in string:
+                addrpiece1,addrpiece2 = string.split(":")
+                if addrpiece1=="slp":
+                   return cls.from_slpaddr_string(string)
+                else:
+                    return cls.from_cashaddr_string(string)
+            else:
+               return cls.from_cashaddr_string(string) 
 
         raw = Base58.decode_check(string)
 
@@ -395,11 +421,21 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
             kind  = cashaddr.SCRIPT_TYPE
         return cashaddr.encode(NetworkConstants.CASHADDR_PREFIX, kind,
                                self.hash160)
+    def to_slpaddr(self):
+        if self.kind == self.ADDR_P2PKH:
+            kind  = cashaddr.PUBKEY_TYPE
+        else:
+            kind  = cashaddr.SCRIPT_TYPE
+        return cashaddr.encode(NetworkConstants.SLPADDR_PREFIX, kind,
+                               self.hash160)
 
     def to_string(self, fmt):
         '''Converts to a string of the given format.'''
         if fmt == self.FMT_CASHADDR:
             return self.to_cashaddr()
+
+        if fmt == self.FMT_SLPADDR:
+            return self.to_slpaddr()
 
         if fmt == self.FMT_LEGACY:
             if self.kind == self.ADDR_P2PKH:
@@ -421,6 +457,8 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         text = self.to_string(fmt)
         if fmt == self.FMT_CASHADDR:
             text = ':'.join([NetworkConstants.CASHADDR_PREFIX, text])
+        if fmt == self.FMT_SLPADDR:
+            text = ':'.join([NetworkConstants.SLPADDR_PREFIX, text])
         return text
 
     def to_ui_string(self):
@@ -434,10 +472,14 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
     def to_URI_components(self):
         '''Returns a (scheme, path) pair for building a URI.'''
         scheme = NetworkConstants.CASHADDR_PREFIX
+        scheme2 = NetworkConstants.SLPADDR_PREFIX
         path = self.to_ui_string()
         # Convert to upper case if CashAddr
         if self.FMT_UI == self.FMT_CASHADDR:
             scheme = scheme.upper()
+            path = path.upper()
+        if self.FMT_UI == self.FMT_SLPADDR:
+            scheme = scheme2.upper()
             path = path.upper()
         return scheme, path
 
