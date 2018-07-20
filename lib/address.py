@@ -270,6 +270,36 @@ class ScriptOutput(namedtuple("ScriptAddressTuple", "script")):
                 pass      
         return self.script.hex()
 
+    def to_asm(self):
+        '''Convert to user-readable OP-codes (plus text), eg OP_RETURN (12) Hello there!
+           Or, to a hexadecimal string if that fails.
+           Note that this function is the inverse of from_string() only if called with hex_only = True!'''
+        if self.script:
+            try:
+                ret = ''
+                ops = Script.get_ops(self.script)
+                for op in ops:
+                    if ret: ret += " "
+                    def lookup(x):
+                        if not (x > 0 and x < 79): # only display non-PUSHDATA opcodes
+                            return OpCodes.reverseLookup.get(x, (''))
+                        return None
+                    if isinstance(op, tuple):
+                        if lookup(op[0]) is not None:
+                            ret += lookup(op[0]) + " " + op[1].hex()
+                        else:
+                            ret += op[1].hex()
+                    elif isinstance(op, int):
+                        ret += lookup(op)
+                    else:
+                        ret += '[' + (op.hex() if isinstance(op, bytes) else str(op)) + ']'
+                return ret
+            except ScriptError:
+                raise Exception("Truncated script.")
+                # Truncated script -- so just default to normal 'hex' encoding below.
+                pass
+        raise Exception("There is no script object to convert to ASM format.")
+
     def to_script(self):
         return self.script
 
