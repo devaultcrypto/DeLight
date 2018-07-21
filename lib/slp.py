@@ -3,7 +3,7 @@ from enum import Enum
 
 # This class has sole responsibility for creating NEW SLP token transactions
 class SlpTokenTransactionFactory():
-    def __init__(token_version: SlpTokenVersion = SlpTokenVersion.TYPE_0001,
+    def __init__(token_version: SlpTokenVersion = SlpTokenVersion.TYPE_1,
                     token_id_hex: str = None):
         self.token_version = token_version
         self.token_id_hex = token_id_hex
@@ -130,7 +130,7 @@ class SlpMessage():
         # check if the slp transaction type is valid
         slpMsg.transaction_type = SlpTransactionType.parseFromHex(split_asm[3])
 
-        slpMsg.isSlpToken
+        slpMsg.isSlpToken = True
 
         if slpMsg.token_version is SlpTokenVersion.TYPE_1:
             slpMsg.isSupportedTokenVersion = True
@@ -200,7 +200,7 @@ class SlpMessage():
             for (field, i) in split_asm:
                 if i > 4:
                     try:
-                        slpMsg.output_fields['token_output_' + str(i)] = int(field, 16)
+                        slpMsg.output_fields['token_output_' + str(i-4)] = int(field, 16)
                     except: 
                         raise SlpImproperlyFormattedTransaction()
 
