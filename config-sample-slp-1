@@ -1,0 +1,26 @@
+{
+    "auto_connect": true,
+    "config_version": 2,
+    "console-history": [],
+    "gui_last_wallet": "/home/ubuntu/.electron-cash/wallets/wallet_1",
+    "is_maximized": false,
+    "recently_open": [
+        "/home/ubuntu/.electron-cash/wallets/wallet_1",
+        "/home/ubuntu/.electron-cash/wallets/default_wallet"
+    ],
+    "rpcpassword": "",
+    "rpcuser": "user",
+    "show_cashaddr": true,
+    "slp_tokens": [
+        {
+            "hash": "333",
+            "name": "tokentype1",
+            "dec_prec": 4
+        },
+        {
+            "hash": "444",
+            "name": "tokentype2",
+            "dec_prec": 8
+        }
+    ]
+}

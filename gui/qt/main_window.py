@@ -130,7 +130,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.tx_notifications = []
         self.tl_windows = []
         self.tx_external_keypairs = {}
-
+        self.slp_token_gui_hash_list = []
+        self.slp_token_gui_list = []
         Address.show_cashaddr(config.get('show_cashaddr', False))
 
         self.create_status_bar()
@@ -143,6 +144,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.completions = QStringListModel()
 
         self.tabs = tabs = QTabWidget(self)
+
+
+
         self.send_tab = self.create_send_tab()
         self.receive_tab = self.create_receive_tab()
         self.addresses_tab = self.create_addresses_tab()
@@ -213,6 +217,25 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         # update fee slider in case we missed the callback
         self.fee_slider.update()
         self.load_wallet(wallet)
+
+        
+
+ 
+        #Get SLP Token list from Config file
+        slp_token_list =  self.config.get('slp_tokens')
+        self.slp_token_gui_list=["NONE"]
+        self.slp_token_gui_hash_list=["0"]
+        if slp_token_list:
+            for i in slp_token_list:
+                singlename=i["name"]
+                self.slp_token_gui_list.append(singlename)
+                singlehash=i["hash"]
+                self.slp_token_gui_hash_list.append(singlehash)
+        self.slp_token_type_combo.addItems([i for i in self.slp_token_gui_list])
+   
+ 
+        ## end SLP token from config section
+
         self.connect_slots(gui_object.timer)
         self.fetch_alias()
 
@@ -1046,6 +1069,19 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.qr_window and self.qr_window.isVisible():
             self.qr_window.set_content(self.receive_address_e.text(), amount,
                                        message, uri)
+ 
+
+    def on_slptok(x):
+        tok_index=x.slp_token_type_combo.currentIndex()
+        if not tok_index or tok_index==0:
+            x.amount_e.setAmount(0)
+            x.amount_e.setText("")
+            x.max_button.setEnabled(True)
+            x.amount_e.setFrozen(False)
+        else:
+            x.max_button.setEnabled(False)
+            x.amount_e.setAmount(546)
+            x.amount_e.setFrozen(True)
 
     def create_send_tab(self):
         # A 4-column grid layout.  All the stretch is in the last column.
@@ -1056,7 +1092,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         from .paytoedit import PayToEdit
         self.amount_e = BTCAmountEdit(self.get_decimal_point)
+
+        self.slp_amount_e = BTCAmountEdit(self.get_decimal_point)
+ 
+        self.slp_token_type_combo = QComboBox() 
+        self.slp_token_type_combo.setFixedWidth(200)
+        self.slp_token_type_combo.currentIndexChanged.connect(self.on_slptok)
         self.payto_e = PayToEdit(self)
+
+
+
+
         msg = _('Recipient of the funds.') + '\n\n'\
               + _('You may enter a Bitcoin Cash address, a label from your list of contacts (a list of completions will be proposed), or an alias (email-like address that forwards to a Bitcoin Cash address)')
         payto_label = HelpLabel(_('Pay to'), msg)
@@ -1106,6 +1152,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(amount_label, 5, 0)
         grid.addWidget(self.amount_e, 5, 1)
 
+
+        
+
         self.fiat_send_e = AmountEdit(self.fx.get_currency if self.fx else '')
         if not self.fx or not self.fx.is_enabled():
             self.fiat_send_e.setVisible(False)
@@ -1152,10 +1201,39 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.fee_e.editingFinished.connect(self.update_fee)
         self.connect_fields(self, self.amount_e, self.fiat_send_e, self.fee_e)
 
-        grid.addWidget(self.fee_e_label, 6, 0)
-        grid.addWidget(self.fee_slider, 6, 1)
-        grid.addWidget(self.fee_custom_lbl, 6, 1)
-        grid.addWidget(self.fee_e, 6, 2)
+
+
+        msg = _('Amount to be sent.') + '\n\n' \
+              + _('The amount will be displayed in red if you do not have enough funds in your wallet.') + ' ' \
+              + _('Note that if you have frozen some of your addresses, the available funds will be lower than your total balance.') + '\n\n' \
+              + _('Keyboard shortcut: type "!" to send all your coins.')
+        self.slp_amount_label = HelpLabel(_('SLP Amount'), msg)
+        grid.addWidget(self.slp_amount_label, 6, 0)
+        grid.addWidget(self.slp_amount_e, 6, 1)
+
+        
+        msg = _('Amount to be sent.') + '\n\n' \
+              + _('The amount will be displayed in red if you do not have enough funds in your wallet.') + ' ' \
+              + _('Note that if you have frozen some of your addresses, the available funds will be lower than your total balance.') + '\n\n' \
+              + _('Keyboard shortcut: type "!" to send all your coins.')
+        self.slp_token_type_label = HelpLabel(_('Token Type'), msg)
+        grid.addWidget(self.slp_token_type_label, 7, 0)
+        grid.addWidget(self.slp_token_type_combo, 7, 1)
+ 
+ 
+        if not self.config.get('enable_slp'):
+            self.slp_amount_label.setHidden(True)
+            self.slp_token_type_label.setHidden(True) 
+            self.slp_token_type_combo.setCurrentIndex(0)        
+            self.slp_token_type_combo.setHidden(True)
+            self.slp_amount_e.setAmount(0)
+            self.slp_amount_e.setText("")
+            self.slp_amount_e.setHidden(True) 
+             
+        grid.addWidget(self.fee_e_label, 8, 0)
+        grid.addWidget(self.fee_slider, 8, 1)
+        grid.addWidget(self.fee_custom_lbl, 8, 1)
+        grid.addWidget(self.fee_e, 8, 2)
 
         self.preview_button = EnterButton(_("Preview"), self.do_preview)
         self.preview_button.setToolTip(_('Display the details of your transactions before signing it.'))
@@ -1166,7 +1244,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         buttons.addWidget(self.clear_button)
         buttons.addWidget(self.preview_button)
         buttons.addWidget(self.send_button)
-        grid.addLayout(buttons, 7, 1, 1, 3)
+        grid.addLayout(buttons, 9, 1, 1, 3)
 
         self.amount_e.shortcut.connect(self.spend_max)
         self.payto_e.textChanged.connect(self.update_fee)
@@ -1289,9 +1367,16 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 _type, addr = self.get_payto_or_dummy()
                 outputs = [(_type, addr, amount)]
             try:
+                   
+                opreturn_message_slp_index=self.slp_token_type_combo.currentIndex()
+                opreturn_message_slp = "TRAN "+self.slp_token_gui_hash_list[opreturn_message_slp_index]+" "+self.slp_amount_e.text()  
+                if (opreturn_message_slp == "0"):
+                    opreturn_message_slp=""
                 opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
-                if opreturn_message:
-                    outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
+                if opreturn_message_slp:
+                    outputs.append(self.output_for_opreturn_stringdata(opreturn_message_slp))
+                elif opreturn_message:
+                    outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
                 tx = self.wallet.make_unsigned_transaction(self.get_coins(), outputs, self.config, fee) 
                 self.not_enough_funds = False
                 self.op_return_toolong = False
@@ -1416,8 +1501,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         try:
             # handle op_return if specified and enabled
+
+            opreturn_message_slp_index=self.slp_token_type_combo.currentIndex()
+            opreturn_message_slp = "TRAN "+self.slp_token_gui_hash_list[opreturn_message_slp_index]+" "+self.slp_amount_e.text()  
+            if (opreturn_message_slp == "0"):
+                    opreturn_message_slp=""
             opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
-            if opreturn_message:
+            if opreturn_message_slp:
+                outputs.append(self.output_for_opreturn_stringdata(opreturn_message_slp))
+            elif opreturn_message:
                 outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
         except OPReturnTooLarge as e:
             self.show_error(str(e))
@@ -1994,7 +2086,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tab = self.tabs.currentWidget()
         if hasattr(tab, 'searchable_list'):
             tab.searchable_list.filter(t)
-
+ 
     def new_contact_dialog(self):
         d = WindowModalDialog(self, _("New Contact"))
         vbox = QVBoxLayout(d)
@@ -2912,6 +3004,23 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         ccy_combo = QComboBox()
         ex_combo = QComboBox()
 
+        def on_slptok_pref(x):
+            if not x:
+                self.slp_token_type_combo.setCurrentIndex(0)        
+                self.slp_amount_e.setAmount(0)
+                self.slp_amount_e.setText("")
+            self.config.set_key('enable_slp', bool(x))
+            self.slp_amount_e.setHidden(not x)  
+            self.slp_token_type_combo.setHidden(not x) 
+            self.slp_amount_label.setHidden(not x)
+            self.slp_token_type_label.setHidden(not x)
+
+        enable_slp = bool(self.config.get('enable_slp'))
+        slp_cb = QCheckBox(_('Enable SLP tokens'))
+        slp_cb.setToolTip(_('Enable managing and sending SLP tokens.'))
+        slp_cb.setChecked(enable_slp)
+        slp_cb.stateChanged.connect(on_slptok_pref)
+        tx_widgets.append((slp_cb,None))
 
         def on_opret(x):
             self.config.set_key('enable_opreturn', bool(x))
