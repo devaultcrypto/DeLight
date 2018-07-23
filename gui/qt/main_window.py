@@ -154,6 +154,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.console_tab = self.create_console_tab()
         self.contacts_tab = self.create_contacts_tab()
         self.converter_tab = self.create_converter_tab()
+        self.slp_history_tab = self.create_slp_history_tab() 
         tabs.addTab(self.create_history_tab(), QIcon(":icons/tab_history.png"), _('History'))
         tabs.addTab(self.send_tab, QIcon(":icons/tab_send.png"), _('Send'))
         tabs.addTab(self.receive_tab, QIcon(":icons/tab_receive.png"), _('Receive'))
@@ -171,6 +172,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         add_optional_tab(tabs, self.contacts_tab, QIcon(":icons/tab_contacts.png"), _("Con&tacts"), "contacts")
         add_optional_tab(tabs, self.converter_tab, QIcon(":icons/tab_converter.png"), _("Address Converter"), "converter", True)
         add_optional_tab(tabs, self.console_tab, QIcon(":icons/tab_console.png"), _("Con&sole"), "console")
+        add_optional_tab(tabs, self.slp_history_tab, QIcon(":icons/tab_converter.png"), _("SLP History"), "slp_history", True)
+        
 
         tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setCentralWidget(tabs)
@@ -196,7 +199,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.payment_request_error_signal.connect(self.payment_request_error)
         self.notify_transactions_signal.connect(self.notify_transactions)
         self.history_list.setFocus(True)
-
+        self.slp_history_list.setFocus(True)
+  
         # network callbacks
         if self.network:
             self.network_signal.connect(self.on_network_qt)
@@ -215,12 +219,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.new_fx_history_signal.connect(self.on_fx_history)
 
         # update fee slider in case we missed the callback
-        self.fee_slider.update()
-        self.load_wallet(wallet)
+        self.fee_slider.update() 
+        self.load_wallet(wallet) 
 
-        
-
- 
         #Get SLP Token list from Config file
         slp_token_list =  self.config.get('slp_tokens')
         self.slp_token_gui_list=["NONE"]
@@ -232,13 +233,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 singlehash=i["hash"]
                 self.slp_token_gui_hash_list.append(singlehash)
         self.slp_token_type_combo.addItems([i for i in self.slp_token_gui_list])
-   
- 
         ## end SLP token from config section
 
-        self.connect_slots(gui_object.timer)
+        self.connect_slots(gui_object.timer) 
         self.fetch_alias()
-
+ 
     def on_history(self, b):
         self.new_fx_history_signal.emit()
 
@@ -348,6 +347,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.console.showMessage(args[0])
         elif event == 'verified':
             self.history_list.update_item(*args)
+            self.slp_history_list.update_item(*args)
         elif event == 'fee':
             pass
         else:
@@ -374,8 +374,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         wallet.thread = TaskThread(self, self.on_error)
         self.wallet = wallet
         self.update_recently_visited(wallet.storage.path)
-        # address used to create a dummy transaction and estimate transaction fee
+        # address used to create a dummy transaction and estimate transaction fee 
         self.history_list.update()
+        self.slp_history_list.update()
         self.address_list.update()
         self.utxo_list.update()
         self.need_update.set()
@@ -394,8 +395,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.hide()
         else:
             self.show()
-        self.watching_only_changed()
-        run_hook('load_wallet', wallet, self)
+        self.watching_only_changed() 
+        run_hook('load_wallet', wallet, self) 
 
     def init_geometry(self):
         winpos = self.wallet.storage.get("winpos-qt")
@@ -556,6 +557,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         add_toggle_action(view_menu, self.utxo_tab)
         add_toggle_action(view_menu, self.contacts_tab)
         add_toggle_action(view_menu, self.converter_tab)
+        add_toggle_action(view_menu, self.slp_history_tab)
         add_toggle_action(view_menu, self.console_tab)
 
         tools_menu = menubar.addMenu(_("&Tools"))
@@ -665,10 +667,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.config.set_key('io_dir', os.path.dirname(fileName), True)
         return fileName
 
-    def connect_slots(self, sender):
+    def connect_slots(self, sender): 
         sender.timer_signal.connect(self.timer_actions)
 
     def timer_actions(self):
+ 
         # Note this runs in the GUI thread
         if self.need_update.is_set():
             self.need_update.clear()
@@ -747,7 +750,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def update_status(self):
         if not self.wallet:
             return
-
+ 
         if self.network is None or not self.network.is_running():
             text = _("Offline")
             icon = QIcon(":icons/status_disconnected.png")
@@ -790,12 +793,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
 
     def update_wallet(self):
+ 
         self.update_status()
         if self.wallet.up_to_date or not self.network or not self.network.is_connected():
             self.update_tabs()
 
     def update_tabs(self):
+ 
         self.history_list.update()
+        self.slp_history_list.update()
         self.request_list.update()
         self.address_list.update()
         self.utxo_list.update()
@@ -807,6 +813,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         from .history_list import HistoryList
         self.history_list = l = HistoryList(self)
         l.searchable_list = l
+        return l
+
+    def create_slp_history_tab(self):
+         
+        from .slp_history_list import HistoryList
+        
+        self.slp_history_list = l = HistoryList(self)
+        l.searchable_list = l
+        
         return l
 
     def show_address(self, addr):
@@ -2777,6 +2792,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tx_widgets = []
         id_widgets = []
 
+         
         cashaddr_cb = QCheckBox(_('CashAddr address format'))
         cashaddr_cb.setChecked(Address.FMT_UI == Address.FMT_CASHADDR)
         cashaddr_cb.setToolTip(_("If unchecked, addresses are shown in legacy format"))
@@ -3088,7 +3104,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if not self.fx: return
             self.fx.set_history_config(checked)
             update_exchanges()
-            self.history_list.refresh_headers()
+            self.history_list.refresh_headers() 
+            self.slp_history_list.refresh_headers()
             if self.fx.is_enabled() and checked:
                 # reset timeout to get historical rates
                 self.fx.timeout = 0

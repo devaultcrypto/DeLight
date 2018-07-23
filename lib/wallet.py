@@ -792,6 +792,19 @@ class Abstract_Wallet(PrintError):
         # Store fees
         self.tx_fees.update(tx_fees)
 
+
+    def get_slp_history(self):
+        history = []
+        slp_history = self.storage.get('slp_history' ) 
+        for h_item in slp_history: 
+            txid=h_item["txid"]
+            delta=h_item["delta"]
+            tokentype=h_item["tokentype"]
+            height, conf, timestamp = self.get_tx_height(txid) 
+            history.append((txid, height, conf, timestamp, delta,tokentype)) 
+        history.sort(key = lambda x: self.get_txpos(x[0])) 
+        return history
+
     def get_history(self, domain=None):
         # get domain
         if domain is None:
