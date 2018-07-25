@@ -1382,7 +1382,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 _type, addr = self.get_payto_or_dummy()
                 outputs = [(_type, addr, amount)]
             try:
-                   
                 opreturn_message_slp_index=self.slp_token_type_combo.currentIndex()
                 opreturn_message_slp = "TRAN "+self.slp_token_gui_hash_list[opreturn_message_slp_index]+" "+self.slp_amount_e.text()  
                 if (opreturn_message_slp == "0"):
@@ -1754,7 +1753,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             out = web.parse_URI(URI, self.on_pr)
         except Exception as e:
-            self.show_error(_('Invalid bitcoincash URI:') + '\n' + str(e))
+            # THIS NEEDS TO BE COMMENTED OUT TO WORK WITH VSCODE DEBUGGER
+            #self.show_error(_('Invalid bitcoincash URI:') + '\n' + str(e))
             return
         self.show_send_tab()
         r = out.get('r')
