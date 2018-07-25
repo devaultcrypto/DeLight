@@ -107,12 +107,14 @@ class SlpMessage():
             slpMsg.op_return_fields['token_id_hex'] = SlpMessage.parseHex2HexString(split_asm[4], 32, 32, True)
             slpMsg.op_return_fields['comment'] = SlpMessage.parseHex2String(split_asm[5], 1, 27)
             outputs = len(split_asm) - 6
-            for (field, i) in split_asm:
+            if outputs > 19:
+                raise SlpInvalidOutputMessage()
+            for (i, field) in enumerate(split_asm):
                 if i > 5:
                     try:
                         slpMsg.op_return_fields['token_output_' + str(i-5)] = SlpMessage.parseHex2Int(field, 8, 8)
                     except: 
-                        raise SlpImproperlyFormattedTransaction()
+                        raise SlpInvalidOutputMessage()
             return slpMsg
 
     @staticmethod
@@ -140,9 +142,9 @@ class SlpMessage():
     @staticmethod
     def parseHex2String(stringHex: str, minByteLen: int = 1, maxByteLen: int = None, encoding: str = 'utf-8', raise_on_0x00: bool = False) -> str:
         if maxByteLen is not None:
-            if len(stringHex) > maxByteLen * 2:
+            if len(stringHex) > (maxByteLen * 2):
                 raise SlpInvalidOutputMessage()
-        if len(stringHex) < minByteLen * 2:
+        if len(stringHex) < (minByteLen * 2):
             raise SlpInvalidOutputMessage()
         if stringHex == '00' and raise_on_0x00:
             raise SlpInvalidOutputMessage()
@@ -159,9 +161,9 @@ class SlpMessage():
     @staticmethod
     def parseHex2Int(intHex: str, minByteLen: int = 1, maxByteLen: int = 8, raise_on_0x00: bool = False):
         if maxByteLen is not None:
-            if len(intHex) > maxByteLen * 2:
+            if len(intHex) > (maxByteLen * 2):
                 raise SlpInvalidOutputMessage()
-        if len(intHex) < minByteLen * 2:
+        if len(intHex) < (minByteLen * 2):
             raise SlpInvalidOutputMessage()
         if intHex == '00' and raise_on_0x00:
             raise SlpInvalidOutputMessage()
@@ -174,16 +176,16 @@ class SlpMessage():
         return decoded
 
     @staticmethod
-    def parseHex2HexString(hexStr: str, minByteLen: int = 1, maxByteLen: int = 32, raise_on_0x00: bool = False):
+    def parseHex2HexString(hexStr: str, minByteLen: int = 1, maxByteLen: int = 32, raise_on_0x00: bool = False) -> str:
         if hexStr == '00' and raise_on_0x00:
             raise SlpInvalidOutputMessage()
         elif hexStr == '00':
             return None
         if minByteLen is not None:
-            if len(hexStr) * 2 < minByteLen:
+            if len(hexStr) < (minByteLen * 2):
                 raise SlpInvalidOutputMessage()
         if maxByteLen is not None:
-            if len(hexStr) * 2 > maxByteLen:
+            if len(hexStr) > (maxByteLen * 2):
                 raise SlpInvalidOutputMessage()
         return hexStr
 
@@ -218,15 +220,15 @@ class SlpTokenTransactionFactory():
         return tx
 
     # Type 1 Token INIT Message
-    def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash: int, initial_token_mint_quantity: int) -> tuple:
+    def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, initial_token_mint_quantity: int) -> tuple:
         script = "OP_RETURN " + \
                     self.lokad_id + " " + \
                     int_2_hex_left_pad(self.token_version) + " " + \
                     "INIT".encode('utf-8').hex() + " " + \
-                    ticker.encode('utf-8').hex() + " " + \
-                    token_name.encode('utf-8').hex() + " " + \
-                    token_document_url.encode('ascii').hex() + " " + \
-                    int_2_hex_left_pad(token_document_hash) + " " + \
+                    SlpTokenTransactionFactory.encodeStringToHex(ticker, 'utf-8') + " " + \
+                    SlpTokenTransactionFactory.encodeStringToHex(token_name, 'utf-8') + " " + \
+                    SlpTokenTransactionFactory.encodeStringToHex(token_document_url, 'ascii') + " " + \
+                    SlpTokenTransactionFactory.encodeHexStringToHex(token_document_hash_hex) + " " + \
                     int_2_hex_left_pad(initial_token_mint_quantity, 8)
 
         # TODO: handle max_final_token_supply -- future baton case
@@ -237,17 +239,14 @@ class SlpTokenTransactionFactory():
 
     # Type 1 Token TRAN Message
     def buildTransferOpReturnOutput_V1(self, comment: str, output_qty_array: []) -> tuple:
-
         if self.token_id_hex == None:
             raise SlpTokenIdMissing
-
         script = "OP_RETURN " + \
                 self.lokad_id + " " + \
                 int_2_hex_left_pad(self.token_version) + " " + \
-                "TRAN".encode('utf-8').hex() + " " + \
+                SlpTokenTransactionFactory.encodeStringToHex("TRAN", 'utf-8') + " " + \
                 self.token_id_hex + " " + \
-                comment.encode('utf-8').hex() + " " \
-
+                SlpTokenTransactionFactory.encodeStringToHex(comment, 'utf-8')
         if len(output_qty_array) > 20: 
             raise Exception("Cannot have more than 20 SLP Token outputs.")
         for qty in output_qty_array:
@@ -256,6 +255,18 @@ class SlpTokenTransactionFactory():
         if len(scriptBuffer.script) > 223:
             raise OPReturnTooLarge(_("OP_RETURN message too large, needs to be under 220 bytes"))
         return (TYPE_SCRIPT, scriptBuffer, 0)
+
+    @staticmethod
+    def encodeStringToHex(stringData: str, encoding = 'utf-8', allow_0x00 = False):
+        if stringData == '00' or stringData == '0' or stringData == None:
+            return '00'
+        return stringData.encode(encoding).hex()
+
+    @staticmethod
+    def encodeHexStringToHex(stringData: str, ):
+        if stringData == '00' or stringData == '0' or stringData == None:
+            return '00'
+        return stringData
 
     # def buildMintOpReturnOutput(self, additional_token_quantity):
     #     script = "OP_RETURN " + self.lokad_id + " " + self.token_version + " MINT"
