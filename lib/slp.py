@@ -106,15 +106,11 @@ class SlpMessage():
 
             slpMsg.op_return_fields['token_id_hex'] = SlpMessage.parseHex2HexString(split_asm[4], 32, 32, True)
             slpMsg.op_return_fields['comment'] = SlpMessage.parseHex2String(split_asm[5], 1, 27)
-            outputs = len(split_asm) - 6
-            if outputs > 19:
+            slpMsg.op_return_fields['token_output'] = [
+                        SlpMessage.parseHex2Int(field, 8, 8) for field in split_asm[6:]
+                        ]
+            if len(slpMsg.op_return_fields) > 19:
                 raise SlpInvalidOutputMessage()
-            for (i, field) in enumerate(split_asm):
-                if i > 5:
-                    try:
-                        slpMsg.op_return_fields['token_output_' + str(i-5)] = SlpMessage.parseHex2Int(field, 8, 8)
-                    except: 
-                        raise SlpInvalidOutputMessage()
             return slpMsg
 
     @staticmethod
@@ -136,7 +132,7 @@ class SlpMessage():
         decoded = int(versionHex, 16)
         if decoded is SlpTokenType.TYPE_1.value:
             return decoded
-        else: 
+        else:
             raise SlpInvalidOutputMessage()
 
     @staticmethod
@@ -169,7 +165,7 @@ class SlpMessage():
             raise SlpInvalidOutputMessage()
         elif intHex == '00':
             return 0
-        try: 
+        try:
             decoded = int(intHex, 16)
         except:
             raise Exception("An error occured while parsing integer")
@@ -190,7 +186,7 @@ class SlpMessage():
         return hexStr
 
 # This class has sole responsibility for creating NEW SLP token transactions
-# Since there is currently only one token type, this implementation is 
+# Since there is currently only one token type, this implementation is
 # currently void of any Token Type selection logic, which will be required
 # if more than 1 token types are ever desired for Electron Cash.
 class SlpTokenTransactionFactory():
@@ -247,7 +243,7 @@ class SlpTokenTransactionFactory():
                 SlpTokenTransactionFactory.encodeStringToHex("TRAN", 'utf-8') + " " + \
                 self.token_id_hex + " " + \
                 SlpTokenTransactionFactory.encodeStringToHex(comment, 'utf-8')
-        if len(output_qty_array) > 20: 
+        if len(output_qty_array) > 20:
             raise Exception("Cannot have more than 20 SLP Token outputs.")
         for qty in output_qty_array:
             script = script + " " + int_2_hex_left_pad(qty, 8)
