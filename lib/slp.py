@@ -49,6 +49,7 @@ class SlpMessage():
 
     # This method attempts to parse a ScriptOutput object as an SLP message.
     # If it fails it will throw SlpInvalidOutputMessage or SlpUnsupportedSlpTokenType or SlpImproperlyFormattedTransaction
+    @staticmethod
     def parseSlpOutputScript(outputScript: ScriptOutput):
         slpMsg = SlpMessage()
         # convert raw script to ASM Human-readable format w/o pushdata commands
@@ -106,10 +107,11 @@ class SlpMessage():
 
             slpMsg.op_return_fields['token_id_hex'] = SlpMessage.parseHex2HexString(split_asm[4], 32, 32, True)
             slpMsg.op_return_fields['comment'] = SlpMessage.parseHex2String(split_asm[5], 1, 27)
+            # note that ['token_output'][0] corresponds to vout=1
             slpMsg.op_return_fields['token_output'] = [
                         SlpMessage.parseHex2Int(field, 8, 8) for field in split_asm[6:]
                         ]
-            if len(slpMsg.op_return_fields) > 19:
+            if len(slpMsg.op_return_fields['token_output']) > 19:
                 raise SlpInvalidOutputMessage()
             return slpMsg
 
