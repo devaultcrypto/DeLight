@@ -103,13 +103,14 @@ class HistoryList(MyTreeWidget):
         current_tx = item.data(0, Qt.UserRole) if item else None
         self.clear()
         for tok in slp_token_list:
-            tok_name_dict[tok["hash"]]=tok["name"] 
-
+            tok_name_dict[tok["hash"]]=tok["name"]  
         for h_item in slp_history: 
             tx_hash, height, conf, timestamp, delta,tokentype= h_item
             status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
             icon = QIcon(":icons/" + TX_ICONS[status])
-            tokenname=tok_name_dict[tokentype]
+            tokenname=tok_name_dict.get(tokentype) # use get format to avoid exception if none 
+            if tokenname is None:
+                tokenname="UNKNOWN"
             entry = ['', tx_hash, status_str, tokenname, delta]
             item = SortableTreeWidgetItem(entry)
             self.insertTopLevelItem(0, item)
