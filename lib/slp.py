@@ -42,9 +42,9 @@ class SlpMessage():
         self.isChecked = False
         self.isSlpToken = False
         self.isSupportedTokenVersion = False
-        self.lokad_id: str = '00534c50'
-        self.token_type: SlpTokenType = None
-        self.transaction_type: SlpTransactionType = None
+        self.lokad_id = "00534c50"
+        self.token_type  = None
+        self.transaction_type  = None
         self.op_return_fields = {}
 
     # This method attempts to parse a ScriptOutput object as an SLP message.
@@ -203,7 +203,7 @@ class SlpTokenTransactionFactory():
     def __init__(self, token_version: int = SlpTokenType.TYPE_1, token_id_hex: str = None):
         self.token_version = token_version
         self.token_id_hex = token_id_hex
-        self.lokad_id: str = '00534c50'
+        self.lokad_id = "00534c50"
 
     # Token Version agnostic INIT Transaction Builder
     def buildInitTransaction(self, inputs, output_mint_reciever, ticker: str, token_name: str, token_document_ascii_url: str,  token_document_hash_hex: str, initial_token_mint_quantity: int) -> Transaction:
