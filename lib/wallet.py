@@ -766,7 +766,7 @@ class Abstract_Wallet(PrintError):
                         'txid': tx_hash, 
                         'idx': 1, 
                         'token_id': slpMsg.op_return_fields['token_id_hex'], 
-                        'qty': slpMsg.op_return_fields['token_output_1']
+                        'qty': slpMsg.op_return_fields['token_output'][1]
                     })
                 except Exception as e:
                     #print(e)
