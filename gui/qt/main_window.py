@@ -23,6 +23,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import re
 import sys, time, threading
 import os, json, traceback
 import shutil
@@ -115,6 +116,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.fx = gui_object.daemon.fx
         self.invoices = wallet.invoices
         self.contacts = wallet.contacts
+        self.slp_token_list = self.config.get('slp_tokens')
         self.tray = gui_object.tray
         self.app = gui_object.app
         self.cleaned_up = False
@@ -153,6 +155,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.utxo_tab = self.create_utxo_tab()
         self.console_tab = self.create_console_tab()
         self.contacts_tab = self.create_contacts_tab()
+        self.slp_mgt_tab = self.create_slp_mgt_tab()
         self.converter_tab = self.create_converter_tab()
         self.slp_history_tab = self.create_slp_history_tab() 
         tabs.addTab(self.create_history_tab(), QIcon(":icons/tab_history.png"), _('History'))
@@ -170,6 +173,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         add_optional_tab(tabs, self.addresses_tab, QIcon(":icons/tab_addresses.png"), _("&Addresses"), "addresses")
         add_optional_tab(tabs, self.utxo_tab, QIcon(":icons/tab_coins.png"), _("Co&ins"), "utxo")
         add_optional_tab(tabs, self.contacts_tab, QIcon(":icons/tab_contacts.png"), _("Con&tacts"), "contacts")
+        add_optional_tab(tabs, self.slp_mgt_tab, QIcon(":icons/tab_slp_icon.png"), _("Tokens"), "tokens")
         add_optional_tab(tabs, self.converter_tab, QIcon(":icons/tab_converter.png"), _("Address Converter"), "converter", True)
         add_optional_tab(tabs, self.console_tab, QIcon(":icons/tab_console.png"), _("Con&sole"), "console")
         add_optional_tab(tabs, self.slp_history_tab, QIcon(":icons/tab_converter.png"), _("SLP History"), "slp_history", True)
@@ -559,6 +563,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         add_toggle_action(view_menu, self.converter_tab)
         add_toggle_action(view_menu, self.slp_history_tab)
         add_toggle_action(view_menu, self.console_tab)
+        add_toggle_action(view_menu, self.slp_mgt_tab)
 
         tools_menu = menubar.addMenu(_("&Tools"))
 
@@ -805,7 +810,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.request_list.update()
         self.address_list.update()
         self.utxo_list.update()
-        self.contact_list.update()
+        self.contact_list.update() 
+        self.slp_token_list_tab.update()
         self.invoice_list.update()
         self.update_completions()
 
@@ -1882,6 +1888,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.utxo_list = l = UTXOList(self)
         self.cashaddr_toggled_signal.connect(l.update)
         return self.create_list_tab(l)
+ 
+    def create_slp_mgt_tab(self):
+        from .slp_mgt import SlpMgt
+        self.slp_token_list_tab = l = SlpMgt(self) 
+        return self.create_list_tab(l)
 
     def create_contacts_tab(self):
         from .contact_list import ContactList
@@ -1941,6 +1952,43 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.update_completions()
         return True
 
+    def set_slp_token(self, hash_id, token_name, dec_prec):
+
+        # Duplicate hash id error
+        if hash_id in str(self.slp_token_list): 
+            self.show_error(_('Duplicate Hash_Id'))
+            self.slp_token_list_tab.update()  # Displays original unchanged value
+            return False
+
+        #Hash id validation
+        hexregex='^[a-fA-F0-9]+$'
+        gothex=re.match(hexregex,hash_id) 
+        if gothex is None or len(hash_id) is not 64:
+            self.show_error(_('Invalid Hash_Id'))
+            self.slp_token_list_tab.update()  # Displays original unchanged value
+            return False
+      
+        #decimal precision validation
+        decregex='^[0-9]$'
+        gotdec=re.match(decregex,dec_prec)
+        if gotdec is None:
+            self.show_error(_('Decimal precision should be 0-9'))
+            self.slp_token_list_tab.update()  # Displays original unchanged value
+            return False
+ 
+        #token name validation
+        if len(token_name)> 20:
+            self.show_error(_('Token name should be less than 20 characters'))
+            self.slp_token_list_tab.update()  # Displays original unchanged value
+            return False
+ 
+        new_entry=dict({'hash':hash_id,'name':token_name,'dec_prec':dec_prec})
+        existing_entries=self.slp_token_list 
+        existing_entries.append(new_entry)
+        self.config.set_key('slp_tokens', existing_entries)
+        self.slp_token_list_tab.update()
+        return True
+
     def delete_contacts(self, labels):
         if not self.question(_("Remove {} from your list of contacts?")
                              .format(" + ".join(labels))):
@@ -1950,6 +1998,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.history_list.update()
         self.contact_list.update()
         self.update_completions()
+
+    def delete_slp_token(self, labels):
+        if not self.question(_("Remove {} from your list of tokens?")
+                             .format(" + ".join(labels))):
+            return
+        for i in self.slp_token_list:
+            if i["hash"] in labels: 
+                myInd=self.slp_token_list.index(i)
+                self.slp_token_list.pop(myInd) 
+        self.slp_token_list_tab.update()  
+        # RUN ADDITIONAL UPDATES ON WALLET
 
     def show_invoice(self, key):
         pr = self.invoices.get(key)
@@ -2119,6 +2178,28 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         vbox.addLayout(Buttons(CancelButton(d), OkButton(d)))
         if d.exec_():
             self.set_contact(line2.text(), line1.text())
+
+    def new_slp_token_dialog(self):
+        d = WindowModalDialog(self, _("New Token type"))
+        vbox = QVBoxLayout(d)
+        vbox.addWidget(QLabel(_('New token type') + ':'))
+        grid = QGridLayout()
+        line1 = QLineEdit()
+        line1.setFixedWidth(280)
+        line2 = QLineEdit()
+        line2.setFixedWidth(280)
+        line3 = QLineEdit()
+        line3.setFixedWidth(280)
+        grid.addWidget(QLabel(_("Genesis Hash Id")), 1, 0)
+        grid.addWidget(line1, 1, 1)
+        grid.addWidget(QLabel(_("Token Name")), 2, 0)
+        grid.addWidget(line2, 2, 1)
+        grid.addWidget(QLabel(_("Decimal Precision")), 3, 0)
+        grid.addWidget(line3, 3, 1)
+        vbox.addLayout(grid)
+        vbox.addLayout(Buttons(CancelButton(d), OkButton(d)))
+        if d.exec_():
+            self.set_slp_token(line1.text(), line2.text(), line3.text())
 
     def show_master_public_keys(self):
         dialog = WindowModalDialog(self, _("Wallet Information"))
