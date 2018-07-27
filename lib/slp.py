@@ -107,12 +107,20 @@ class SlpMessage():
 
             slpMsg.op_return_fields['token_id_hex'] = SlpMessage.parseHex2HexString(split_asm[4], 32, 32, True)
             slpMsg.op_return_fields['comment'] = SlpMessage.parseHex2String(split_asm[5], 1, 27)
-            # note that ['token_output'][0] corresponds to vout=1
-            slpMsg.op_return_fields['token_output'] = [
+
+            # Extract token output amounts.
+            # Note that we put an explicit 0 for  ['token_output'][0] since it
+            # corresponds to vout=0, which is the OP_RETURN tx output.
+            # ['token_output'][1] is the first token output given by the SLP
+            # message, i.e., the number listed as `token_output_quantity1` in the
+            # spec, which goes to tx output vout=1.
+            slpMsg.op_return_fields['token_output'] = [0] + [
                         SlpMessage.parseHex2Int(field, 8, 8) for field in split_asm[6:]
                         ]
-            if len(slpMsg.op_return_fields['token_output']) > 19:
+            # maximum 19 allowed token outputs, plus 1 for the explicit [0] we inserted.
+            if len(slpMsg.op_return_fields['token_output']) > 20:
                 raise SlpInvalidOutputMessage()
+
             return slpMsg
 
     @staticmethod
