@@ -333,8 +333,14 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         return super().__new__(cls, hash160, kind)
 
     @classmethod
-    def show_cashaddr(cls, on):
-        cls.FMT_UI = cls.FMT_CASHADDR if on else cls.FMT_SLPADDR
+    def show_cashaddr(cls, format):
+        if format==1: 
+            cls.FMT_UI = cls.FMT_CASHADDR;
+        elif format==2:
+            cls.FMT_UI = cls.FMT_SLPADDR;
+        else:
+            cls.FMT_UI = cls.FMT_LEGACY;
+             
 
     @classmethod
     def from_cashaddr_string(cls, string):
@@ -378,7 +384,7 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         if len(string) > 35:
             if ":" in string:
                 addrpiece1,addrpiece2 = string.split(":")
-                if addrpiece1=="slp":
+                if addrpiece1=="simpleledger":
                    return cls.from_slpaddr_string(string)
                 else:
                     return cls.from_cashaddr_string(string)

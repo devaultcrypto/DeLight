@@ -55,7 +55,7 @@ class NetworkConstants:
         cls.ADDRTYPE_P2SH = 5
         cls.ADDRTYPE_P2SH_BITPAY = 40
         cls.CASHADDR_PREFIX = "bitcoincash"
-        cls.SLPADDR_PREFIX = "slp"
+        cls.SLPADDR_PREFIX = "simpleledger"
         cls.HEADERS_URL = "http://bitcoincash.com/files/blockchain_headers"
         cls.GENESIS = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
         cls.DEFAULT_PORTS = {'t': '50001', 's': '50002'}

@@ -135,7 +135,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.tx_external_keypairs = {}
         self.slp_token_gui_hash_list = []
         self.slp_token_gui_list = []
-        Address.show_cashaddr(config.get('show_cashaddr', False))
+        Address.show_cashaddr(config.get('addr_format', 0))
 
         self.create_status_bar()
         self.need_update = threading.Event()
@@ -1820,10 +1820,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         cash_address.setReadOnly(True)
         legacy_address = QLineEdit()
         legacy_address.setReadOnly(True)
-
+        slp_address = QLineEdit()
+        slp_address.setReadOnly(True)
         widgets = [
             (cash_address, Address.FMT_CASHADDR),
             (legacy_address, Address.FMT_LEGACY),
+            (slp_address, Address.FMT_SLPADDR)
         ]
 
         def convert_address():
@@ -1856,6 +1858,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(cash_address, 1, 1)
         grid.addWidget(QLabel(_('Legacy address')), 2, 0)
         grid.addWidget(legacy_address, 2, 1)
+        grid.addWidget(QLabel(_('SLP address')), 3, 0)
+        grid.addWidget(slp_address, 3, 1)
         w.setLayout(grid)
 
         vbox = QVBoxLayout()
@@ -2852,23 +2856,29 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.update_status()
 
     def cashaddr_icon(self):
-        if self.config.get('show_cashaddr', False):
+        if self.config.get('addr_format', 0)==1:
             return QIcon(":icons/tab_converter.png")
+        elif self.config.get('addr_format', 0)==2:
+            return QIcon(":icons/tab_converter_slp.png")
         else:
             return QIcon(":icons/tab_converter_bw.png")
 
-    def update_cashaddr_icon(self):
+
+    def update_cashaddr_icon(self): 
         self.addr_converter_button.setIcon(self.cashaddr_icon())
 
-    def toggle_cashaddr_status_bar(self):
-        self.toggle_cashaddr(not self.config.get('show_cashaddr', False))
+    def toggle_cashaddr_status_bar(self): 
+        self.toggle_cashaddr(self.config.get('addr_format', 0))
 
-    def toggle_cashaddr_settings(self, state):
+    def toggle_cashaddr_settings(self, state): 
         self.toggle_cashaddr(state == Qt.Checked)
 
-    def toggle_cashaddr(self, on):
-        self.config.set_key('show_cashaddr', on)
-        Address.show_cashaddr(on)
+    def toggle_cashaddr(self, format):
+        format+=1
+        if format>2:
+            format=0 
+        self.config.set_key('addr_format', format)
+        Address.show_cashaddr(format)
         for window in self.gui_object.windows:
             window.cashaddr_toggled_signal.emit()
 
