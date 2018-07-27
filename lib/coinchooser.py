@@ -166,7 +166,7 @@ class CoinChooserBase(PrintError):
         return change
 
     def make_tx(self, coins, outputs, change_addrs, fee_estimator,
-                dust_threshold):
+                dust_threshold, sweep=False):
         '''Select unspent coins to spend to pay outputs.  If the change is
         greater than dust_threshold (after adding the change output to
         the transaction) it is kept, otherwise none is sent and it is
@@ -191,7 +191,8 @@ class CoinChooserBase(PrintError):
 
         # Collect the coins into buckets, choose a subset of the buckets
         buckets = self.bucketize_coins(coins)
-        buckets = self.choose_buckets(buckets, sufficient_funds,
+        if not sweep:
+            buckets = self.choose_buckets(buckets, sufficient_funds,
                                       self.penalty_func(tx))
 
         tx.add_inputs([coin for b in buckets for coin in b.coins])
@@ -210,6 +211,10 @@ class CoinChooserBase(PrintError):
 
     def choose_buckets(self, buckets, sufficient_funds, penalty_func):
         raise NotImplemented('To be subclassed')
+
+# class CoinChooserSlp(CoinChooserBase):
+#     def choose_buckets(self, buckets, sufficient_funds, penalty_func):
+
 
 class CoinChooserRandom(CoinChooserBase):
 

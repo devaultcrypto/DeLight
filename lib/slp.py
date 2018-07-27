@@ -221,12 +221,12 @@ class SlpTokenTransactionFactory():
     def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, initial_token_mint_quantity: int) -> tuple:
         script = "OP_RETURN " + \
                     self.lokad_id + " " + \
-                    int_2_hex_left_pad(self.token_version) + " " + \
-                    "INIT".encode('utf-8').hex() + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(ticker, 'utf-8') + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(token_name, 'utf-8') + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(token_document_url, 'ascii') + " " + \
-                    SlpTokenTransactionFactory.encodeHexStringToHex(token_document_hash_hex) + " " + \
+                    int_2_hex_left_pad(self.token_version.value) + " " + \
+                    SlpTokenTransactionFactory.encodeStringToHex("INIT", 'utf-8') + " " + \
+                    SlpTokenTransactionFactory.encodeStringToHex(ticker, 'utf-8', True, True) + " " + \
+                    SlpTokenTransactionFactory.encodeStringToHex(token_name, 'utf-8', True, True) + " " + \
+                    SlpTokenTransactionFactory.encodeStringToHex(token_document_url, 'ascii', True, True) + " " + \
+                    SlpTokenTransactionFactory.encodeHexStringToHex(token_document_hash_hex, True) + " " + \
                     int_2_hex_left_pad(initial_token_mint_quantity, 8)
 
         # TODO: handle max_final_token_supply -- future baton case
@@ -241,11 +241,11 @@ class SlpTokenTransactionFactory():
             raise SlpTokenIdMissing
         script = "OP_RETURN " + \
                 self.lokad_id + " " + \
-                int_2_hex_left_pad(self.token_version) + " " + \
+                int_2_hex_left_pad(self.token_version.value) + " " + \
                 SlpTokenTransactionFactory.encodeStringToHex("TRAN", 'utf-8') + " " + \
                 self.token_id_hex + " " + \
-                SlpTokenTransactionFactory.encodeStringToHex(comment, 'utf-8')
-        if len(output_qty_array) > 20:
+                SlpTokenTransactionFactory.encodeStringToHex(comment, 'utf-8', True, True)
+        if len(output_qty_array) > 20: 
             raise Exception("Cannot have more than 20 SLP Token outputs.")
         for qty in output_qty_array:
             script = script + " " + int_2_hex_left_pad(qty, 8)
@@ -255,14 +255,20 @@ class SlpTokenTransactionFactory():
         return (TYPE_SCRIPT, scriptBuffer, 0)
 
     @staticmethod
-    def encodeStringToHex(stringData: str, encoding = 'utf-8', allow_0x00 = False):
-        if stringData == '00' or stringData == '0' or stringData == None:
+    def encodeStringToHex(stringData: str, encoding = 'utf-8', allow_None_for_0x00 = False, conv_0_and_00_to_0x00 = False) -> str:
+        if not allow_None_for_0x00 and (stringData is None or stringData == ''):
+            raise SlpInvalidOutputMessage()
+        if conv_0_and_00_to_0x00 and (stringData == '00' or stringData == '0'): 
+            return '00'
+        if stringData is None or stringData == '':
             return '00'
         return stringData.encode(encoding).hex()
 
     @staticmethod
-    def encodeHexStringToHex(stringData: str, ):
-        if stringData == '00' or stringData == '0' or stringData == None:
+    def encodeHexStringToHex(stringData: str, allow_None_for_0x00 = False) -> str:
+        if not allow_None_for_0x00 and (stringData is None or stringData == ''):
+            raise SlpInvalidOutputMessage()
+        if stringData == '0' or stringData == '' or stringData is None:
             return '00'
         return stringData
 

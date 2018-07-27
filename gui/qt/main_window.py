@@ -60,6 +60,7 @@ try:
 except:
     plot_history = None
 import electroncash.web as web
+import electroncash.slp as slp
 
 from .amountedit import AmountEdit, BTCAmountEdit, MyLineEdit, BTCkBEdit, BTCSatsByteEdit
 from .qrcodewidget import QRCodeWidget, QRDialog
@@ -1388,16 +1389,21 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 _type, addr = self.get_payto_or_dummy()
                 outputs = [(_type, addr, amount)]
             try:
-                opreturn_message_slp_index=self.slp_token_type_combo.currentIndex()
-                opreturn_message_slp = "TRAN "+self.slp_token_gui_hash_list[opreturn_message_slp_index]+" "+self.slp_amount_e.text()  
-                if (opreturn_message_slp == "0"):
-                    opreturn_message_slp=""
+                # add the output for SLP or alternatively the OP_RETURN tool
+                opreturn_message_slp_index = self.slp_token_type_combo.currentIndex()
+                if (opreturn_message_slp_index is 0):
+                    slp_token_id=None
+                else:
+                    slp_token_id = self.slp_token_gui_hash_list[opreturn_message_slp_index]
+                    msgFactory = slp.SlpTokenTransactionFactory(slp.SlpTokenType.TYPE_1, slp_token_id)
+                    slp_tran = msgFactory.buildTransferOpReturnOutput_V1("", [ int(self.slp_amount_e.text()) ])
+                    outputs.append(slp_tran)
+                    #opreturn_message_slp = "TRAN " + slp_token_id + " " + self.slp_amount_e.text()  # TODO: replace this
+                    #outputs.append(self.output_for_opreturn_stringdata(opreturn_message_slp))
                 opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
-                if opreturn_message_slp:
-                    outputs.append(self.output_for_opreturn_stringdata(opreturn_message_slp))
-                elif opreturn_message:
+                if slp_token_id is None and opreturn_message != '':
                     outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
-                tx = self.wallet.make_unsigned_transaction(self.get_coins(), outputs, self.config, fee) 
+                tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False, slpTokenId = slp_token_id), outputs, self.config, fee) 
                 self.not_enough_funds = False
                 self.op_return_toolong = False
             except NotEnoughFunds:
@@ -1493,8 +1499,28 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return request_password
 
     def read_send_tab(self):
+        outputs = []
+        try:
+            # add the output for SLP or alternatively the OP_RETURN tool
+            opreturn_message_slp_index = self.slp_token_type_combo.currentIndex()
+            if (opreturn_message_slp_index is 0):
+                slp_token_id=None
+            else:
+                slp_token_id = self.slp_token_gui_hash_list[opreturn_message_slp_index]
+                msgFactory = slp.SlpTokenTransactionFactory(slp.SlpTokenType.TYPE_1, slp_token_id)
+                slp_tran = msgFactory.buildTransferOpReturnOutput_V1("", [ int(self.slp_amount_e.text()) ])
+                outputs.append(slp_tran)
+            opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
+            if slp_token_id is None and opreturn_message != '':
+                outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
+        except OPReturnTooLarge as e:
+            self.show_error(str(e))
+            return
+        except OPReturnError as e:
+            self.show_error(str(e))
+            return
 
-        isInvoice= False;
+        isInvoice= False
 
         if self.payment_request and self.payment_request.has_expired():
             self.show_error(_('Payment request has expired'))
@@ -1502,14 +1528,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         label = self.message_e.text()
 
         if self.payment_request:
-            isInvoice = True;
-            outputs = self.payment_request.get_outputs()
+            isInvoice = True
+            outputs.extend(self.payment_request.get_outputs())
         else:
             errors = self.payto_e.get_errors()
             if errors:
                 self.show_warning(_("Invalid lines found:") + "\n\n" + '\n'.join([ _("Line #") + str(x[0]+1) + ": " + x[1] for x in errors]))
                 return
-            outputs = self.payto_e.get_outputs(self.is_max)
+            outputs.extend(self.payto_e.get_outputs(self.is_max))
 
             if self.payto_e.is_alias and self.payto_e.validated is False:
                 alias = self.payto_e.toPlainText()
@@ -1518,26 +1544,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 msg += _('Do you wish to continue?')
                 if not self.question(msg):
                     return
-
-        try:
-            # handle op_return if specified and enabled
-
-            opreturn_message_slp_index=self.slp_token_type_combo.currentIndex()
-            opreturn_message_slp = "TRAN "+self.slp_token_gui_hash_list[opreturn_message_slp_index]+" "+self.slp_amount_e.text()  
-            if (opreturn_message_slp == "0"):
-                    opreturn_message_slp=""
-            opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
-            if opreturn_message_slp:
-                outputs.append(self.output_for_opreturn_stringdata(opreturn_message_slp))
-            elif opreturn_message:
-                outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
-        except OPReturnTooLarge as e:
-            self.show_error(str(e))
-            return
-        except OPReturnError as e:
-            self.show_error(str(e))
-            return
-
+                    
         if not outputs:
             self.show_error(_('No outputs'))
             return
@@ -1549,7 +1556,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         freeze_fee = self.fee_e.isVisible() and self.fee_e.isModified() and (self.fee_e.text() or self.fee_e.hasFocus())
         fee = self.fee_e.get_amount() if freeze_fee else None
-        coins = self.get_coins(isInvoice)
+        coins = self.get_coins(isInvoice=isInvoice, slpTokenId=slp_token_id)
         return outputs, fee, label, coins
 
     def do_preview(self):
@@ -1908,10 +1915,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.history_list.update()
             self.clear_receive_tab()
 
-    def get_coins(self, isInvoice = False):
+    def get_coins(self, isInvoice = False, slpTokenId = None):
         if self.pay_from:
             return self.pay_from
         else:
+            self.wallet.send_slpTokenId = slpTokenId
+            #print("SLP Token: " + slpTokenId)
             return self.wallet.get_spendable_coins(None, self.config, isInvoice)
 
     def spend_coins(self, coins):

@@ -61,6 +61,7 @@ from . import paymentrequest
 from .paymentrequest import PR_PAID, PR_UNPAID, PR_UNKNOWN, PR_EXPIRED
 from .paymentrequest import InvoiceStore
 from .contacts import Contacts
+from .slp import SlpMessage
 
 TX_STATUS = [
     _('Unconfirmed parent'),
@@ -159,6 +160,9 @@ class Abstract_Wallet(PrintError):
     max_change_outputs = 3
 
     def __init__(self, storage):
+        self.send_slpTokenId = None
+        slp_utxo = storage.get('slp_utxo', {})
+        self._slp_utxo = self.to_Address_dict(slp_utxo)
         self.electrum_version = PACKAGE_VERSION
         self.storage = storage
         self.network = None
@@ -599,13 +603,25 @@ class Abstract_Wallet(PrintError):
         for tx_hash, height in h:
             l = self.txi.get(tx_hash, {}).get(address, [])
             for txi, v in l:
-                sent[txi] = height
+                sent[txi] = height                
         return received, sent
 
-    def get_addr_utxo(self, address):
+    # This method is updated for SLP to prevent tokens from being spent 
+    # in normal txn or txns with token_id other than the one specified
+    def get_addr_utxo(self, address, slpTokenId=None):
         coins, spent = self.get_addr_io(address)
+        token_addr_utxo = self.get_slp_addr_utxo(address)
+        # removes spent coins
         for txi in spent:
             coins.pop(txi)
+        # removes token related coins if needed
+        for utxo in token_addr_utxo:
+            if slpTokenId is None or utxo['token_id'] != slpTokenId:
+                try:
+                    coins.pop(utxo['txid'] + ":" + str(utxo['idx']))
+                except Exception as e:
+                    #print(e)
+                    pass                
         out = {}
         for txo, v in coins.items():
             tx_height, value, is_cb = v
@@ -621,6 +637,9 @@ class Abstract_Wallet(PrintError):
             out[txo] = x
         return out
 
+    def get_slp_addr_utxo(self, address):
+        assert isinstance(address, Address)
+        return self._slp_utxo.get(address, [])
     # return the total amount ever received by an address
     def get_addr_received(self, address):
         received, sent = self.get_addr_io(address)
@@ -658,7 +677,7 @@ class Abstract_Wallet(PrintError):
         if exclude_frozen:
             domain = set(domain) - self.frozen_addresses
         for addr in domain:
-            utxos = self.get_addr_utxo(addr)
+            utxos = self.get_addr_utxo(addr, slpTokenId = self.send_slpTokenId)
             for x in utxos.values():
                 if confirmed_only and x['height'] <= 0:
                     continue
@@ -732,6 +751,28 @@ class Abstract_Wallet(PrintError):
                     if dd.get(addr) is None:
                         dd[addr] = []
                     dd[addr].append((ser, v))
+            # add to the slp UTXO set
+            _type, pot_slp_opreturn, v = tx.outputs()[0]
+            try: _, addr, _ = tx.outputs()[1]
+            except IndexError: pass
+            if _type is TYPE_SCRIPT:
+                try:
+                    slpMsg = SlpMessage.parseSlpOutputScript(pot_slp_opreturn)
+                    # TODO: loop through list of output quantities, add to self._slp_utxo
+                    try: self._slp_utxo[addr] 
+                    except KeyError: self._slp_utxo[addr] = []
+                    self._slp_utxo[addr].append(
+                    { 
+                        'txid': tx_hash, 
+                        'idx': 1, 
+                        'token_id': slpMsg.op_return_fields['token_id_hex'], 
+                        'qty': slpMsg.op_return_fields['token_output_1']
+                    })
+                except Exception as e:
+                    #print(e)
+                    pass
+            # remove from the slp UTXO set
+            # TODO?
             # save
             self.transactions[tx_hash] = tx
 
@@ -991,8 +1032,12 @@ class Abstract_Wallet(PrintError):
             # Let the coin chooser select the coins to spend
             max_change = self.max_change_outputs if self.multiple_change else 1
             coin_chooser = coinchooser.CoinChooserPrivacy()
+            # determine if this transaction should utilize all available inputs
+            sweep = False
+            if self.send_slpTokenId is not None and self.send_slpTokenId != '0':
+                sweep = True
             tx = coin_chooser.make_tx(inputs, outputs, change_addrs[:max_change],
-                                      fee_estimator, self.dust_threshold())
+                                      fee_estimator, self.dust_threshold(), sweep=sweep)
         else:
             sendable = sum(map(lambda x:x['value'], inputs))
             _type, data, value = outputs[i_max]
