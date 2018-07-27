@@ -2870,13 +2870,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def toggle_cashaddr_status_bar(self): 
         self.toggle_cashaddr(self.config.get('addr_format', 0))
 
-    def toggle_cashaddr_settings(self, state): 
-        self.toggle_cashaddr(state == Qt.Checked)
+    def toggle_cashaddr_settings(self,state):   
+        self.toggle_cashaddr(state,True)
 
-    def toggle_cashaddr(self, format):
-        format+=1
-        if format>2:
-            format=0 
+    def toggle_cashaddr(self, format,specified = False):
+        #Gui toggle should just increment, if "specified" is True it is being set from preferences, so leave the value as is.
+        if specified==False:
+            format+=1
+            if format>2:
+                format=0 
         self.config.set_key('addr_format', format)
         Address.show_cashaddr(format)
         for window in self.gui_object.windows:
@@ -2892,12 +2894,23 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tx_widgets = []
         id_widgets = []
 
-         
-        cashaddr_cb = QCheckBox(_('CashAddr address format'))
-        cashaddr_cb.setChecked(Address.FMT_UI == Address.FMT_CASHADDR)
-        cashaddr_cb.setToolTip(_("If unchecked, addresses are shown in legacy format"))
-        cashaddr_cb.stateChanged.connect(self.toggle_cashaddr_settings)
-        gui_widgets.append((cashaddr_cb, None))
+        addr_format_choices = ["Legacy Format","CashAddr Format","SLP Format"]
+        addr_format_dict={'Legacy Format':0,'CashAddr Format':1,'SLP Format':2}
+        msg = _('Choose which format the wallet displays for Bitcoin addresses')
+        addr_format_label = HelpLabel(_('Address Format') + ':', msg)
+        addr_format_combo = QComboBox()
+        addr_format_combo.addItems(addr_format_choices)
+        addr_format_combo.setCurrentIndex(self.config.get("addr_format"))
+        addr_format_combo.currentIndexChanged.connect(self.toggle_cashaddr_settings)
+        
+        gui_widgets.append((addr_format_label,addr_format_combo))
+ 
+  
+        #cashaddr_cb = QCheckBox(_('CashAddr address format'))
+        #cashaddr_cb.setChecked(Address.FMT_UI == Address.FMT_CASHADDR)
+        #cashaddr_cb.setToolTip(_("If unchecked, addresses are shown in legacy format"))
+        #cashaddr_cb.stateChanged.connect()
+        #gui_widgets.append((cashaddr_cb, None))
 
         # language
         lang_help = _('Select which language is used in the GUI (after restart).')
@@ -3042,6 +3055,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.update_status()
         unit_combo.currentIndexChanged.connect(lambda x: on_unit(x, nz))
         gui_widgets.append((unit_label, unit_combo))
+      
+    
 
         block_explorers = web.BE_sorted_list()
         msg = _('Choose which online block explorer to use for functions that open a web browser')
