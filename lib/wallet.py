@@ -161,8 +161,8 @@ class Abstract_Wallet(PrintError):
 
     def __init__(self, storage):
         self.send_slpTokenId = None
-        slp_utxo = storage.get('slp_utxo', {})
-        self._slp_utxo = self.to_Address_dict(slp_utxo)
+        slp_txo = storage.get('slp_txo', {})
+        self._slp_txo = self.to_Address_dict(slp_txo)
         self.electrum_version = PACKAGE_VERSION
         self.storage = storage
         self.network = None
@@ -639,7 +639,7 @@ class Abstract_Wallet(PrintError):
 
     def get_slp_addr_utxo(self, address):
         assert isinstance(address, Address)
-        return self._slp_utxo.get(address, [])
+        return self._slp_txo.get(address, [])
     # return the total amount ever received by an address
     def get_addr_received(self, address):
         received, sent = self.get_addr_io(address)
@@ -751,28 +751,47 @@ class Abstract_Wallet(PrintError):
                     if dd.get(addr) is None:
                         dd[addr] = []
                     dd[addr].append((ser, v))
+
             # add to the slp UTXO set
             _type, pot_slp_opreturn, v = tx.outputs()[0]
             try: _, addr, _ = tx.outputs()[1]
             except IndexError: pass
             if _type is TYPE_SCRIPT:
+                slpMsg = None
                 try:
                     slpMsg = SlpMessage.parseSlpOutputScript(pot_slp_opreturn)
-                    # TODO: loop through list of output quantities, add to self._slp_utxo
-                    try: self._slp_utxo[addr] 
-                    except KeyError: self._slp_utxo[addr] = []
-                    self._slp_utxo[addr].append(
-                    { 
-                        'txid': tx_hash, 
-                        'idx': 1, 
-                        'token_id': slpMsg.op_return_fields['token_id_hex'], 
-                        'qty': slpMsg.op_return_fields['token_output'][1]
-                    })
+                    try: self._slp_txo[addr] 
+                    except KeyError: self._slp_txo[addr] = []
                 except Exception as e:
-                    #print(e)
                     pass
-            # remove from the slp UTXO set
+                if slpMsg is not None:
+                    if slpMsg.transaction_type == "TRAN":
+                        for i, qty in enumerate(slpMsg.op_return_fields['token_output']):
+                            if qty > 0:
+                                self._slp_txo[addr].append(
+                                { 
+                                    'txid': tx_hash, 
+                                    'idx': i, 
+                                    'token_id': slpMsg.op_return_fields['token_id_hex'], 
+                                    'qty': slpMsg.op_return_fields['token_output'][i],
+                                    'validation_status': 'valid',
+                                    'spent': False
+                                })
+                        # TODO: loop through list of output quantities, add to self._slp_txo
+                    elif slpMsg.transaction_type == "INIT":
+                        self._slp_txo[addr].append(
+                        { 
+                            'txid': tx_hash, 
+                            'idx': 1, 
+                            'token_id': tx_hash, 
+                            'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
+                            'validation_status': 'valid',
+                            'spent': False
+                        })
+
+            # mark slp TXO as spent if detected in output
             # TODO?
+
             # save
             self.transactions[tx_hash] = tx
 
