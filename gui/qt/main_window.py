@@ -2920,13 +2920,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         addr_format_combo.currentIndexChanged.connect(self.toggle_cashaddr_settings)
         
         gui_widgets.append((addr_format_label,addr_format_combo))
- 
-  
-        #cashaddr_cb = QCheckBox(_('CashAddr address format'))
-        #cashaddr_cb.setChecked(Address.FMT_UI == Address.FMT_CASHADDR)
-        #cashaddr_cb.setToolTip(_("If unchecked, addresses are shown in legacy format"))
-        #cashaddr_cb.stateChanged.connect()
-        #gui_widgets.append((cashaddr_cb, None))
 
         # language
         lang_help = _('Select which language is used in the GUI (after restart).')
