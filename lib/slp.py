@@ -29,9 +29,9 @@ class SlpTokenIdMissing(Exception):
 
 class SlpTransactionType(Enum):
     INIT = "INIT"
-    #MINT = "MINT"
+    MINT = "MINT"
     TRAN = "TRAN"
-    #COMM = "COMM"
+    COMM = "COMM"
 
 class SlpTokenType(Enum):
     TYPE_1 = 1
@@ -73,16 +73,6 @@ class SlpMessage():
             raise SlpUnsupportedSlpTokenType()
         # switch statement to handle different on transaction type
         if slpMsg.transaction_type == SlpTransactionType.INIT.value:
-            # TEMPLATE FROM ABOVE:
-            # "OP_RETURN " + \
-            # self.lokad_id + " " + \
-            # self.token_version + \
-            # " INIT " + \
-            # ticker + " " + \
-            # token_name + " " + \
-            # token_document_ascii_url + " " + \
-            # token_document_hash + " " + \
-            # initial_token_mint_quantity
             # handle ticker
             slpMsg.op_return_fields['ticker'] = SlpMessage.parseHex2String(split_asm[4], 1, 8, 'utf-8')
             # handle token name
@@ -95,33 +85,30 @@ class SlpMessage():
             slpMsg.op_return_fields['initial_token_mint_quantity'] = SlpMessage.parseHex2Int(split_asm[8], 8, 8)
             slpMsg.isChecked = True
             return slpMsg
-
         elif slpMsg.transaction_type == SlpTransactionType.TRAN.value:
-            # "OP_RETURN " + \
-            # self.lokad_id + " " + \
-            # self.token_version + \
-            # " TRAN " + \
-            # self.token_id
-            # comment
-            # <QUANTITIES HERE>
-
             slpMsg.op_return_fields['token_id_hex'] = SlpMessage.parseHex2HexString(split_asm[4], 32, 32, True)
-            slpMsg.op_return_fields['comment'] = SlpMessage.parseHex2String(split_asm[5], 1, 27)
-
             # Extract token output amounts.
             # Note that we put an explicit 0 for  ['token_output'][0] since it
             # corresponds to vout=0, which is the OP_RETURN tx output.
             # ['token_output'][1] is the first token output given by the SLP
             # message, i.e., the number listed as `token_output_quantity1` in the
             # spec, which goes to tx output vout=1.
-            slpMsg.op_return_fields['token_output'] = [0] + [
-                        SlpMessage.parseHex2Int(field, 8, 8) for field in split_asm[6:]
-                        ]
+            slpMsg.op_return_fields['token_output'] = [0]
+            for field in split_asm[5:]:
+                try:
+                    slpMsg.op_return_fields['token_output'].append(SlpMessage.parseHex2Int(field, 8, 8))
+                except:
+                    #raise SlpInvalidOutputMessage()
+                    break
+
             # maximum 19 allowed token outputs, plus 1 for the explicit [0] we inserted.
             if len(slpMsg.op_return_fields['token_output']) > 20:
                 raise SlpInvalidOutputMessage()
-
             return slpMsg
+        elif slpMsg.transaction_type == SlpTransactionType.MINT.value:
+            raise NotImplementedError()
+        elif slpMsg.transaction_type == SlpTransactionType.COMM.value:
+            raise NotImplementedError()
 
     @staticmethod
     def parseHex2TransactionType(typeHex: str) -> str:
@@ -205,26 +192,6 @@ class SlpTokenTransactionFactory():
         self.token_id_hex = token_id_hex
         self.lokad_id = "00534c50"
 
-    # Token Version agnostic INIT Transaction Builder
-    def buildInitTransaction(self, inputs, output_mint_reciever, ticker: str, token_name: str, token_document_ascii_url: str,  token_document_hash_hex: str, initial_token_mint_quantity: int) -> Transaction:
-        tx = Transaction()
-        tx.add_inputs(inputs)
-        vouts = []
-        vouts.append(self.buildInitOpReturnOutput_V1(ticker, token_name, token_document_ascii_url, token_document_hash_hex, initial_token_mint_quantity))
-        vouts.append(output_mint_reciever)
-        return tx
-
-    # Token Version agnostic INIT Transaction Builder
-    def buildTransferTransaction(self, inputs, outputs, comment: str, output_token_quantity_array: [int]) -> Transaction:
-        if self.token_id == None:
-            raise SlpTokenIdMissing
-        tx = Transaction()
-        tx.add_inputs(inputs)
-        vouts = []
-        vouts.append(self.buildTransferOpReturnOutput_V1(comment, output_token_quantity_array))
-        vouts.extend(outputs)
-        return tx
-
     # Type 1 Token INIT Message
     def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, initial_token_mint_quantity: int) -> tuple:
         script = "OP_RETURN " + \
@@ -244,18 +211,19 @@ class SlpTokenTransactionFactory():
         return (TYPE_SCRIPT, scriptBuffer, 0)
 
     # Type 1 Token TRAN Message
-    def buildTransferOpReturnOutput_V1(self, comment: str, output_qty_array: []) -> tuple:
+    def buildTransferOpReturnOutput_V1(self, output_qty_array: []) -> tuple:
         if self.token_id_hex == None:
             raise SlpTokenIdMissing
         script = "OP_RETURN " + \
                 self.lokad_id + " " + \
                 int_2_hex_left_pad(self.token_version.value) + " " + \
                 SlpTokenTransactionFactory.encodeStringToHex("TRAN", 'utf-8') + " " + \
-                self.token_id_hex + " " + \
-                SlpTokenTransactionFactory.encodeStringToHex(comment, 'utf-8', True, True)
+                self.token_id_hex
         if len(output_qty_array) > 20: 
             raise Exception("Cannot have more than 20 SLP Token outputs.")
         for qty in output_qty_array:
+            if qty < 0:
+                raise SlpInvalidOutputMessage()
             script = script + " " + int_2_hex_left_pad(qty, 8)
         scriptBuffer = ScriptOutput.from_string(script)
         if len(scriptBuffer.script) > 223:

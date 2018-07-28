@@ -1405,10 +1405,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 else:
                     slp_token_id = self.slp_token_gui_hash_list[opreturn_message_slp_index]
                     msgFactory = slp.SlpTokenTransactionFactory(slp.SlpTokenType.TYPE_1, slp_token_id)
-                    slp_tran = msgFactory.buildTransferOpReturnOutput_V1("", [ int(self.slp_amount_e.text()) ])
+                    slp_tran = msgFactory.buildTransferOpReturnOutput_V1([ int(self.slp_amount_e.text()) ])
                     outputs.append(slp_tran)
-                    #opreturn_message_slp = "TRAN " + slp_token_id + " " + self.slp_amount_e.text()  # TODO: replace this
-                    #outputs.append(self.output_for_opreturn_stringdata(opreturn_message_slp))
                 opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
                 if slp_token_id is None and opreturn_message != '':
                     outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
@@ -1517,7 +1515,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             else:
                 slp_token_id = self.slp_token_gui_hash_list[opreturn_message_slp_index]
                 msgFactory = slp.SlpTokenTransactionFactory(slp.SlpTokenType.TYPE_1, slp_token_id)
-                slp_tran = msgFactory.buildTransferOpReturnOutput_V1("", [ int(self.slp_amount_e.text()) ])
+                slp_tran = msgFactory.buildTransferOpReturnOutput_V1([ int(self.slp_amount_e.text()) ])
                 outputs.append(slp_tran)
             opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
             if slp_token_id is None and opreturn_message != '':
