@@ -268,8 +268,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.fx.history_used_spot:
             self.history_list.update()
 
-    def toggle_tab(self, tab):
-        show = not self.config.get('show_{}_tab'.format(tab.tab_name), False)
+    def toggle_tab(self, tab, forceStatus = 0):
+
+        # forceStatus = 0 , do nothing 
+        # forceStatus = 1 , force Show
+        # forceStatus = 2 , force hide
+        if forceStatus==1:
+            show=True
+        elif forceStatus==2:     
+            show=False
+        else:
+            show = not self.config.get('show_{}_tab'.format(tab.tab_name), False)
         self.config.set_key('show_{}_tab'.format(tab.tab_name), show)
         item_text = (_("Hide") if show else _("Show")) + " " + tab.tab_description
         tab.menu_action.setText(item_text)
@@ -2880,9 +2889,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def toggle_cashaddr(self, format,specified = False):
         #Gui toggle should just increment, if "specified" is True it is being set from preferences, so leave the value as is.
         if specified==False:
+            max_format=2
+            if self.config.get('enable_slp')!=True:
+                max_format=1
             format+=1
-            if format>2:
-                format=0 
+            if format>max_format:
+                format=0  
         self.config.set_key('addr_format', format)
         Address.show_cashaddr(format)
         for window in self.gui_object.windows:
@@ -3140,7 +3152,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         ex_combo = QComboBox()
 
         def on_slptok_pref(x):
+ 
+            if x:
+                self.toggle_tab(self.slp_mgt_tab,1)
+                self.toggle_tab(self.slp_history_tab,1)
+                opret_cb.setChecked(False)
+                self.config.set_key('enable_opreturn',False)
             if not x:
+                self.toggle_tab(self.slp_mgt_tab,2)
+                self.toggle_tab(self.slp_history_tab,2)
                 self.slp_token_type_combo.setCurrentIndex(0)        
                 self.slp_amount_e.setAmount(0)
                 self.slp_amount_e.setText("")
