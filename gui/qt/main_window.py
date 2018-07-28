@@ -1565,6 +1565,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def do_send(self, preview = False):
         if run_hook('abort_send', self):
             return
+        if self.slp_amount_e.get_amount() is 0 or self.slp_amount_e.get_amount() is None:
+            self.show_message(_("No SLP token amount provided."))
+            return
         r = self.read_send_tab()
         if not r:
             return
