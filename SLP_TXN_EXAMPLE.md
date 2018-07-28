@@ -8,7 +8,7 @@ This series of 3 transactions results in a very simple DAG with only the followi
 
 ### Genesis Transaction - 36dab7bb622ad19767923f8e268c90ee037e2fbb5e4cf18931908ae27cc4c7bd
 
-`OP_RETURN <push><hex>00534c50<push><hex>01<push>INIT<push>BOGUS<push>A bogus token<push>NA<push>NA<push><hex>000775F05A074000`
+`OP_RETURN <push><hex>00534c50<push><hex>01<push>INIT<push>BOGUS<push>A bogus token<push>NA<push><hex>00<push><hex>000775F05A074000`
 
 Created 2,100,000,000,000,000 BOGUS tokens, assigned to qzmadqzhk5m2pnz5q2vsc9gypzxhef2jts58purahh.
 
