@@ -1407,7 +1407,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     slp_tran = msgFactory.buildTransferOpReturnOutput_V1([ int(self.slp_amount_e.text()) ])
                     outputs.append(slp_tran)
                 opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
-                if slp_token_id is None and opreturn_message != '':
+                if slp_token_id is None and (opreturn_message != '' and opreturn_message is not None):
                     outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
                 tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False, slpTokenId = slp_token_id), outputs, self.config, fee) 
                 self.not_enough_funds = False
@@ -1517,7 +1517,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 slp_tran = msgFactory.buildTransferOpReturnOutput_V1([ int(self.slp_amount_e.text()) ])
                 outputs.append(slp_tran)
             opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
-            if slp_token_id is None and opreturn_message != '':
+            if slp_token_id is None and (opreturn_message != '' and opreturn_message is not None):
                 outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
         except OPReturnTooLarge as e:
             self.show_error(str(e))
@@ -1934,7 +1934,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return self.pay_from
         else:
             self.wallet.send_slpTokenId = slpTokenId
-            #print("SLP Token: " + slpTokenId)
             return self.wallet.get_spendable_coins(None, self.config, isInvoice)
 
     def spend_coins(self, coins):
