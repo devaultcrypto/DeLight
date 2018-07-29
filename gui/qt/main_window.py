@@ -1721,8 +1721,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return clayout.selected_index()
 
     def lock_amount(self, b):
-        self.amount_e.setFrozen(b)
-        self.max_button.setEnabled(not b)
+        '''
+        This if-statement was added for SLP around the following two lines
+        in order to keep the amount field locked and Max button disabled
+        when the payto field is edited when a token is selected.
+        '''
+        if self.slp_token_type_combo.currentIndex() is 0:
+            self.amount_e.setFrozen(b)
+            self.max_button.setEnabled(not b)
 
     def prepare_for_payment_request(self):
         self.show_send_tab()
@@ -1803,19 +1809,37 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
 
     def do_clear(self):
-        self.is_max = False
-        self.not_enough_funds = False
-        self.op_return_toolong = False
-        self.payment_request = None
-        self.payto_e.is_pr = False
-        for e in [self.payto_e, self.message_e, self.amount_e, self.fiat_send_e, self.fee_e, self.message_opreturn_e]:
-            e.setText('')
-            e.setFrozen(False)
-        self.max_button.setDisabled(False)
-        self.set_pay_from([])
-        self.tx_external_keypairs = {}
-        self.update_status()
-        run_hook('do_clear', self)
+        """
+        If SLP token is not selected proceed as normal, otherwise see
+        the else-statement below which provides modified "do_clear" behavior 
+        after a payment is sent
+        """
+        if self.slp_token_type_combo.currentIndex() is 0:
+            self.is_max = False
+            self.not_enough_funds = False
+            self.op_return_toolong = False
+            self.payment_request = None
+            self.payto_e.is_pr = False
+            for e in [self.payto_e, self.message_e, self.amount_e, self.fiat_send_e, self.fee_e, self.message_opreturn_e]:
+                e.setText('')
+                e.setFrozen(False)
+            self.max_button.setDisabled(False)
+            self.set_pay_from([])
+            self.tx_external_keypairs = {}
+            self.update_status()
+            run_hook('do_clear', self)
+        else:
+            self.not_enough_funds = False
+            self.payment_request = None
+            self.payto_e.is_pr = False
+            for e in [self.payto_e, self.message_e, self.message_opreturn_e]:
+                e.setText('')
+                e.setFrozen(False)
+            self.set_pay_from([])
+            self.tx_external_keypairs = {}
+            self.update_status()
+            self.slp_amount_e.setText('')
+            #run_hook('do_clear', self)
 
     def set_frozen_state(self, addrs, freeze):
         self.wallet.set_frozen_state(addrs, freeze)

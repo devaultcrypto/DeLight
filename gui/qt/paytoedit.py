@@ -146,7 +146,13 @@ class PayToEdit(ScanQRTextEdit):
         if self.win.is_max:
             self.win.do_update_fee()
         else:
-            self.amount_edit.setAmount(total if outputs else None)
+            """
+            The following line is commented out for SLP.
+            If this line is not commented out then the amount field will
+            always be reset to 0 when the address text is edited.  
+            For SLP, an amount of 546 sat should be left in the amount_e field.
+            """
+            #self.amount_edit.setAmount(total if outputs else None)
             self.win.lock_amount(total or len(lines)>1)
 
     def get_errors(self):
