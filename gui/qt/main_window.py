@@ -1104,6 +1104,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def on_slptok(x):
         tok_index=x.slp_token_type_combo.currentIndex()
+        x.payto_e.check_text()
         if not tok_index or tok_index==0:
             x.amount_e.setAmount(0)
             x.amount_e.setText("")
@@ -1130,9 +1131,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.slp_token_type_combo.setFixedWidth(200)
         self.slp_token_type_combo.currentIndexChanged.connect(self.on_slptok)
         self.payto_e = PayToEdit(self)
-
-
-
+        self.payto_e.parent=self
 
         msg = _('Recipient of the funds.') + '\n\n'\
               + _('You may enter a Bitcoin Cash address, a label from your list of contacts (a list of completions will be proposed), or an alias (email-like address that forwards to a Bitcoin Cash address)')
