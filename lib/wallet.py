@@ -63,6 +63,8 @@ from .paymentrequest import InvoiceStore
 from .contacts import Contacts
 from .slp import SlpMessage
 
+from PyQt5.QtCore import QObject, pyqtSignal
+
 TX_STATUS = [
     _('Unconfirmed parent'),
     _('Low fee'),
@@ -151,15 +153,17 @@ def sweep(privkeys, network, config, recipient, fee=None, imax=100):
     return tx
 
 
-class Abstract_Wallet(PrintError):
+class Abstract_Wallet(PrintError, QObject):
     """
     Wallet classes are created to handle various address generation methods.
     Completion states (watching-only, single account, no seed, etc) are handled inside classes.
     """
 
     max_change_outputs = 3
+    update_token_list_sig = pyqtSignal(str, str, int, bool, bool)
 
     def __init__(self, storage):
+        QObject.__init__(self)
         self.send_slpTokenId = None
         slp_txo = storage.get('slp_txo', {})
         self._slp_txo = self.to_Address_dict(slp_txo)
@@ -760,34 +764,56 @@ class Abstract_Wallet(PrintError):
                 slpMsg = None
                 try:
                     slpMsg = SlpMessage.parseSlpOutputScript(pot_slp_opreturn)
-                    try: self._slp_txo[addr] 
-                    except KeyError: self._slp_txo[addr] = []
+                    if slpMsg.transaction_type == "INIT":
+                        self.update_token_list_sig.emit(tx_hash, tx_hash[0:5], 0, False, True)
+                    elif slpMsg.transaction_type == "TRAN":
+                        self.update_token_list_sig.emit(slpMsg.op_return_fields['token_id_hex'], slpMsg.op_return_fields['token_id_hex'][0:5], 0, False, True)
+                    try: 
+                        self._slp_txo[addr] 
+                    except KeyError: 
+                        self._slp_txo[addr] = []
+                    if slpMsg is not None:
+                        if slpMsg.transaction_type == "TRAN":
+                            for i, qty in enumerate(slpMsg.op_return_fields['token_output']):
+                                if qty > 0:
+                                    self._slp_txo[addr].append(
+                                    { 
+                                        'txid': tx_hash, 
+                                        'idx': i, 
+                                        'token_id': slpMsg.op_return_fields['token_id_hex'], 
+                                        'qty': slpMsg.op_return_fields['token_output'][i],
+                                        'validation_status': '', # can be '', 'valid' or 'invalid'
+                                        'spent': False,
+                                        'type': 'TRAN',
+                                        'op_return': pot_slp_opreturn.to_script()
+                                    })
+                            # TODO: loop through list of output quantities, add to self._slp_txo
+                        elif slpMsg.transaction_type == "INIT":
+                            self._slp_txo[addr].append(
+                            { 
+                                'txid': tx_hash, 
+                                'idx': 1, 
+                                'token_id': tx_hash, 
+                                'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
+                                'validation_status': '',
+                                'spent': False,
+                                'type': 'INIT',
+                                'op_return': pot_slp_opreturn.to_script()
+                            })
+                        elif slpMsg.transaction_type == "MINT":
+                            self._slp_txo[addr].append(
+                            { 
+                                'txid': tx_hash, 
+                                'idx': 1, 
+                                'token_id': tx_hash, 
+                                'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
+                                'validation_status': '',
+                                'spent': False, 
+                                'type': 'MINT',
+                                'op_return': pot_slp_opreturn.to_script()
+                            })
                 except Exception as e:
                     pass
-                if slpMsg is not None:
-                    if slpMsg.transaction_type == "TRAN":
-                        for i, qty in enumerate(slpMsg.op_return_fields['token_output']):
-                            if qty > 0:
-                                self._slp_txo[addr].append(
-                                { 
-                                    'txid': tx_hash, 
-                                    'idx': i, 
-                                    'token_id': slpMsg.op_return_fields['token_id_hex'], 
-                                    'qty': slpMsg.op_return_fields['token_output'][i],
-                                    'validation_status': 'valid',
-                                    'spent': False
-                                })
-                        # TODO: loop through list of output quantities, add to self._slp_txo
-                    elif slpMsg.transaction_type == "INIT":
-                        self._slp_txo[addr].append(
-                        { 
-                            'txid': tx_hash, 
-                            'idx': 1, 
-                            'token_id': tx_hash, 
-                            'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
-                            'validation_status': 'valid',
-                            'spent': False
-                        })
 
             # mark slp TXO as spent if detected in output
             # TODO?

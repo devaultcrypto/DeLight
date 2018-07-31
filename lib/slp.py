@@ -183,8 +183,14 @@ class SlpMessage():
 # currently void of any Token Type selection logic, which will be required
 # if more than 1 token types are ever desired for Electron Cash.
 class SlpTokenTransactionFactory():
-    def __init__(self, token_version: int = SlpTokenType.TYPE_1, token_id_hex: str = None):
-        self.token_version = token_version
+    def __init__(self, token_version: int, token_id_hex: str = None):
+        if issubclass(type(token_version), Enum):
+            self.token_version = token_version.value
+        elif issubclass(type(token_version), int):
+            self.token_version = token_version
+        else:
+            raise SlpUnsupportedSlpTokenType
+
         self.token_id_hex = token_id_hex
         self.lokad_id = "00534c50"
 

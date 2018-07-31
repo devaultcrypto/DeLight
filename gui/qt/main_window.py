@@ -117,7 +117,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.fx = gui_object.daemon.fx
         self.invoices = wallet.invoices
         self.contacts = wallet.contacts
-        self.slp_token_list = self.config.get('slp_tokens')
         self.tray = gui_object.tray
         self.app = gui_object.app
         self.cleaned_up = False
@@ -133,6 +132,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.tx_notifications = []
         self.tl_windows = []
         self.tx_external_keypairs = {}
+        self.slp_token_list = self.config.get('slp_tokens')
         self.slp_token_gui_hash_list = []
         self.slp_token_gui_list = []
         Address.show_cashaddr(config.get('addr_format', 0))
@@ -227,22 +227,26 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.fee_slider.update() 
         self.load_wallet(wallet) 
 
-        #Get SLP Token list from Config file
-        slp_token_list =  self.config.get('slp_tokens')
-        self.slp_token_gui_list=["NONE"]
-        self.slp_token_gui_hash_list=["0"]
-        if slp_token_list:
-            for i in slp_token_list:
-                singlename=i["name"]
-                self.slp_token_gui_list.append(singlename)
-                singlehash=i["hash"]
-                self.slp_token_gui_hash_list.append(singlehash)
-        self.slp_token_type_combo.addItems([i for i in self.slp_token_gui_list])
-        ## end SLP token from config section
+        #Get SLP Token list from Config file and update associated GUI lists
+        self.slp_token_list_update()
 
         self.connect_slots(gui_object.timer) 
         self.fetch_alias()
  
+    def slp_token_list_update(self):
+        self.slp_token_list = self.config.get('slp_tokens')
+        self.slp_token_gui_list=["NONE"]
+        self.slp_token_gui_hash_list=["0"]
+        if self.slp_token_list:
+            for i in self.slp_token_list:
+                singlename=i["name"]
+                self.slp_token_gui_list.append(singlename)
+                singlehash=i["hash"]
+                self.slp_token_gui_hash_list.append(singlehash)
+        self.slp_token_type_combo.clear()
+        self.slp_token_type_combo.addItems([i for i in self.slp_token_gui_list])
+        ## end SLP token from config section
+
     def on_history(self, b):
         self.new_fx_history_signal.emit()
 
@@ -387,6 +391,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def load_wallet(self, wallet):
         wallet.thread = TaskThread(self, self.on_error)
         self.wallet = wallet
+        self.wallet.update_token_list_sig.connect(self.set_slp_token)
         self.update_recently_visited(wallet.storage.path)
         # address used to create a dummy transaction and estimate transaction fee 
         self.history_list.update()
@@ -2000,11 +2005,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.update_completions()
         return True
 
-    def set_slp_token(self, hash_id, token_name, dec_prec):
+    @pyqtSlot(str, str, int, bool, bool)
+    def set_slp_token(self, hash_id, token_name, dec_prec, show_errors=True, new_token_msg=False):
 
         # Duplicate hash id error
         if hash_id in str(self.slp_token_list): 
-            self.show_error(_('Duplicate Hash_Id'))
+            if show_errors:
+                self.show_error(_('Token with duplicate hash Id exists'))
             self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
 
@@ -2012,29 +2019,35 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         hexregex='^[a-fA-F0-9]+$'
         gothex=re.match(hexregex,hash_id) 
         if gothex is None or len(hash_id) is not 64:
-            self.show_error(_('Invalid Hash_Id'))
+            if show_errors:
+                self.show_error(_('Invalid Hash_Id'))
             self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
       
         #decimal precision validation
         decregex='^[0-9]$'
-        gotdec=re.match(decregex,dec_prec)
+        gotdec=re.match(decregex,str(dec_prec))
         if gotdec is None:
-            self.show_error(_('Decimal precision should be 0-9'))
+            if show_errors:
+                self.show_error(_('Decimal precision should be 0-9'))
             self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
  
         #token name validation
         if len(token_name)> 20:
-            self.show_error(_('Token name should be less than 20 characters'))
+            if show_errors:
+                self.show_error(_('Token name should be less than 20 characters'))
             self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
- 
+
+        if new_token_msg:
+            self.show_error(_('A new type of Token has been received. (token name: ' + token_name + ')'))
         new_entry=dict({'hash':hash_id,'name':token_name,'dec_prec':dec_prec})
         existing_entries=self.slp_token_list 
         existing_entries.append(new_entry)
         self.config.set_key('slp_tokens', existing_entries)
         self.slp_token_list_tab.update()
+        self.slp_token_list_update()
         return True
 
     def delete_contacts(self, labels):
