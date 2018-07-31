@@ -238,6 +238,8 @@ class ScriptOutput(namedtuple("ScriptAddressTuple", "script")):
                 if opcode is None:
                     raise AddressError('unknown opcode {}'.format(word))
                 script.append(opcode)
+            elif word.startswith('<empty>'):
+                script.extend([ 0x4c, 0x00 ])
             else:
                 import binascii
                 script.extend(Script.push_data(binascii.unhexlify(word)))
@@ -256,10 +258,13 @@ class ScriptOutput(namedtuple("ScriptAddressTuple", "script")):
                     def lookup(x):
                         return OpCodes.reverseLookup.get(x, ('('+str(x)+')'))
                     if isinstance(op, tuple):
-                        try:
-                            ret += lookup(op[0]) + " " + op[1].decode('utf-8')
-                        except UnicodeDecodeError:
-                            ret += lookup(op[0]) + " " + op[1].hex()
+                        if op[1] is None:
+                            ret += "<EMPTY>"
+                        else:
+                            try:
+                                ret += lookup(op[0]) + " " + op[1].decode('utf-8')
+                            except UnicodeDecodeError:
+                                ret += lookup(op[0]) + " " + op[1].hex()
                     elif isinstance(op, int):
                         ret += lookup(op)
                     else:
@@ -287,6 +292,8 @@ class ScriptOutput(namedtuple("ScriptAddressTuple", "script")):
                     if isinstance(op, tuple):
                         if lookup(op[0]) is not None:
                             ret += lookup(op[0]) + " " + op[1].hex()
+                        elif op[1] is None:
+                            ret += "<EMPTY>"
                         else:
                             ret += op[1].hex()
                     elif isinstance(op, int):
@@ -635,7 +642,10 @@ class Script(object):
                         n += 4
                     if n + dlen > len(script):
                         raise IndexError
-                    op = (op, script[n:n + dlen])
+                    if dlen > 0:
+                        op = (op, script[n:n + dlen])
+                    else:
+                        op = (op, None)
                     n += dlen
 
                 ops.append(op)

@@ -1368,9 +1368,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         for data in pushes:
             if data.startswith("<hex>"):
                 data = data.replace("<hex>", "")
+            elif data.startswith("<empty>"):
+                pass
             else:
                 data = data.encode('utf-8').hex()
-            script = script + " " + data #script + " 010101 010101 010101 020202" 
+            script = script + " " + data
         scriptBuffer = ScriptOutput.from_string(script)
         if len(scriptBuffer.script) > 223:
             raise OPReturnTooLarge(_("OP_RETURN message too large, needs to be under 220 bytes"))

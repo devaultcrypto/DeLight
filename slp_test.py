@@ -21,17 +21,50 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
         doc_hash_hex = None                 # 01 00
         init_qty = 2100000000000000         # 08 000775F05A074000
         # manually formulate the message
-        asm_manual = "OP_RETURN" + " " + \
-                    lokad_id + " " + \
-                    int_2_hex_left_pad(token_type) + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(txn_type, 'utf-8') + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(ticker, 'utf-8') + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(name, 'utf-8') + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(doc_url, 'ascii') + " " + \
-                    SlpTokenTransactionFactory.encodeHexStringToHex(doc_hash_hex) + " " + \
-                    int_2_hex_left_pad(init_qty, 8)
+        script = []
+        script.extend([0x6a])
+        script.extend([0x04])
+        script.extend(bytearray.fromhex(lokad_id))
+        script.extend([0x01])
+        script.extend(bytearray.fromhex(int_2_hex_left_pad(token_type)))
+        script.extend([len(txn_type)])
+        script.extend(bytearray.fromhex(SlpTokenTransactionFactory.encodeStringToHex(txn_type, 'utf-8')))
+        if ticker is not None:
+            script.extend([len(ticker)])
+            script.extend(bytearray.fromhex(SlpTokenTransactionFactory.encodeStringToHex(ticker, 'utf-8', True)))
+        else: 
+            script.extend([0x4c, 0x00])
+        if name is not None:
+            script.extend([len(name)])
+            script.extend(bytearray.fromhex(SlpTokenTransactionFactory.encodeStringToHex(name, 'utf-8', True)))
+        else: 
+            script.extend([0x4c, 0x00])
+        if doc_url is not None:
+            script.extend([len(doc_url)])
+            script.extend(bytearray.fromhex(SlpTokenTransactionFactory.encodeStringToHex(doc_url, 'ascii', True)))
+        else:
+            script.extend([0x4c, 0x00])
+        if doc_hash_hex is not None:
+            script.extend([len(doc_hash_hex)])
+            script.extend(bytearray.fromhex(SlpTokenTransactionFactory.encodeHexStringToHex(doc_hash_hex, True)))
+        else:
+            script.extend([0x4c, 0x00])
+        script.extend([0x08])
+        script.extend(bytearray.fromhex(int_2_hex_left_pad(init_qty, 8)))
+
+        # asm_manual = "OP_RETURN" + " " + \
+        #             lokad_id + " " + \
+        #             int_2_hex_left_pad(token_type) + " " + \
+        #             SlpTokenTransactionFactory.encodeStringToHex(txn_type, 'utf-8') + " " + \
+        #             SlpTokenTransactionFactory.encodeStringToHex(ticker, 'utf-8', True) + " " + \
+        #             SlpTokenTransactionFactory.encodeStringToHex(name, 'utf-8', True) + " " + \
+        #             SlpTokenTransactionFactory.encodeStringToHex(doc_url, 'ascii', True) + " " + \
+        #             SlpTokenTransactionFactory.encodeHexStringToHex(doc_hash_hex, True) + " " + \
+        #             int_2_hex_left_pad(init_qty, 8)
         # make sure manually formed OP_RETURN is correct
-        scriptBuffer_manual = ScriptOutput.from_string(asm_manual)
+        #scriptBuffer_manual = ScriptOutput.from_string(script)
+
+        scriptBuffer_manual = ScriptOutput(bytes(script))
         expected_hex = scriptBuffer_manual.script.hex()
         expected_asm = scriptBuffer_manual.to_asm()
         if len(scriptBuffer_manual.script) > 223:
@@ -62,15 +95,13 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
         token_type = 1                      # 01 01
         txn_type = "TRAN"                   # 04 ______
         token_id = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        comment = None
         quantities = [1,1,1,1,1, 1,1,1,1,1, 1,1,1,1,1, 1,1,1,1]
         # manually formulate the message
         asm_manual = "OP_RETURN" + " " + \
                     lokad_id + " " + \
                     int_2_hex_left_pad(token_type) + " " + \
                     SlpTokenTransactionFactory.encodeStringToHex(txn_type, 'utf-8') + " " + \
-                    token_id + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(comment, 'utf-8')
+                    token_id
         for q in quantities:
             asm_manual = asm_manual + " " + int_2_hex_left_pad(q, 8)
         # make sure manually formed OP_RETURN is correct
@@ -81,9 +112,9 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
             raise Exception("OP_RETURN message too large, needs to be under 223 bytes")
         # form OP_RETURN script using the SLP method
         slpTokenFactory = SlpTokenTransactionFactory(token_version = token_type, token_id_hex = token_id)
-        scriptBuffer_factory = slpTokenFactory.buildTransferOpReturnOutput_V1(comment = comment, output_qty_array = quantities)
-        self.assertEqual(expected_hex, scriptBuffer_factory[1].script.hex())
-        self.assertEqual(expected_asm, scriptBuffer_factory[1].to_asm())
+        scriptBuffer = slpTokenFactory.buildTransferOpReturnOutput_V1(output_qty_array = quantities)
+        self.assertEqual(expected_hex, scriptBuffer[1].script.hex())
+        self.assertEqual(expected_asm, scriptBuffer[1].to_asm())
         # parse raw OP_RETURN hex to an SlpMessage TRAN
         scriptOutput = ScriptOutput(script = bytes.fromhex(expected_hex))
         asm = scriptOutput.to_asm()
@@ -93,8 +124,9 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
         self.assertEqual(SlpTokenType.TYPE_1.value, slpMsg.token_type)
         self.assertEqual(SlpTransactionType.TRAN.value, slpMsg.transaction_type)
         self.assertEqual(token_id, slpMsg.op_return_fields['token_id_hex'])
-        self.assertEqual(1, slpMsg.op_return_fields['token_output_1'])
-        self.assertEqual(1, slpMsg.op_return_fields['token_output_19'])
+        self.assertEqual(0, slpMsg.op_return_fields['token_output'][0])
+        self.assertEqual(1, slpMsg.op_return_fields['token_output'][1])
+        self.assertEqual(1, slpMsg.op_return_fields['token_output'][19])
         print("TRAN Message:" + asm)
 
     def test_init_transaction(self):

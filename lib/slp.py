@@ -133,16 +133,16 @@ class SlpMessage():
             raise SlpInvalidOutputMessage()
 
     @staticmethod
-    def parseHex2String(stringHex: str, minByteLen: int = 1, maxByteLen: int = None, encoding: str = 'utf-8', raise_on_0x00: bool = False) -> str:
+    def parseHex2String(stringHex: str, minByteLen: int = 1, maxByteLen: int = None, encoding: str = 'utf-8', raise_on_Null: bool = False) -> str:
+        if stringHex == '<EMPTY>' and not raise_on_Null:
+            return None
+        elif stringHex == '<EMPTY>':
+            raise SlpInvalidOutputMessage()
         if maxByteLen is not None:
             if len(stringHex) > (maxByteLen * 2):
                 raise SlpInvalidOutputMessage()
         if len(stringHex) < (minByteLen * 2):
             raise SlpInvalidOutputMessage()
-        if stringHex == '00' and raise_on_0x00:
-            raise SlpInvalidOutputMessage()
-        elif stringHex == '00':
-            return None
         try:
             decoded = bytes.fromhex(stringHex).decode('utf-8')
         except UnicodeDecodeError:
@@ -152,16 +152,12 @@ class SlpMessage():
         return decoded
 
     @staticmethod
-    def parseHex2Int(intHex: str, minByteLen: int = 1, maxByteLen: int = 8, raise_on_0x00: bool = False):
+    def parseHex2Int(intHex: str, minByteLen: int = 1, maxByteLen: int = 8):
         if maxByteLen is not None:
             if len(intHex) > (maxByteLen * 2):
                 raise SlpInvalidOutputMessage()
         if len(intHex) < (minByteLen * 2):
             raise SlpInvalidOutputMessage()
-        if intHex == '00' and raise_on_0x00:
-            raise SlpInvalidOutputMessage()
-        elif intHex == '00':
-            return 0
         try:
             decoded = int(intHex, 16)
         except:
@@ -169,11 +165,11 @@ class SlpMessage():
         return decoded
 
     @staticmethod
-    def parseHex2HexString(hexStr: str, minByteLen: int = 1, maxByteLen: int = 32, raise_on_0x00: bool = False) -> str:
-        if hexStr == '00' and raise_on_0x00:
-            raise SlpInvalidOutputMessage()
-        elif hexStr == '00':
+    def parseHex2HexString(hexStr: str, minByteLen: int = 1, maxByteLen: int = 32, raise_on_Null: bool = False) -> str:
+        if hexStr == '<EMPTY>' and not raise_on_Null:
             return None
+        elif hexStr == '<EMPTY>':
+            raise SlpInvalidOutputMessage()
         if minByteLen is not None:
             if len(hexStr) < (minByteLen * 2):
                 raise SlpInvalidOutputMessage()
@@ -194,18 +190,61 @@ class SlpTokenTransactionFactory():
 
     # Type 1 Token INIT Message
     def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, initial_token_mint_quantity: int) -> tuple:
-        script = "OP_RETURN " + \
-                    self.lokad_id + " " + \
-                    int_2_hex_left_pad(self.token_version.value) + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex("INIT", 'utf-8') + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(ticker, 'utf-8', True, True) + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(token_name, 'utf-8', True, True) + " " + \
-                    SlpTokenTransactionFactory.encodeStringToHex(token_document_url, 'ascii', True, True) + " " + \
-                    SlpTokenTransactionFactory.encodeHexStringToHex(token_document_hash_hex, True) + " " + \
-                    int_2_hex_left_pad(initial_token_mint_quantity, 8)
+        script = []
+        # OP_RETURN
+        script.extend([0x6a]) 
+        # lokad id
+        lokad = bytearray.fromhex(self.lokad_id)
+        script.extend(self.getPushDataOpcode(lokad))
+        script.extend(lokad)     
+        # token version/type 
+        tokenType = bytearray.fromhex(int_2_hex_left_pad(self.token_version))
+        script.extend(self.getPushDataOpcode(tokenType))
+        script.extend(tokenType)
+        # transaction type
+        transType = bytearray.fromhex(SlpTokenTransactionFactory.encodeStringToHex("INIT", 'utf-8'))
+        script.extend(self.getPushDataOpcode(transType))
+        script.extend(transType)
+        # ticker (can be None)
+        ticker = SlpTokenTransactionFactory.encodeStringToHex(ticker, 'utf-8', True)
+        if ticker is not None:
+            ticker = bytearray.fromhex(ticker)
+            script.extend(self.getPushDataOpcode(ticker))
+            script.extend(ticker)
+        if ticker is None:
+            script.extend([0x4c, 0x00])
+        # name (can be None)
+        name = SlpTokenTransactionFactory.encodeStringToHex(token_name, 'utf-8', True)
+        if name is not None:
+            name = bytearray.fromhex(name)
+            script.extend(self.getPushDataOpcode(name))
+            script.extend(name)
+        if name is None:
+            script.extend([0x4c, 0x00])
+        # doc_url (can be None)
+        doc_url = SlpTokenTransactionFactory.encodeStringToHex(token_document_url, 'ascii', True)
+        if doc_url is not None:
+            doc_url = bytearray.fromhex(doc_url)
+            script.extend(self.getPushDataOpcode(doc_url))
+            script.extend(doc_url)
+        elif doc_url is None:
+            script.extend([0x4c, 0x00])
+        # doc_hash (can be None)
+        doc_hash = SlpTokenTransactionFactory.encodeHexStringToHex(token_document_hash_hex, True)
+        if doc_hash is not None:
+            doc_hash = bytearray.fromhex(doc_hash)
+            script.extend(self.getPushDataOpcode(doc_hash))
+            script.extend(doc_hash)
+        elif doc_hash is None:
+            script.extend([0x4c, 0x00])
+        # init quantity
+        qty = bytearray.fromhex(int_2_hex_left_pad(initial_token_mint_quantity, 8))
+        script.extend(self.getPushDataOpcode(qty))
+        script.extend(qty)
 
         # TODO: handle max_final_token_supply -- future baton case
-        scriptBuffer = ScriptOutput.from_string(script)
+        #scriptBuffer = ScriptOutput.from_string(script)
+        scriptBuffer = ScriptOutput(bytes(script))
         if len(scriptBuffer.script) > 223:
             raise OPReturnTooLarge(_("OP_RETURN message too large, needs to be under 220 bytes"))
         return (TYPE_SCRIPT, scriptBuffer, 0)
@@ -214,39 +253,68 @@ class SlpTokenTransactionFactory():
     def buildTransferOpReturnOutput_V1(self, output_qty_array: []) -> tuple:
         if self.token_id_hex == None:
             raise SlpTokenIdMissing
-        script = "OP_RETURN " + \
-                self.lokad_id + " " + \
-                int_2_hex_left_pad(self.token_version.value) + " " + \
-                SlpTokenTransactionFactory.encodeStringToHex("TRAN", 'utf-8') + " " + \
-                self.token_id_hex
+        script = []
+        # OP_RETURN
+        script.extend([0x6a])
+        # lokad
+        lokad = bytearray.fromhex(self.lokad_id)
+        script.extend(self.getPushDataOpcode(lokad))
+        script.extend(lokad)
+        # token version
+        tokenType = bytearray.fromhex(int_2_hex_left_pad(self.token_version))
+        script.extend(self.getPushDataOpcode(tokenType))
+        script.extend(tokenType)
+        # transaction type
+        transType = bytearray.fromhex(SlpTokenTransactionFactory.encodeStringToHex("TRAN", 'utf-8'))
+        script.extend(self.getPushDataOpcode(transType))
+        script.extend(transType)
+        # token id
+        tokenId = bytearray.fromhex(self.token_id_hex)
+        script.extend(self.getPushDataOpcode(tokenId))
+        script.extend(tokenId)
+        # output quantities
         if len(output_qty_array) > 20: 
             raise Exception("Cannot have more than 20 SLP Token outputs.")
         for qty in output_qty_array:
             if qty < 0:
                 raise SlpInvalidOutputMessage()
-            script = script + " " + int_2_hex_left_pad(qty, 8)
-        scriptBuffer = ScriptOutput.from_string(script)
+            q = bytearray.fromhex(int_2_hex_left_pad(qty, 8))
+            script.extend(self.getPushDataOpcode(q))
+            script.extend(q)
+        scriptBuffer = ScriptOutput(bytes(script))
         if len(scriptBuffer.script) > 223:
             raise OPReturnTooLarge(_("OP_RETURN message too large, needs to be under 220 bytes"))
         return (TYPE_SCRIPT, scriptBuffer, 0)
 
     @staticmethod
-    def encodeStringToHex(stringData: str, encoding = 'utf-8', allow_None_for_0x00 = False, conv_0_and_00_to_0x00 = False) -> str:
-        if not allow_None_for_0x00 and (stringData is None or stringData == ''):
+    def encodeStringToHex(stringData: str, encoding = 'utf-8', allow_None = False):
+        if not allow_None and (stringData is None or stringData == ''):
             raise SlpInvalidOutputMessage()
-        if conv_0_and_00_to_0x00 and (stringData == '00' or stringData == '0'): 
-            return '00'
         if stringData is None or stringData == '':
-            return '00'
+            return None
         return stringData.encode(encoding).hex()
 
     @staticmethod
-    def encodeHexStringToHex(stringData: str, allow_None_for_0x00 = False) -> str:
-        if not allow_None_for_0x00 and (stringData is None or stringData == ''):
+    def encodeHexStringToHex(stringData: str, allow_None = False):
+        if not allow_None and (stringData is None or stringData == ''):
             raise SlpInvalidOutputMessage()
-        if stringData == '0' or stringData == '' or stringData is None:
-            return '00'
+        if stringData == '' or stringData is None:
+            return None
+        if len(stringData) % 2 is not 0:
+            raise Exception("Hexidecimal string must be of an even length.")
         return stringData
+
+    @staticmethod
+    def getPushDataOpcode(byteArray: [int]) -> [int]:
+        length = len(byteArray)
+        if length is 0 or length is None:
+            return [0x4c, 0x00]
+        elif length > 0 and length < 76:
+            return [ length ]
+        elif length > 75:
+            return [ 0x4c, length ]
+        else:
+            raise SlpInvalidOutputMessage()
 
     # def buildMintOpReturnOutput(self, additional_token_quantity):
     #     script = "OP_RETURN " + self.lokad_id + " " + self.token_version + " MINT"
