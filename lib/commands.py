@@ -534,6 +534,38 @@ class Commands:
                 raise BaseException("Unknown transaction")
         return tx.as_dict()
 
+    @command('wn')
+    def slpvalidate(self, txid):
+        """
+        (Temporary crude command)
+        SLP-validate a transaction. Will run in main thread so this will block
+        until finished!
+        """
+
+        from . import slp_validator_0x01
+
+        if self.wallet and txid in self.wallet.transactions:
+            tx = self.wallet.transactions[txid]
+        else:
+            raw = self.network.synchronous_get(('blockchain.transaction.get', [txid]))
+            if raw:
+                tx = Transaction(raw)
+            else:
+                raise BaseException("Unknown transaction")
+
+        job = slp_validator_0x01.make_job(tx, self.wallet, self.network, )
+        job.run()
+        n = job.nodes[0]
+        print("Verdict:")
+        if n.validity == 1:
+            print("Valid!")
+        elif n.validity == 2:
+            print("INVALID")
+        elif n.validity == 0:
+            print("Unknown validity.")
+        else:
+            raise RuntimeError("This should not happen", n.validity)
+
     @command('')
     def encrypt(self, pubkey, message):
         """Encrypt a message with a public key. Use quotes if the message contains whitespaces."""

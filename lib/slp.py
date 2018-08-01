@@ -192,12 +192,12 @@ class SlpTokenTransactionFactory():
     def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, initial_token_mint_quantity: int) -> tuple:
         script = []
         # OP_RETURN
-        script.extend([0x6a]) 
+        script.extend([0x6a])
         # lokad id
         lokad = bytearray.fromhex(self.lokad_id)
         script.extend(self.getPushDataOpcode(lokad))
-        script.extend(lokad)     
-        # token version/type 
+        script.extend(lokad)
+        # token version/type
         tokenType = bytearray.fromhex(int_2_hex_left_pad(self.token_version))
         script.extend(self.getPushDataOpcode(tokenType))
         script.extend(tokenType)
@@ -273,7 +273,7 @@ class SlpTokenTransactionFactory():
         script.extend(self.getPushDataOpcode(tokenId))
         script.extend(tokenId)
         # output quantities
-        if len(output_qty_array) > 20: 
+        if len(output_qty_array) > 20:
             raise Exception("Cannot have more than 20 SLP Token outputs.")
         for qty in output_qty_array:
             if qty < 0:

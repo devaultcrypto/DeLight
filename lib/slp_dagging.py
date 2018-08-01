@@ -27,11 +27,15 @@ These principles have been followed in case threading ever gets added:
   regardless of threading!
 """
 
+import threading
+import queue
 import collections
+from .transaction import Transaction
 
 INF_DEPTH=2147483646  # 'infinity' value for node depths. 2**31 - 2
 
-
+class DoubleLoadException(Exception):
+    pass
 
 class ValidatorGeneric:
     """
@@ -39,7 +43,7 @@ class ValidatorGeneric:
     object according to this template.
 
     Implementations should:
-    - Define `get_info` and `validate` methods.
+    - Define `get_info`, `check_needed`, and `validate` methods.
     - Set `prevalidation` to one of the following:
         False - only call validate() once per tx, when all inputs are concluded.
         True - call validate() repeatedly, starting when all inputs are downloaded.
@@ -60,11 +64,12 @@ class ValidatorGeneric:
                 -- information for active, *potentially* valid tx.
 
         The list `vin_mask = (True, False, False, True, ...)` tells which tx
-        inputs may need to be considered for validation. (For any False, the
-        input tx is not downloaded.)
+        inputs are to be considered for validation.
 
         The list `outputs = (out_1, out_2, ...)` provides info that is needed
         to validate descendant transactions. (e.g., how many tokens).
+
+        `vin_mask` and `outputs` must have lengths matching the tx inputs/outputs.
 
         See `validate` for how these are used.
 
@@ -74,17 +79,17 @@ class ValidatorGeneric:
         """
         raise NotImplementedError
 
-    def check_needed(self, myinfo, input_info):
+    def check_needed(self, myinfo, out_n):
         """
         As each input gets downloaded and its get_info() gets computed, we
-        check whether it is still needed by the validator.
+        check whether it is still relevant for validation.
 
         (This is used to disconnect unimportant branches.)
 
         Here we pass in `myinfo` from the tx, and `out_n` from the input
         tx's get_info(); if it was pruned then `out_n` will be None.
         """
-        return True
+        raise NotImplementedError
 
     def validate(self, myinfo, inputs_info):
         """
@@ -119,6 +124,238 @@ class ValidatorGeneric:
         raise NotImplementedError
 
 
+########
+# The DAG building class
+########
+
+class ValidationJob:
+    """
+    Manages a job whose actions are held in mainloop().
+
+    This implementation does a basic breadth-first search.
+    """
+    download_timeout = 5
+    downloads = 0
+
+    currentdepth = 0
+
+    stopping = False
+    running = False
+
+    def __init__(self, graph, txids, network, txcachegetter=None,
+                 download_limit=None, depth_limit=None):
+        """
+        graph should be a TokenGraph instance with the appropriate validator.
+
+        txids is a list of the desired transactions.
+
+        network is a lib.network.Network object, will be used to download when
+        transactions can't be found in the cache.
+
+        txcachegetter (optional) called as txcachegetter(txid_hex), and should
+        return KeyError when a tx is not found in cache. A good value here
+        would be wallet.transactions.__getitem__ .
+
+        download_limit is enforced by stopping search when the `downloads`
+        attribute exceeds this limit. (may exceed it by several, since
+        downloads are requested in parallel)
+
+        depth_limit sets the maximum graph depth to dig to.
+        """
+        self.graph = graph
+        self.txids = tuple(txids)
+        self.network = network
+        if txcachegetter is None:
+            def txcachegetter(txid):
+                raise KeyError
+        self.txcachegetter = txcachegetter
+        self.download_limit = download_limit
+        if depth_limit is None:
+            self.depth_limit = INF_DEPTH - 1
+        else:
+            self.depth_limit = depth_limit
+        self._statelock = threading.Lock()
+
+
+    ## Job state management
+
+    def run(self,):
+        """ Wrapper for mainloop() to manage run state. """
+        with self._statelock:
+            if self.running:
+                raise RuntimeError("Job running already", self)
+            self.stopping = False
+            self.running = True
+        try:
+            self.mainloop()
+        finally:
+            with self._statelock:
+                self.running = False
+                self.stopping = False
+
+    def stop(self,):
+        """ Call from another thread, to request stopping (this function
+        returns immediately, however it may take time to finish the current
+        set of micro-tasks.)
+
+        If already stopped then this is ignored and False returned.
+        Otherwise, True is returned."""
+        with self._statelock:
+            if self.running:
+                self.stopping = True
+                return True
+            else:
+                return False
+
+    @property
+    def runstatus(self,):
+        with self._statelock:
+            if self.stopping:
+                return "stopping"
+            elif self.running:
+                return "running"
+            else:
+                return "stopped"
+
+
+    ## Validation logic (breadth-first traversal)
+
+    @property
+    def nodes(self,):
+        return [self.graph.get_node(t) for t in self.txids]
+
+    def mainloop(self,):
+        """ Breadth-first search """
+
+        nodes = self.nodes
+
+        self.graph.root.set_parents(nodes)
+        self.graph.run_sched() # update depths
+
+        def dl_callback(tx):
+            #will be called by self.get_txes
+            txid = tx.txid()
+            node = self.graph.get_node(txid)
+            try:
+                node.load_tx(tx)
+            except DoubleLoadException:
+                pass
+
+        while True:
+            # do graph maintenance (ping() validation, depth recalculations)
+            self.graph.run_sched()
+
+            if self.stopping:
+                print("DEBUG VAL: stop requested")
+                break
+
+            if not any(n.active for n in nodes):
+                print("DEBUG VAL: target nodes finished")
+                break
+
+            # fetch all finite-depth nodes
+            waiting = self.graph.get_waiting(maxdepth=self.depth_limit - 1)
+            if len(waiting) == 0: # No waiting nodes at all ==> completed.
+                print("DEBUG VAL: exhausted graph without conclusion.")
+                break
+
+            interested_txids = {n.txid for n in waiting
+                                if (n.depth <= self.currentdepth)}
+            if len(interested_txids) == 0: # Exhausted this depth
+                self.currentdepth += 1
+                if self.currentdepth > self.depth_limit:
+                    print("DEBUG VAL:reached depth stop.")
+                    break
+                print("DEBUG VAL: moving to depth = %d"%(self.currentdepth,))
+                continue
+
+            # Download and load up results; this is the main command that
+            # will take time in this loop.
+            txids_missing = self.get_txes(interested_txids, dl_callback)
+
+            txids_gotten = interested_txids.difference(txids_missing)
+  #          print("VAL:Obtained %d txids (of %d requested):   %r"%( len(txids_gotten), len(interested_txids), txids_gotten))
+            if len(txids_gotten) == 0:
+                raise RuntimeError("cannot get any txes; stuck!")
+
+        #end
+
+
+
+    def get_txes(self, txid_iterable, callback, errors='print'):
+        """
+        Get multiple txes 'in parallel' (requests all sent at once), and
+        block while waiting.
+
+        As they are received, we call `callback(tx)` in the current thread.
+
+        Returns a set of txids that could not be obtained, for whatever
+        reason.
+
+        `errors` may be 'ignore' or 'raise'
+        """
+
+        txid_set = set(txid_iterable)
+        requests = []
+
+        # First try to get from cache:
+        cached = []
+        for txid in sorted(txid_set):
+            try:
+                tx = self.txcachegetter(txid)
+            except KeyError:
+                requests.append(('blockchain.transaction.get', [txid]))
+            else:
+                cached.append(tx)
+
+        q = queue.Queue()
+        if len(requests) > 0:
+            self.network.send(requests, q.put)
+
+        # Now start processing cached txes:
+        for tx in cached:
+            txid = tx.txid()
+            try:
+                txid_set.remove(txid)
+            except KeyError:
+                raise RuntimeError("Cache mistake -- wrong txid!!", txid)
+            else:
+                print("DEBUG VAL:got tx %s from cache"%(txid,))
+                callback(tx)
+
+        # And start processing downloaded txes:
+        for _ in requests: # fetch as many responses as were requested.
+            try:
+                resp = q.get(True, self.download_timeout)
+            except queue.Empty: # timeout
+                break
+            if resp.get('error'):
+                if errors=="print":
+                    print("Tx request error:", resp.get('error'))
+                elif errors=="raise":
+                    raise RuntimeError("Tx request error", resp.get('error'))
+                else:
+                    raise ValueError(errors)
+                continue
+            raw = resp.get('result')
+            self.downloads += 1
+            tx = Transaction(raw)
+            txid = tx.txid()
+            try:
+                txid_set.remove(txid)
+            except KeyError:
+                if errors=="print":
+                    print("Received un-requested txid! Ignoring.", txid)
+                elif errors=="raise":
+                    raise RuntimeError("Received un-requested txid!", txid)
+                else:
+                    raise ValueError(errors)
+            else:
+                print("DEBUG VAL:downloaded %s"%(txid,))
+                callback(tx)
+
+        return txid_set
+
 
 ########
 # Graph stuff below
@@ -133,6 +370,9 @@ class TokenGraph:
     Why dynamic? As we go deeper we add connections, sometimes adding
     connections between previously-unconnected parts. We can also remove
     connections as needed for pruning.
+
+    The terms "parent" and "child" refer to the ancestry of a tx -- child
+    transactions contain (in inputs) a set of pointers to their parents.
 
     A key concept is the maintenance of a 'depth' value for each active node,
     which represents the shortest directed path from root to node. The depth
@@ -160,9 +400,9 @@ class TokenGraph:
 
         self._nodes = dict() # txid -> Node
 
-        self.root = NodeRoot()
+        self.root = NodeRoot(self)
 
-        self.waiting_nodes = set()
+        self._waiting_nodes = []
 
         # requested callbacks
         self._sched_ping = set()
@@ -171,17 +411,14 @@ class TokenGraph:
         # Threading rule: we never call node functions while locked.
         # self._lock = ... # threading not enabled.
 
-    def get_node(self, txid, createonly=False):
+    def get_node(self, txid):
         # with self._lock:
         try:
             node = self._nodes[txid]
         except KeyError:
             node = Node(txid, self)
             self._nodes[txid] = node
-            self.waiting_nodes.add(node)
-        else:
-            if createonly:
-                raise RuntimeError
+            self._waiting_nodes.append(node)
         return node
 
     def replace_node(self, txid, replacement):
@@ -215,13 +452,21 @@ class TokenGraph:
                 return
             node.recalc_depth()
 
-    def start_tx(self, tx):
-        """ Add a tx as a parent of the root node; loads node then returns node. """
-        txid = tx.txid()
-        node = self.get_node(txid, createonly=True)
-        node.load_tx(tx)
-        self.root.add_parent(node)
-        return node
+    def get_waiting(self, maxdepth=INF_DEPTH):
+        """ Return a list of waiting nodes (that haven't had load_tx called
+        yet). Optional parameter specifying maximum depth. """
+        # with self._lock:
+        # First, update the _waiting_nodes list.
+        waiting_actual = [node for node in self._waiting_nodes
+                          if node.waiting]
+        self._waiting_nodes = waiting_actual
+
+        if maxdepth == INF_DEPTH:
+            return list(waiting_actual) # return copy
+        else:
+            return [node for node in waiting_actual
+                    if node.depth <= maxdepth]
+
 
 
 class Connection:
@@ -251,8 +496,7 @@ class Node:
     updated.
 
     When our node is active, it can either be in waiting state where the
-    transaction data is not yet available (parents is None), or in live state
-    (parents is a tuple of Connections).
+    transaction data is not yet available, or in a live state.
 
     The node becomes inactive when a conclusion is reached: either
     pruned, invalid, or valid. When this occurs, the node replaces itself
@@ -261,9 +505,10 @@ class Node:
     def __init__(self, txid, graph):
         self.txid = txid
         self.graph = graph
-        self.children = list()
-        self.parents = None  # only None when in waiting state
+        self.conn_children = list()
+        self.conn_parents = ()
         self.depth = INF_DEPTH
+        self.waiting = True
         self.active = True
         self.validity = 0    # 0 - unknown, 1 - valid, 2 - invalid
         self.myinfo = None   # self-info from get_info().
@@ -272,7 +517,7 @@ class Node:
 
     def __repr__(self,):
         if self.active:
-            if self.parents is None:
+            if self.waiting:
                 status='waiting'
             else:
                 status='live'
@@ -286,23 +531,24 @@ class Node:
     def add_child(self, connection):
         """ Called by children to subscribe notifications.
 
-        (May not actually establish connection, if inactive, or vout is
-        pruned. In that case, a ping is automatically scheduled.)
+        (If inactive, a ping will be scheduled.)
         """
         # with self._lock:
         if not self.active:
             connection.parent = self.replacement
             self.graph.add_ping(connection.child)
             return
+        if connection.parent is not self:
+            raise RuntimeError('mismatch')
 
-        self.children.append(connection)
+        self.conn_children.append(connection)
         newdepth = min(1 + connection.child.depth,
                        INF_DEPTH)
         olddepth = self.depth
         if newdepth < olddepth:
             # found a shorter path from root
             self.depth = newdepth
-            for c in self.parents:
+            for c in self.conn_parents:
                 if c.parent.depth == 1 + olddepth:
                     # parent may have been hanging off our depth value.
                     self.graph.add_recalc_depth(c.parent, newdepth)
@@ -312,10 +558,10 @@ class Node:
         """ called by children to remove connection
         """
         # with self._lock:
-        self.children.remove(connection)
+        self.conn_children.remove(connection)
 
         if self.depth <= connection.child.depth+1:
-            self.graph.add_sched(self.recalc_depth)
+            self.graph.add_recalc_depth(self, self.depth)
 
 
     ## Loading of info
@@ -323,8 +569,8 @@ class Node:
     def load_tx(self, tx, cached_validity = None):
         """ Convert 'waiting' transaction to live one. """
         # with self._lock:
-        if self.parents is not None:
-            raise RuntimeError("double load!", self)
+        if not self.waiting:
+            raise DoubleLoadException(self)
 
         if tx.txid() != self.txid:
             raise ValueError("TXID mismatch", tx.txid(), self.txid)
@@ -340,7 +586,7 @@ class Node:
         vin_mask, self.myinfo, self.outputs = ret
 
         if len(self.outputs) != len(tx.outputs()):
-            raise ValueError("length mismatch")
+            raise ValueError("output length mismatch")
 
         if cached_validity is not None:
             return self._inactivate_self(True, cached_validity)
@@ -349,9 +595,9 @@ class Node:
         # build connections to parents
         txinputs = tx.inputs()
         if len(vin_mask) != len(txinputs):
-            raise ValueError("length mismatch")
+            raise ValueError("input length mismatch")
 
-        parents = []
+        conn_parents = []
         for vin, (mask, inp) in enumerate(zip(vin_mask, txinputs)):
             if not mask:
                 continue
@@ -361,21 +607,23 @@ class Node:
             p = self.graph.get_node(txid)
             c = Connection(p,self,vout,vin)
             p.add_child(c)
-            parents.append(c)
-        self.parents = tuple(parents)
+            conn_parents.append(c)
+        self.conn_parents = conn_parents
 
-        if len(self.parents) == 0:
+        self.waiting = False
+
+        if len(self.conn_parents) == 0:
             # no parents? ready to validate now! (e.g., genesis tx)
             self.graph.add_ping(self)
         else:
             # normally we just ping all children.
-            for c in self.children:
+            for c in self.conn_children:
                 self.graph.add_ping(c.child)
 
     def load_pruned(self, cached_validity):
         # with self._lock:
-        if self.parents is not None:
-            raise RuntimeError("double load!", self)
+        if not self.waiting:
+            raise DoubleLoadException(self)
 
         return self._inactivate_self(False, cached_validity)
 
@@ -386,6 +634,8 @@ class Node:
         # Replace self with NodeInactive instance according to keepinfo and validity
         # no thread locking here, this only gets called internally.
 
+        print("DEBUG NODE:txid %.10s... inactivated; %r, %r"%(self.txid, keepinfo, validity))
+
         if keepinfo:
             replacement = NodeInactive(validity, self.outputs)
         else:
@@ -395,22 +645,22 @@ class Node:
         self.graph.replace_node(self.txid, replacement)
 
         # unsubscribe from parents & forget
-        if parents is not None:
-            for c in self.parents:
-                c.parent.del_child(c)
-        self.parents = ()
+        for c in self.conn_parents:
+            c.parent.del_child(c)
+        self.conn_parents = ()
 
         # replace self in child connections & forget
-        for c in self.children:
+        for c in self.conn_children:
             c.parent = replacement
             c.checked = False
             self.graph.add_ping(c.child)
-        self.children = ()
+        self.conn_children = ()
 
         # At this point all permanent refs to us should be gone and we will soon be deleted.
         # Temporary refs may remain, for which we mimic the replacement.
+        self.waiting = False
         self.active = False
-        self.depth = INF_DEPTH
+        self.depth = replacement.depth
         self.validity = replacement.validity
         self.outputs = replacement.outputs
         self.replacement = replacement
@@ -419,14 +669,14 @@ class Node:
         # with self._lock:
         if not self.active:
             return
-        depths = [c.child.depth for c in self.children]
+        depths = [c.child.depth for c in self.conn_children]
         depths.append(INF_DEPTH-1)
         newdepth = 1 + min(depths)
         olddepth = self.depth
         if newdepth != olddepth:
             self.depth = newdepth
             depthpriority = 1 + min(olddepth, newdepth)
-            for c in self.parents:
+            for c in self.conn_parents:
                 self.graph.add_recalc_depth(c.parent, depthpriority)
 
     def get_out_info(self, c):
@@ -438,28 +688,29 @@ class Node:
         except TypeError: # outputs is None or vout is None
             out = None
 
-        waiting = (self.parents is None)
-
-        if not c.checked and not waiting:
+        if not c.checked and not self.waiting:
             if c.child.graph.validator.check_needed(c.child.myinfo, out):
                 c.checked = True
             else:
                 return None
 
-        return (self.active, waiting, c.vin, self.validity, out)
+        return (self.active, self.waiting, c.vin, self.validity, out)
 
     def ping(self, ):
         """ handle notification status update on one or more parents """
         # with self._lock:
+
+        if not self.active:
+            return
         validator = self.graph.validator
 
         # get info, discarding unneeded parents.
         pinfo = []
-        for c in tuple(self.parents):
+        for c in tuple(self.conn_parents):
             info = c.parent.get_out_info(c)
             if info is None:
                 c.parent.del_child(c)
-                self.parents.remove(c)
+                self.conn_parents.remove(c)
             else:
                 pinfo.append(info)
 
@@ -486,13 +737,20 @@ class Node:
 
 class NodeRoot: # Special root, only one of these is created per TokenGraph.
     depth = -1
-    def __init__(self, ):
-        parents = []
-    def add_parent(self, parent):
-        c = Connection(parent, self, None, None)
-        parent.add_child(c)
-        parents.append(parent)
-        return c
+    def __init__(self, graph):
+        self.graph = graph
+        self.conn_parents = []
+    def set_parents(self, parent_nodes):
+        # Remove existing parent connections
+        for c in tuple(self.conn_parents):
+            c.parent.del_child(c)
+            self.conn_parents.remove(c)
+        # Add new ones
+        for p in parent_nodes:
+            c = Connection(p, self, None, None)
+            p.add_child(c)
+            self.conn_parents.append(c)
+            return c
     def ping(self,):
         pass
 
@@ -502,7 +760,9 @@ class NodeInactive(collections.namedtuple('anon_namedtuple',
                                           ['validity', 'outputs'])):
     __slots__ = ()  # no dict needed
     active = False
+    waiting = False
     depth = INF_DEPTH
+    txid = None
 
     def get_out_info(self, c):
         # Get info for the connection and check if connection is needed.
@@ -520,10 +780,12 @@ class NodeInactive(collections.namedtuple('anon_namedtuple',
 
         return (False, False, c.vin, self.validity, out)
 
+    def load_tx(self, tx, cached_validity = None):
+        raise DoubleLoadException(self)
     def add_child(self, connection): # refuse connection and ping
         connection.child.graph.add_ping(connection.child)
     def del_child(self, connection): pass
     def recalc_depth(self): pass
 
 # create singletons for pruning
-prunednodes = [NodeInactive(v, None, None) for v in (0,1,2)]
+prunednodes = {v:NodeInactive(v, None) for v in (0,1,2)}
