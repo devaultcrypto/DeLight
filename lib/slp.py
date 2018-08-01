@@ -93,14 +93,8 @@ class SlpMessage():
             # ['token_output'][1] is the first token output given by the SLP
             # message, i.e., the number listed as `token_output_quantity1` in the
             # spec, which goes to tx output vout=1.
-            slpMsg.op_return_fields['token_output'] = [0]
-            for field in split_asm[5:]:
-                try:
-                    slpMsg.op_return_fields['token_output'].append(SlpMessage.parseHex2Int(field, 8, 8))
-                except:
-                    #raise SlpInvalidOutputMessage()
-                    break
-
+            slpMsg.op_return_fields['token_output'] = [0] + \
+                    [ SlpMessage.parseHex2Int(field, 8, 8) for field in split_asm[5:] ]
             # maximum 19 allowed token outputs, plus 1 for the explicit [0] we inserted.
             if len(slpMsg.op_return_fields['token_output']) > 20:
                 raise SlpInvalidOutputMessage()
