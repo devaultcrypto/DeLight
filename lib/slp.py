@@ -81,8 +81,10 @@ class SlpMessage():
             slpMsg.op_return_fields['token_doc_url'] = SlpMessage.parseHex2String(split_asm[6], 1, 100, 'ascii')
             # handle token docuemnt hash
             slpMsg.op_return_fields['token_doc_hash_hex'] = SlpMessage.parseHex2HexString(split_asm[7], 32, 32)
+            # handle decimal places
+            slpMsg.op_return_fields['decimals'] = SlpMessage.parseHex2Int(split_asm[8], 1, 1)
             # handle initial token quantity issuance
-            slpMsg.op_return_fields['initial_token_mint_quantity'] = SlpMessage.parseHex2Int(split_asm[8], 8, 8)
+            slpMsg.op_return_fields['initial_token_mint_quantity'] = SlpMessage.parseHex2Int(split_asm[9], 8, 8)
             slpMsg.isChecked = True
             return slpMsg
         elif slpMsg.transaction_type == SlpTransactionType.TRAN.value:
@@ -189,7 +191,7 @@ class SlpTokenTransactionFactory():
         self.lokad_id = "00534c50"
 
     # Type 1 Token INIT Message
-    def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, initial_token_mint_quantity: int) -> tuple:
+    def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, decimals: int, initial_token_mint_quantity: int) -> tuple:
         script = []
         # OP_RETURN
         script.extend([0x6a])
@@ -237,6 +239,12 @@ class SlpTokenTransactionFactory():
             script.extend(doc_hash)
         elif doc_hash is None:
             script.extend([0x4c, 0x00])
+        # decimals
+        if decimals > 8 or decimals < 0:
+            raise SlpInvalidOutputMessage()
+        decimals = bytearray.fromhex(int_2_hex_left_pad(decimals, 1))
+        script.extend(self.getPushDataOpcode(decimals))
+        script.extend(decimals)
         # init quantity
         qty = bytearray.fromhex(int_2_hex_left_pad(initial_token_mint_quantity, 8))
         script.extend(self.getPushDataOpcode(qty))

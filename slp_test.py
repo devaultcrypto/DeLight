@@ -18,7 +18,8 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
         ticker = "TEST"                     # 04 ______ 
         name = "A Test Token"               # push(14) ______ 
         doc_url = "http://www.bitcoin.cash" # push(23) ______
-        doc_hash_hex = None                 # 01 00
+        doc_hash_hex = None                 # 
+        decimals = 0
         init_qty = 2100000000000000         # 08 000775F05A074000
         # manually formulate the message
         script = []
@@ -71,7 +72,7 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
             raise Exception("OP_RETURN message too large, needs to be under 220 bytes")
         # form OP_RETURN script using the SLP method
         slpTokenFactory = SlpTokenTransactionFactory(token_version = token_type)
-        scriptBuffer_factory = slpTokenFactory.buildInitOpReturnOutput_V1(ticker=ticker, token_name=name, token_document_url=doc_url, token_document_hash_hex=doc_hash_hex, initial_token_mint_quantity=init_qty)
+        scriptBuffer_factory = slpTokenFactory.buildInitOpReturnOutput_V1(ticker=ticker, token_name=name, token_document_url=doc_url, token_document_hash_hex=doc_hash_hex, decimals=decimals, initial_token_mint_quantity=init_qty)
         self.assertEqual(expected_hex, scriptBuffer_factory[1].script.hex())
         self.assertEqual(expected_asm, scriptBuffer_factory[1].to_asm())
         # parse raw OP_RETURN hex to an SlpMessage INIT
