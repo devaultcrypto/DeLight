@@ -13,7 +13,7 @@ Example OP_RETURN tool msg =
 
 ### Transfer Transaction #1
 
-Example OP_RETURN tool msg = `<push><hex>00534c50<push><hex>01<push>TRAN<push><hex>36dab7bb622ad19767923f8e268c90ee037e2fbb5e4cf18931908ae27cc4c7bd<hex>0000000000000001`
+Example OP_RETURN tool msg = `<push><hex>00534c50<push><hex>01<push>TRAN<push><hex>36dab7bb622ad19767923f8e268c90ee037e2fbb5e4cf18931908ae27cc4c7bd<push><hex>0000000000000001`
 
 ### Transfer Transaction #2
 
