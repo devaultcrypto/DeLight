@@ -82,9 +82,11 @@ class SlpMessage():
             # handle token docuemnt hash
             slpMsg.op_return_fields['token_doc_hash_hex'] = SlpMessage.parseHex2HexString(split_asm[7], 32, 32)
             # handle decimal places
-            slpMsg.op_return_fields['decimals'] = SlpMessage.parseHex2Int(split_asm[8], 1, 1)
+            slpMsg.op_return_fields['decimals'] = SlpMessage.parseHex2Int(split_asm[8], 1, 1, True)
+            # handle baton for additional minting
+            slpMsg.op_return_fields['mint_baton_vout'] = SlpMessage.parseHex2Int(split_asm[9], 1, 1)
             # handle initial token quantity issuance
-            slpMsg.op_return_fields['initial_token_mint_quantity'] = SlpMessage.parseHex2Int(split_asm[9], 8, 8)
+            slpMsg.op_return_fields['initial_token_mint_quantity'] = SlpMessage.parseHex2Int(split_asm[10], 8, 8, True)
             slpMsg.isChecked = True
             return slpMsg
         elif slpMsg.transaction_type == SlpTransactionType.TRAN.value:
@@ -96,7 +98,7 @@ class SlpMessage():
             # message, i.e., the number listed as `token_output_quantity1` in the
             # spec, which goes to tx output vout=1.
             slpMsg.op_return_fields['token_output'] = [0] + \
-                    [ SlpMessage.parseHex2Int(field, 8, 8) for field in split_asm[5:] ]
+                    [ SlpMessage.parseHex2Int(field, 8, 8, True) for field in split_asm[5:] ]
             # maximum 19 allowed token outputs, plus 1 for the explicit [0] we inserted.
             if len(slpMsg.op_return_fields['token_output']) > 20:
                 raise SlpInvalidOutputMessage()
@@ -148,7 +150,11 @@ class SlpMessage():
         return decoded
 
     @staticmethod
-    def parseHex2Int(intHex: str, minByteLen: int = 1, maxByteLen: int = 8):
+    def parseHex2Int(intHex: str, minByteLen: int = 1, maxByteLen: int = 8, raise_on_Null: bool = False):
+        if intHex == '<EMPTY>' and not raise_on_Null:
+            return None
+        elif intHex == '<EMPTY>':
+            raise SlpInvalidOutputMessage()
         if maxByteLen is not None:
             if len(intHex) > (maxByteLen * 2):
                 raise SlpInvalidOutputMessage()
@@ -191,7 +197,7 @@ class SlpTokenTransactionFactory():
         self.lokad_id = "00534c50"
 
     # Type 1 Token INIT Message
-    def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, decimals: int, initial_token_mint_quantity: int) -> tuple:
+    def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, decimals: int, baton_vout: int, initial_token_mint_quantity: int) -> tuple:
         script = []
         # OP_RETURN
         script.extend([0x6a])
@@ -245,6 +251,15 @@ class SlpTokenTransactionFactory():
         decimals = bytearray.fromhex(int_2_hex_left_pad(decimals, 1))
         script.extend(self.getPushDataOpcode(decimals))
         script.extend(decimals)
+        # baton vout
+        if baton_vout is not None:
+            if baton_vout < 2:
+                raise SlpInvalidOutputMessage()
+            baton_vout = bytearray.fromhex(int_2_hex_left_pad(baton_vout, 1))
+            script.extend(self.getPushDataOpcode(baton_vout))
+            script.extend(baton_vout)
+        elif baton_vout is None:
+            script.extend([0x4c, 0x00])
         # init quantity
         qty = bytearray.fromhex(int_2_hex_left_pad(initial_token_mint_quantity, 8))
         script.extend(self.getPushDataOpcode(qty))

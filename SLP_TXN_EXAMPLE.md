@@ -9,7 +9,7 @@ This series of 3 transactions results in a very simple DAG with only the followi
 ### Genesis Transaction
 
 Example OP_RETURN tool msg = 
-`<push><hex>00534c50<push><hex>01<push>INIT<push><empty><push><empty><push><empty><push><empty><push><hex>00<push><hex>000000F05A074000`
+`<push><hex>00534c50<push><hex>01<push>INIT<push><empty><push><empty><push><empty><push><empty><push><hex>00<push><empty><push><hex>000000F05A074000`
 
 ### Transfer Transaction #1
 

@@ -20,6 +20,7 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
         doc_url = "http://www.bitcoin.cash" # push(23) ______
         doc_hash_hex = None                 # 
         decimals = 0
+        baton_vout = None
         init_qty = 2100000000000000         # 08 000775F05A074000
         # manually formulate the message
         script = []
@@ -50,6 +51,13 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
             script.extend(bytearray.fromhex(SlpTokenTransactionFactory.encodeHexStringToHex(doc_hash_hex, True)))
         else:
             script.extend([0x4c, 0x00])
+        script.extend([0x01])
+        script.extend(bytearray.fromhex(int_2_hex_left_pad(decimals, 1)))
+        if baton_vout is not None:
+            script.extend([0x01])
+            script.extend(bytearray.fromhex(int_2_hex_left_pad(baton_vout, 1)))
+        else:
+            script.extend([0x4c, 0x00])
         script.extend([0x08])
         script.extend(bytearray.fromhex(int_2_hex_left_pad(init_qty, 8)))
 
@@ -72,7 +80,7 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
             raise Exception("OP_RETURN message too large, needs to be under 220 bytes")
         # form OP_RETURN script using the SLP method
         slpTokenFactory = SlpTokenTransactionFactory(token_version = token_type)
-        scriptBuffer_factory = slpTokenFactory.buildInitOpReturnOutput_V1(ticker=ticker, token_name=name, token_document_url=doc_url, token_document_hash_hex=doc_hash_hex, decimals=decimals, initial_token_mint_quantity=init_qty)
+        scriptBuffer_factory = slpTokenFactory.buildInitOpReturnOutput_V1(ticker=ticker, token_name=name, token_document_url=doc_url, token_document_hash_hex=doc_hash_hex, decimals=decimals,baton_vout=baton_vout, initial_token_mint_quantity=init_qty)
         self.assertEqual(expected_hex, scriptBuffer_factory[1].script.hex())
         self.assertEqual(expected_asm, scriptBuffer_factory[1].to_asm())
         # parse raw OP_RETURN hex to an SlpMessage INIT
