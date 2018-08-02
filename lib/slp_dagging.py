@@ -44,6 +44,7 @@ class ValidatorGeneric:
 
     Implementations should:
     - Define `get_info`, `check_needed`, and `validate` methods.
+    - Define `validity_states` dictionary.
     - Set `prevalidation` to one of the following:
         False - only call validate() once per tx, when all inputs are concluded.
         True - call validate() repeatedly, starting when all inputs are downloaded.
@@ -51,6 +52,12 @@ class ValidatorGeneric:
     """
 
     prevalidation = False
+
+    validity_states = {
+        0: 'Unknown',
+        1: 'Valid',
+        2: 'Invalid',
+        }
 
     def get_info(self,tx):
         """ This will be called with a Transaction object; use it to extract
@@ -138,6 +145,7 @@ class ValidationJob:
     downloads = 0
 
     currentdepth = 0
+    debugging_graph_state = False
 
     stopping = False
     running = False
@@ -230,7 +238,7 @@ class ValidationJob:
         nodes = self.nodes
 
         self.graph.root.set_parents(nodes)
-        self.graph.run_sched() # update depths
+        self.graph.run_sched()
 
         def dl_callback(tx):
             #will be called by self.get_txes
@@ -242,21 +250,18 @@ class ValidationJob:
                 pass
 
         while True:
-            # do graph maintenance (ping() validation, depth recalculations)
-            self.graph.run_sched()
-
             if self.stopping:
-                print("DEBUG VAL: stop requested")
+                self.graph.debug("stop requested")
                 break
 
             if not any(n.active for n in nodes):
-                print("DEBUG VAL: target nodes finished")
+                self.graph.debug("target nodes finished")
                 break
 
             # fetch all finite-depth nodes
             waiting = self.graph.get_waiting(maxdepth=self.depth_limit - 1)
             if len(waiting) == 0: # No waiting nodes at all ==> completed.
-                print("DEBUG VAL: exhausted graph without conclusion.")
+                self.graph.debug("exhausted graph without conclusion.")
                 break
 
             interested_txids = {n.txid for n in waiting
@@ -264,14 +269,28 @@ class ValidationJob:
             if len(interested_txids) == 0: # Exhausted this depth
                 self.currentdepth += 1
                 if self.currentdepth > self.depth_limit:
-                    print("DEBUG VAL:reached depth stop.")
+                    self.graph.debug("reached depth stop.")
                     break
-                print("DEBUG VAL: moving to depth = %d"%(self.currentdepth,))
+                self.graph.debug("moving to depth = %d", self.currentdepth)
                 continue
 
             # Download and load up results; this is the main command that
             # will take time in this loop.
             txids_missing = self.get_txes(interested_txids, dl_callback)
+
+            # do graph maintenance (ping() validation, depth recalculations)
+            self.graph.run_sched()
+            if self.debugging_graph_state:
+                self.graph.debug("Active graph state:")
+                n_active = 0
+                for txid,n in self.graph._nodes.items():
+                    if not n.active:
+                        continue
+                    self.graph.debug("    %.10s...[%8s] depth=%s"%(txid, n.status, str(n.depth) if n.depth != INF_DEPTH else 'INF_DEPTH'))
+                    n_active += 1
+                if n_active == 0:
+                    self.graph.debug("    (empty)")
+
 
             txids_gotten = interested_txids.difference(txids_missing)
   #          print("VAL:Obtained %d txids (of %d requested):   %r"%( len(txids_gotten), len(interested_txids), txids_gotten))
@@ -320,7 +339,6 @@ class ValidationJob:
             except KeyError:
                 raise RuntimeError("Cache mistake -- wrong txid!!", txid)
             else:
-                print("DEBUG VAL:got tx %s from cache"%(txid,))
                 callback(tx)
 
         # And start processing downloaded txes:
@@ -351,7 +369,6 @@ class ValidationJob:
                 else:
                     raise ValueError(errors)
             else:
-                print("DEBUG VAL:downloaded %s"%(txid,))
                 callback(tx)
 
         return txid_set
@@ -395,6 +412,8 @@ class TokenGraph:
     down the DAG) we use a task scheduler, provided by `add_ping()`,
     `add_recalc_depth()` and `run_sched()`.
     """
+    debugging = False
+
     def __init__(self, validator):
         self.validator = validator
 
@@ -408,8 +427,16 @@ class TokenGraph:
         self._sched_ping = set()
         self._sched_recalc_depth = set()
 
+
+        # create singletons for pruning
+        self.prunednodes = {v:NodeInactive(v, None) for v in validator.validity_states.keys()}
+
         # Threading rule: we never call node functions while locked.
         # self._lock = ... # threading not enabled.
+
+    def debug(self, formatstr, *args):
+        if self.debugging:
+            print("DEBUG-DAG: " + formatstr%args)
 
     def get_node(self, txid):
         # with self._lock:
@@ -515,15 +542,17 @@ class Node:
         self.outputs = None  # per-output info from get_info(). None if waiting/pruned/invalid.
         # self._lock = ... # threading not enabled.
 
-    def __repr__(self,):
+    @property
+    def status(self):
+        if self.waiting:
+            return 'waiting'
         if self.active:
-            if self.waiting:
-                status='waiting'
-            else:
-                status='live'
+            return 'live'
         else:
-            status='inactive'
-        return "<%s %s txid=%r>"%(type(self).__name__, status, self.txid)
+            return 'inactive'
+
+    def __repr__(self,):
+        return "<%s %s txid=%r>"%(type(self).__name__, self.status, self.txid)
 
 
     ## Child connection adding/removing
@@ -579,6 +608,8 @@ class Node:
         ret = validator.get_info(tx)
 
         if len(ret) == 2:
+            self.graph.debug("%.10s... judged upon loading: %s",
+                             self.txid, self.graph.validator.validity_states.get(ret[1],ret[1]))
             if ret[0] != 'prune':
                 raise ValueError(ret)
             return self._inactivate_self(False, ret[1])
@@ -589,6 +620,8 @@ class Node:
             raise ValueError("output length mismatch")
 
         if cached_validity is not None:
+            self.graph.debug("%.10s... cached judgement: %s",
+                             self.txid, self.graph.validator.validity_states.get(ret[1],ret[1]))
             return self._inactivate_self(True, cached_validity)
 
         # at this point we have exhausted options for inactivation.
@@ -625,6 +658,9 @@ class Node:
         if not self.waiting:
             raise DoubleLoadException(self)
 
+        self.graph.debug("%.10s... load pruned: %s",
+                         self.txid, self.graph.validator.validity_states.get(cached_validity,cached_validity))
+
         return self._inactivate_self(False, cached_validity)
 
 
@@ -634,12 +670,10 @@ class Node:
         # Replace self with NodeInactive instance according to keepinfo and validity
         # no thread locking here, this only gets called internally.
 
-        print("DEBUG NODE:txid %.10s... inactivated; %r, %r"%(self.txid, keepinfo, validity))
-
         if keepinfo:
             replacement = NodeInactive(validity, self.outputs)
         else:
-            replacement = prunednodes[validity] # use singletons
+            replacement = self.graph.prunednodes[validity] # use singletons
 
         # replace self in lookups
         self.graph.replace_node(self.txid, replacement)
@@ -732,11 +766,14 @@ class Node:
                                    self.txid, parent_info)
             return
         else: # decided
+            self.graph.debug("%.10s... judgement based on inputs: %s",
+                             self.txid, self.graph.validator.validity_states.get(ret[1],ret[1]))
             self._inactivate_self(*ret)
 
 
 class NodeRoot: # Special root, only one of these is created per TokenGraph.
     depth = -1
+
     def __init__(self, graph):
         self.graph = graph
         self.conn_parents = []
@@ -763,6 +800,7 @@ class NodeInactive(collections.namedtuple('anon_namedtuple',
     waiting = False
     depth = INF_DEPTH
     txid = None
+    status = "inactive"
 
     def get_out_info(self, c):
         # Get info for the connection and check if connection is needed.
@@ -786,6 +824,3 @@ class NodeInactive(collections.namedtuple('anon_namedtuple',
         connection.child.graph.add_ping(connection.child)
     def del_child(self, connection): pass
     def recalc_depth(self): pass
-
-# create singletons for pruning
-prunednodes = {v:NodeInactive(v, None) for v in (0,1,2)}

@@ -535,7 +535,7 @@ class Commands:
         return tx.as_dict()
 
     @command('wn')
-    def slpvalidate(self, txid):
+    def slpvalidate(self, txid, debug, reset): # Wish I could make debug, reset as optional but EC console doesn't allow. >_>
         """
         (Temporary crude command)
         SLP-validate a transaction. Will run in main thread so this will block
@@ -553,18 +553,12 @@ class Commands:
             else:
                 raise BaseException("Unknown transaction")
 
-        job = slp_validator_0x01.make_job(tx, self.wallet, self.network, )
+        job = slp_validator_0x01.make_job(tx, self.wallet, self.network, debug=debug, reset=reset)
+        job.debugging_graph_state = debug # enable printing whole graph state for every step
         job.run()
         n = job.nodes[0]
-        print("Verdict:")
-        if n.validity == 1:
-            print("Valid!")
-        elif n.validity == 2:
-            print("INVALID")
-        elif n.validity == 0:
-            print("Unknown validity.")
-        else:
-            raise RuntimeError("This should not happen", n.validity)
+
+        return job.graph.validator.validity_states[n.validity]
 
     @command('')
     def encrypt(self, pubkey, message):

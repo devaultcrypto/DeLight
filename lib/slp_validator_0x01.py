@@ -23,21 +23,30 @@ def get_graph(token_id):
         try:
             return graph_db[token_id]
         except KeyError:
-            print("SLP:starting graph for token_id=%r"%( token_id,))
+#            print("DEBUG SLP: starting graph for token_id=%r"%( token_id,))
             val = Validator_SLP_0x01(token_id)
             graph = slp_dagging.TokenGraph(val)
+#            graph.debugging = True
             graph_db[token_id] = graph
             return graph
+def kill_graph(token_id):
+    del graph_db[token_id]
 
 
-def make_job(tx, wallet, network, **kwargs):
+def make_job(tx, wallet, network, debug=False, reset=False, **kwargs):
     """
     Basic validation job maker for a single transaction.
     """
     slpMsg = slp.SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
     token_id = slpMsg.op_return_fields['token_id_hex']
 
+    if reset:
+        try:
+            kill_graph(token_id)
+        except KeyError:
+            pass
     graph = get_graph(token_id)
+    graph.debugging = bool(debug)
     job = slp_dagging.ValidationJob(graph, [tx.txid()], network,
                                     txcachegetter=wallet.transactions.__getitem__,
                                     **kwargs)
@@ -46,6 +55,13 @@ def make_job(tx, wallet, network, **kwargs):
 
 class Validator_SLP_0x01:
     prevalidation = True # indicate we want to check validation when some inputs still active.
+
+    validity_states = {
+        0: 'Unknown',
+        1: 'Valid',
+        2: 'Invalid: not SLP / malformed SLP',
+        3: 'Invalid: insufficient valid inputs'
+        }
 
     def __init__(self, token_id):
         self.token_id = token_id
@@ -58,29 +74,25 @@ class Validator_SLP_0x01:
         Prune if mismatched token_id from this validator or SLP version other than 1.
         """
         txouts = tx.outputs()
-        if len(txouts) < 1 or txouts[0][0] != TYPE_SCRIPT:
-            return ('prune', 0) # not SLP: regular address in first output.
+        if len(txouts) < 1:
+            return ('prune', 2) # not SLP: regular address in first output.
 
-        # check op_return with lokad ID (all four forms of push)
-        scriptbytes = txouts[0][1].script
-        if not (   scriptbytes.startswith(b'\x6a\x04\x00SLP')
-                or scriptbytes.startswith(b'\x6a\x4c\x04\x00SLP')
-                or scriptbytes.startswith(b'\x6a\x4d\x04\x00\x00SLP')
-                or scriptbytes.startswith(b'\x6a\x4e\x04\x00\x00\x00\x00SLP')
-                ):
-            return ('prune', 0) # not SLP : not op_return, or lokad ID missing / mismatch
-
-        # Parse the SLP
+        # We take for granted that parseSlpOutputScript here will catch all
+        # consensus-invalid op_return messages. In this procedure we check the
+        # remaining internal rules, having to do with the overall transaction.
         try:
             slpMsg = slp.SlpMessage.parseSlpOutputScript(txouts[0][1])
-        except Exception:
-            return ('prune', 2) # internally invalid
+        except slp.SlpUnsupportedSlpTokenType as e:
+            return ('prune', 0)
+        except slp.SlpInvalidOutputMessage as e:
+#            print("DEBUG SLP: %.10s... invalid: %r"%(tx.txid(), e))
+            return ('prune', 2)
 
+        # Parse the SLP
         if slpMsg.token_type != 1:
             return ('prune', 0) # not SLP 0x01
 
-
-        # Consensus rule 2: OP_RETURN output must be 0.
+        # Consensus rule 2: OP_RETURN output amount must be 0.
         if txouts[0][2] != 0:
             return ('prune', 2)
 
@@ -88,6 +100,7 @@ class Validator_SLP_0x01:
         other_scripts = [o[1] for o in txouts[1:] if o[0] == TYPE_SCRIPT]
         for sc in other_scripts:
             if sc.script.startswith(b'\x6a'):
+                #print("DEBUG SLP: %.10s... invalid: %r"%(tx.txid(), e))
                 return ('prune', 2)
 
         if slpMsg.transaction_type == 'TRAN':
@@ -101,8 +114,8 @@ class Validator_SLP_0x01:
 #            print("DEBUG SLP:getinfo %.10s outputs: %r"%(tx.txid(), slpMsg.op_return_fields['token_output']))
             myinfo = sum(slpMsg.op_return_fields['token_output'])
 
-            # outputs straight from the token fields.
-            outputs = tuple(slpMsg.op_return_fields['token_output'])
+            # outputs straight from the token amounts
+            outputs = slpMsg.op_return_fields['token_output']
         elif slpMsg.transaction_type == 'INIT':
             token_id = tx.txid()
 
@@ -110,8 +123,13 @@ class Validator_SLP_0x01:
 
             myinfo = 'INIT'
 
-            # second output gets 'MINT' as baton signifier
-            outputs = (None, slpMsg.op_return_fields['initial_token_mint_quantity'], 'MINT')
+            # place 'MINT' as baton signifier on the designated output
+            mintvout = slpMsg.op_return_fields['mint_baton_vout']
+            if mintvout is None:
+                outputs = [None,None]
+            else:
+                outputs = [None]*(mintvout-1) + ['MINT']
+            outputs[1] = slpMsg.op_return_fields['initial_token_mint_quantity']
         elif slpMsg.transaction_type == 'MINT':
             token_id = slpMsg.op_return_fields['token_id_hex']
 
@@ -119,7 +137,13 @@ class Validator_SLP_0x01:
 
             myinfo = 'MINT'
 
-            outputs = (None, slpMsg.op_return_fields['additional_token_quantity'], 'MINT')
+            # place 'MINT' as baton signifier on the designated output
+            mintvout = slpMsg.op_return_fields['mint_baton_vout']
+            if mintvout is None:
+                outputs = [None,None]
+            else:
+                outputs = [None]*(mintvout-1) + ['MINT']
+            outputs[1] = slpMsg.op_return_fields['additional_token_quantity']
         else:
             raise RuntimeError(slpMsg.transaction_type)
 
@@ -127,7 +151,7 @@ class Validator_SLP_0x01:
             return ('prune', 0)  # mismatched token_id
 
         # truncate / expand outputs list to match tx outputs length
-        outputs = outputs[:len(txouts)]
+        outputs = tuple(outputs[:len(txouts)])
         outputs = outputs + (None,)*(len(txouts) - len(outputs))
 
         return vin_mask, myinfo, outputs
@@ -149,7 +173,6 @@ class Validator_SLP_0x01:
 
 
     def validate(self, myinfo, inputs_info):
-        print("DEBUG SLP:validate called: %r   %r"%(myinfo, inputs_info))
         if myinfo == 'INIT':
             if len(inputs_info) != 0:
                 raise RuntimeError('Unexpected', inputs_info)
@@ -158,24 +181,24 @@ class Validator_SLP_0x01:
             if not all(inp[3] == 'MINT'): # non-MINT inputs should be pruned.
                 raise RuntimeError('Unexpected', inputs_info)
             if len(inputs_info) == 0:
-                return (False, 2) # no baton? invalid.
+                return (False, 3) # no baton? invalid.
             if all(inp[2] == 1 for inp in inputs_info):
                 # multiple 'valid' baton inputs are possible with double spending.
                 # technically 'valid' though miners will never confirm.
                 return (True, 1)
             return None
         else:
-            # TRAN ; myinfo is sum(outs)
+            # TRAN --- myinfo is an integer sum(outs)
 
-            # Check whether, there could be enough to satisfy outputs.
+            # Check whether there could be enough to satisfy outputs.
             insum_all = sum(inp[2] for inp in inputs_info)
             if insum_all < myinfo:
-                print("DEBUG SLP: invalid! outsum=%d,  possible inputs=%d"%(myinfo, insum_all))
-                return (False, 2)
+                #print("DEBUG SLP: invalid! outsum=%d,  possible inputs=%d"%(myinfo, insum_all))
+                return (False, 3)
 
             # Check whether the known valid inputs provide enough tokens to satisfy outputs:
             insum_valid = sum(inp[2] for inp in inputs_info if inp[1] == 1)
             if insum_valid >= myinfo:
-                print("DEBUG SLP: valid! outsum=%d,  known valid inputs=%d"%(myinfo, insum_valid))
+                #print("DEBUG SLP: valid! outsum=%d,  known valid inputs=%d"%(myinfo, insum_valid))
                 return (True, 1)
             return None
