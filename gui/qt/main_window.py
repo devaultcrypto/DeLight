@@ -1430,13 +1430,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 if self.wallet.send_slpTokenId is None:
                     pass
                 else:
-                    msgFactory = slp.SlpTokenTransactionFactory(slp.SlpTokenType.TYPE_1, self.wallet.send_slpTokenId)
+                    msgFactory = slp.SlpTokenTransactionFactory(1, self.wallet.send_slpTokenId)
                     slp_tran = msgFactory.buildTransferOpReturnOutput_V1([ int(self.slp_amount_e.text()) ])
                     outputs.append(slp_tran)
                 opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
                 if self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
-                    outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
-                tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False), outputs, self.config, fee) 
+                    outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
+                tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False), outputs, self.config, fee)
                 self.not_enough_funds = False
                 self.op_return_toolong = False
             except NotEnoughFunds:
@@ -1539,7 +1539,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 pass
             else:
                 token_outputs = [int(self.slp_amount_e.text())]
-                msgFactory = slp.SlpTokenTransactionFactory(slp.SlpTokenType.TYPE_1, self.wallet.send_slpTokenId)
+                msgFactory = slp.SlpTokenTransactionFactory(1, self.wallet.send_slpTokenId)
                 slp_tran = msgFactory.buildTransferOpReturnOutput_V1(token_outputs)
                 outputs.append(slp_tran)
             opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
