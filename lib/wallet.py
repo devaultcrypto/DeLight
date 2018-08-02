@@ -756,39 +756,44 @@ class Abstract_Wallet(PrintError, QObject):
                         dd[addr] = []
                     dd[addr].append((ser, v))
 
-            # add to the slp UTXO set
-            _type, pot_slp_opreturn, v = tx.outputs()[0]
-            try: _, addr, _ = tx.outputs()[1]
-            except IndexError: pass
-            if _type is TYPE_SCRIPT:
+            """ SLP: Handle incoming SLP transaction outputs here """
+            vout0_type, slp_opreturn, v = tx.outputs()[0]
+            if vout0_type is TYPE_SCRIPT:
                 slpMsg = None
                 try:
-                    slpMsg = SlpMessage.parseSlpOutputScript(pot_slp_opreturn)
-                    if slpMsg.transaction_type == "INIT":
-                        self.update_token_list_sig.emit(tx_hash, tx_hash[0:5], 0, False, True)
-                    elif slpMsg.transaction_type == "TRAN":
-                        self.update_token_list_sig.emit(slpMsg.op_return_fields['token_id_hex'], slpMsg.op_return_fields['token_id_hex'][0:5], 0, False, True)
+                    slpMsg = SlpMessage.parseSlpOutputScript(slp_opreturn)
+                    if slpMsg is not None:
+                        if slpMsg.transaction_type == "TRAN":
+                            # TODO: check for and handle MINT baton
+                            for i, qty in enumerate(slpMsg.op_return_fields['token_output']):
+                                if len(tx.outputs()) > i and i - 1 < 19: # "i - 1" is used becuase i = 0 is for OP_RETURN msg
+                                    _type, addr, _ = tx.outputs()[i]
+                                    if _type is TYPE_ADDRESS:
+                                        if qty > 0: #if self.is_mine(addr) and qty > 0:
                     try: 
                         self._slp_txo[addr] 
                     except KeyError: 
                         self._slp_txo[addr] = []
-                    if slpMsg is not None:
-                        if slpMsg.transaction_type == "TRAN":
-                            for i, qty in enumerate(slpMsg.op_return_fields['token_output']):
-                                if qty > 0:
                                     self._slp_txo[addr].append(
                                     { 
                                         'txid': tx_hash, 
                                         'idx': i, 
                                         'token_id': slpMsg.op_return_fields['token_id_hex'], 
-                                        'qty': slpMsg.op_return_fields['token_output'][i],
+                                                'qty': qty,
                                         'validation_status': '', # can be '', 'valid' or 'invalid'
                                         'spent': False,
                                         'type': 'TRAN',
-                                        'op_return': pot_slp_opreturn.to_script()
+                                                'op_return': slp_opreturn.to_script()
                                     })
-                            # TODO: loop through list of output quantities, add to self._slp_txo
                         elif slpMsg.transaction_type == "INIT":
+                            # TODO: check for and handle MINT baton
+                            _type, addr, _ = tx.outputs()[1]
+                            if _type is TYPE_ADDRESS:
+                                if slpMsg.op_return_fields['initial_token_mint_quantity'] > 0: #if self.is_mine(addr) and qty > 0:
+                                    try: 
+                                        self._slp_txo[addr] 
+                                    except KeyError: 
+                                        self._slp_txo[addr] = []
                             self._slp_txo[addr].append(
                             { 
                                 'txid': tx_hash, 
@@ -798,20 +803,34 @@ class Abstract_Wallet(PrintError, QObject):
                                 'validation_status': '',
                                 'spent': False,
                                 'type': 'INIT',
-                                'op_return': pot_slp_opreturn.to_script()
+                                        'op_return': slp_opreturn.to_script()
                             })
                         elif slpMsg.transaction_type == "MINT":
+                            # TODO: check for and handle MINT baton
+                            _type, addr, _ = tx.outputs()[1]
+                            if _type is TYPE_ADDRESS:
+                                if slpMsg.op_return_fields['token_mint_quantity'] > 0: #if self.is_mine(addr) and qty > 0:
+                                    try: 
+                                        self._slp_txo[addr] 
+                                    except KeyError: 
+                                        self._slp_txo[addr] = []
                             self._slp_txo[addr].append(
                             { 
                                 'txid': tx_hash, 
                                 'idx': 1, 
                                 'token_id': tx_hash, 
-                                'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
+                                'qty': slpMsg.op_return_fields['token_mint_quantity'],
                                 'validation_status': '',
                                 'spent': False, 
                                 'type': 'MINT',
-                                'op_return': pot_slp_opreturn.to_script()
+                                'op_return': slp_opreturn.to_script()
                             })
+                    # Send a signal for gui to consume for updates
+                    if slpMsg.transaction_type == "INIT":
+                        self.update_token_list_sig.emit(tx_hash, tx_hash[0:5], 0, False, True)
+                    elif slpMsg.transaction_type == "TRAN":
+                        self.update_token_list_sig.emit(slpMsg.op_return_fields['token_id_hex'], slpMsg.op_return_fields['token_id_hex'][0:5], 0, False, True)
+                    self.new_slp_txn_sig.emit(slpMsg)
                 except Exception as e:
                     pass
 
