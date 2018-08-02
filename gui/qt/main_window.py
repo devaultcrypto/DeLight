@@ -125,6 +125,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.checking_accounts = False
         self.qr_window = None
         self.not_enough_funds = False
+        self.not_enough_funds_slp = False
         self.op_return_toolong = False
         self.internalpluginsdialog = None
         self.externalpluginsdialog = None
@@ -1107,18 +1108,23 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                                        message, uri)
  
 
-    def on_slptok(x):
-        tok_index=x.slp_token_type_combo.currentIndex()
-        x.payto_e.check_text()
+    def on_slptok(self):
+        tok_index=self.slp_token_type_combo.currentIndex()
+        self.payto_e.check_text()
         if not tok_index or tok_index==0:
-            x.amount_e.setAmount(0)
-            x.amount_e.setText("")
-            x.max_button.setEnabled(True)
-            x.amount_e.setFrozen(False)
+            self.amount_e.setAmount(0)
+            self.amount_e.setText("")
+            self.max_button.setEnabled(True)
+            self.amount_e.setFrozen(False)
         else:
-            x.max_button.setEnabled(False)
-            x.amount_e.setAmount(546)
-            x.amount_e.setFrozen(True)
+            self.max_button.setEnabled(False)
+            self.amount_e.setAmount(546)
+            self.amount_e.setFrozen(True)
+        slp_index = self.slp_token_type_combo.currentIndex()
+        if slp_index is 0:
+            self.wallet.send_slpTokenId = None
+        else:
+            self.wallet.send_slpTokenId = self.slp_token_gui_hash_list[slp_index]
 
     def create_send_tab(self):
         # A 4-column grid layout.  All the stretch is in the last column.
@@ -1325,6 +1331,22 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.message_opreturn_e.textEdited.connect(entry_changed)
         self.message_opreturn_e.editingFinished.connect(entry_changed)
 
+        def slp_amount_changed():
+            text = ""
+            if self.not_enough_funds_slp:
+                amt_color, fee_color = ColorScheme.RED, ColorScheme.RED
+                text = _( "Not enough tokens for selected token")
+            elif self.slp_amount_e.isModified():
+                amt_color, fee_color = ColorScheme.DEFAULT, ColorScheme.BLUE
+            else:
+                amt_color, fee_color = ColorScheme.BLUE, ColorScheme.BLUE
+            opret_color = ColorScheme.DEFAULT
+
+            self.statusBar().showMessage(text)
+            self.slp_amount_e.setStyleSheet(amt_color.as_stylesheet())
+        
+        self.slp_amount_e.textChanged.connect(slp_amount_changed)
+
         self.invoices_label = QLabel(_('Invoices'))
         from .invoice_list import InvoiceList
         self.invoice_list = InvoiceList(self)
@@ -1405,18 +1427,16 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 outputs = [(_type, addr, amount)]
             try:
                 # add the output for SLP or alternatively the OP_RETURN tool
-                opreturn_message_slp_index = self.slp_token_type_combo.currentIndex()
-                if (opreturn_message_slp_index is 0):
-                    slp_token_id=None
+                if self.wallet.send_slpTokenId is None:
+                    pass
                 else:
-                    slp_token_id = self.slp_token_gui_hash_list[opreturn_message_slp_index]
-                    msgFactory = slp.SlpTokenTransactionFactory(slp.SlpTokenType.TYPE_1, slp_token_id)
+                    msgFactory = slp.SlpTokenTransactionFactory(slp.SlpTokenType.TYPE_1, self.wallet.send_slpTokenId)
                     slp_tran = msgFactory.buildTransferOpReturnOutput_V1([ int(self.slp_amount_e.text()) ])
                     outputs.append(slp_tran)
                 opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
-                if slp_token_id is None and (opreturn_message != '' and opreturn_message is not None):
+                if self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
                     outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
-                tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False, slpTokenId = slp_token_id), outputs, self.config, fee) 
+                tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False), outputs, self.config, fee) 
                 self.not_enough_funds = False
                 self.op_return_toolong = False
             except NotEnoughFunds:
@@ -1515,21 +1535,20 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         outputs = []
         try:
             # add the output for SLP or alternatively the OP_RETURN tool
-            opreturn_message_slp_index = self.slp_token_type_combo.currentIndex()
-            if (opreturn_message_slp_index is 0):
-                slp_token_id=None
+            if self.wallet.send_slpTokenId is None:
+                pass
             else:
-                slp_token_id = self.slp_token_gui_hash_list[opreturn_message_slp_index]
-                msgFactory = slp.SlpTokenTransactionFactory(slp.SlpTokenType.TYPE_1, slp_token_id)
-                slp_tran = msgFactory.buildTransferOpReturnOutput_V1([ int(self.slp_amount_e.text()) ])
+                token_outputs = [int(self.slp_amount_e.text())]
+                msgFactory = slp.SlpTokenTransactionFactory(slp.SlpTokenType.TYPE_1, self.wallet.send_slpTokenId)
+                slp_tran = msgFactory.buildTransferOpReturnOutput_V1(token_outputs)
                 outputs.append(slp_tran)
             opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
-            if slp_token_id is None and (opreturn_message != '' and opreturn_message is not None):
+            if self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
                 # try to parse op_return text as an SLP formatted transaction (allowing possible spending of tokens for mulitple outputs)
                 try:
                     slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
                     if slpMsg.transaction_type == "TRAN":
-                        slp_token_id = slpMsg.op_return_fields['token_id_hex']
+                        self.wallet.send_slpTokenId = slpMsg.op_return_fields['token_id_hex']
                 except:
                     pass
                 outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
@@ -1576,7 +1595,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         freeze_fee = self.fee_e.isVisible() and self.fee_e.isModified() and (self.fee_e.text() or self.fee_e.hasFocus())
         fee = self.fee_e.get_amount() if freeze_fee else None
-        coins = self.get_coins(isInvoice=isInvoice, slpTokenId=slp_token_id)
+        coins = self.get_coins(isInvoice=isInvoice)
         return outputs, fee, label, coins
 
     def do_preview(self):
@@ -1967,11 +1986,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.history_list.update()
             self.clear_receive_tab()
 
-    def get_coins(self, isInvoice = False, slpTokenId = None):
+    def get_coins(self, isInvoice = False):
         if self.pay_from:
             return self.pay_from
         else:
-            self.wallet.send_slpTokenId = slpTokenId
             return self.wallet.get_spendable_coins(None, self.config, isInvoice)
 
     def spend_coins(self, coins):
