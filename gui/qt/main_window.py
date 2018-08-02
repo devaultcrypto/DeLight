@@ -1531,7 +1531,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return func(self, *args, **kwargs)
         return request_password
 
-    def read_send_tab(self):
+    def read_send_tab(self, preview=False):
         outputs = []
         try:
             # add the output for SLP or alternatively the OP_RETURN tool
@@ -1547,7 +1547,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 # try to parse op_return text as an SLP formatted transaction (allowing possible spending of tokens for mulitple outputs)
                 try:
                     slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
-                    if slpMsg.transaction_type == "TRAN":
+                    if slpMsg.transaction_type == "TRAN" and not preview:
                         self.wallet.send_slpTokenId = slpMsg.op_return_fields['token_id_hex']
                 except:
                     pass
@@ -1608,7 +1608,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if self.slp_amount_e.get_amount() is 0 or self.slp_amount_e.get_amount() is None:
                 self.show_message(_("No SLP token amount provided."))
                 return
-        r = self.read_send_tab()
+        r = self.read_send_tab(preview=preview)
         if not r:
             return
         outputs, fee, tx_desc, coins = r
