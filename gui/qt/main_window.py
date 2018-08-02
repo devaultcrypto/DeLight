@@ -1525,6 +1525,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 outputs.append(slp_tran)
             opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
             if slp_token_id is None and (opreturn_message != '' and opreturn_message is not None):
+                # try to parse op_return text as an SLP formatted transaction (allowing possible spending of tokens for mulitple outputs)
+                try:
+                    slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
+                    if slpMsg.transaction_type == "TRAN":
+                        slp_token_id = slpMsg.op_return_fields['token_id_hex']
+                except:
+                    pass
                 outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
         except OPReturnTooLarge as e:
             self.show_error(str(e))
