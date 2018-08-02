@@ -39,9 +39,6 @@ class SlpTokenType(Enum):
 # This class represents a parsed op_return message that can be used by validator to look at SLP messages
 class SlpMessage():
     def __init__(self):
-        self.isChecked = False
-        self.isSlpToken = False
-        self.isSupportedTokenVersion = False
         self.lokad_id = "00534c50"
         self.token_type  = None
         self.transaction_type  = None
@@ -66,10 +63,7 @@ class SlpMessage():
         slpMsg.token_type = SlpMessage.parseHex2TokenVersion(split_asm[2])
         # check if the slp transaction type is valid
         slpMsg.transaction_type = SlpMessage.parseHex2TransactionType(split_asm[3])
-        slpMsg.isSlpToken = True
-        if slpMsg.token_type is SlpTokenType.TYPE_1.value:
-            slpMsg.isSupportedTokenVersion = True
-        else:
+        if slpMsg.token_type is not SlpTokenType.TYPE_1.value:
             raise SlpUnsupportedSlpTokenType()
         # switch statement to handle different on transaction type
         if slpMsg.transaction_type == SlpTransactionType.INIT.value:
@@ -87,7 +81,6 @@ class SlpMessage():
             slpMsg.op_return_fields['mint_baton_vout'] = SlpMessage.parseHex2Int(split_asm[9], 1, 1)
             # handle initial token quantity issuance
             slpMsg.op_return_fields['initial_token_mint_quantity'] = SlpMessage.parseHex2Int(split_asm[10], 8, 8, True)
-            slpMsg.isChecked = True
             return slpMsg
         elif slpMsg.transaction_type == SlpTransactionType.TRAN.value:
             slpMsg.op_return_fields['token_id_hex'] = SlpMessage.parseHex2HexString(split_asm[4], 32, 32, True)
