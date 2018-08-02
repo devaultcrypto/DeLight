@@ -614,15 +614,15 @@ class Abstract_Wallet(PrintError, QObject):
     # in normal txn or txns with token_id other than the one specified
     def get_addr_utxo(self, address, slpTokenId=None):
         coins, spent = self.get_addr_io(address)
-        token_addr_utxo = self.get_slp_addr_utxo(address)
+        token_addr_txo = self.get_slp_addr_txo(address)
         # removes spent coins
         for txi in spent:
             coins.pop(txi)
         # removes token related coins if needed
-        for utxo in token_addr_utxo:
-            if slpTokenId is None or utxo['token_id'] != slpTokenId:
+        for txo in token_addr_txo:
+            if slpTokenId is None or txo['token_id'] != slpTokenId:
                 try:
-                    coins.pop(utxo['txid'] + ":" + str(utxo['idx']))
+                    coins.pop(txo['txid'] + ":" + str(txo['idx']))
                 except Exception as e:
                     #print(e)
                     pass                
@@ -641,7 +641,7 @@ class Abstract_Wallet(PrintError, QObject):
             out[txo] = x
         return out
 
-    def get_slp_addr_utxo(self, address):
+    def get_slp_addr_txo(self, address):
         assert isinstance(address, Address)
         return self._slp_txo.get(address, [])
     # return the total amount ever received by an address
