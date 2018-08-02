@@ -47,6 +47,8 @@ def normalize_version(v):
 
 class NotEnoughFunds(Exception): pass
 
+class NotEnoughFundsSlp(Exception): pass
+
 class ExcessiveFee(Exception): pass
 
 class InvalidPassword(Exception):

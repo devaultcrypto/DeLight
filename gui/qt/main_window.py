@@ -48,7 +48,7 @@ from electroncash.networks import NetworkConstants
 from electroncash.plugins import run_hook
 from electroncash.i18n import _
 from electroncash.util import (format_time, format_satoshis, PrintError,
-                           format_satoshis_plain, NotEnoughFunds, ExcessiveFee,
+                           format_satoshis_plain, NotEnoughFunds, NotEnoughFundsSlp, ExcessiveFee,
                            UserCancelled, bh2u, bfh, format_fee_satoshis)
 import electroncash.web as web
 from electroncash import Transaction
@@ -1335,7 +1335,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             text = ""
             if self.not_enough_funds_slp:
                 amt_color, fee_color = ColorScheme.RED, ColorScheme.RED
-                text = _( "Not enough tokens for selected token")
+                text = _( "Not enough funds for selected token")
             elif self.slp_amount_e.isModified():
                 amt_color, fee_color = ColorScheme.DEFAULT, ColorScheme.BLUE
             else:
@@ -1438,11 +1438,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
                 tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False), outputs, self.config, fee)
                 self.not_enough_funds = False
+                self.not_enough_funds_slp = False
                 self.op_return_toolong = False
             except NotEnoughFunds:
                 self.not_enough_funds = True
                 if not freeze_fee:
                     self.fee_e.setAmount(None)
+                return
+            except NotEnoughFundsSlp:
+                self.not_enough_funds_slp = True
                 return
             except OPReturnTooLarge:
                 self.op_return_toolong = True
@@ -1616,6 +1620,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             tx = self.wallet.make_unsigned_transaction(coins, outputs, self.config, fee)
         except NotEnoughFunds:
             self.show_message(_("Insufficient funds"))
+            return
+        except NotEnoughFundsSlp:
+            self.show_message(_("Insufficient valid token funds"))
             return
         except ExcessiveFee:
             self.show_message(_("Your fee is too high.  Max is 50 sat/byte."))
@@ -1850,6 +1857,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.slp_token_type_combo.currentIndex() is 0:
             self.is_max = False
             self.not_enough_funds = False
+            self.not_enough_funds_slp = False
             self.op_return_toolong = False
             self.payment_request = None
             self.payto_e.is_pr = False
@@ -1863,6 +1871,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             run_hook('do_clear', self)
         else:
             self.not_enough_funds = False
+            self.not_enough_funds_slp = False
             self.payment_request = None
             self.payto_e.is_pr = False
             for e in [self.payto_e, self.message_e, self.message_opreturn_e]:
