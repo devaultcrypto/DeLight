@@ -701,11 +701,7 @@ class Abstract_Wallet(PrintError, QObject):
                 """ loop through all token txos """
                 for txo in txos:
                     """ ignore spent txos """
-                    try:
-                        if spent[txo['txid'] + ":" + str(txo['idx'])] is -1:
-                            continue
-                    except KeyError:
-                        pass
+                    if (txo['txid'] + ":" + str(txo['idx'])) in spent: continue
                     """ add to balance if token_id matches """
                     if slpTokenId == txo['token_id']:
                         status = txo['validation_status']
