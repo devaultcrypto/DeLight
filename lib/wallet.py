@@ -61,7 +61,9 @@ from . import paymentrequest
 from .paymentrequest import PR_PAID, PR_UNPAID, PR_UNKNOWN, PR_EXPIRED
 from .paymentrequest import InvoiceStore
 from .contacts import Contacts
+
 from .slp import SlpMessage
+from . import slp_validator_0x01
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -165,8 +167,7 @@ class Abstract_Wallet(PrintError, QObject):
     def __init__(self, storage):
         QObject.__init__(self)
         self.send_slpTokenId = None
-        slp_txo = storage.get('slp_txo', {})
-        self._slp_txo = self.to_Address_dict(slp_txo)
+
         self.electrum_version = PACKAGE_VERSION
         self.storage = storage
         self.network = None
@@ -255,6 +256,7 @@ class Abstract_Wallet(PrintError, QObject):
         self.tx_fees = self.storage.get('tx_fees', {})
         self.pruned_txo = self.storage.get('pruned_txo', {})
         tx_list = self.storage.get('transactions', {})
+
         self.transactions = {}
         for tx_hash, raw in tx_list.items():
             tx = Transaction(raw)
@@ -262,6 +264,15 @@ class Abstract_Wallet(PrintError, QObject):
             if self.txi.get(tx_hash) is None and self.txo.get(tx_hash) is None and (tx_hash not in self.pruned_txo.values()):
                 self.print_error("removing unreferenced tx", tx_hash)
                 self.transactions.pop(tx_hash)
+
+        ### SLP stuff
+
+        self._slp_txo = self.to_Address_dict(self.storage.get('slp_txo', {}))
+
+        self.slpv1_validity = self.storage.get('slpv1_validity', {})
+        ## Prune off validities of things we aren't interested in.
+        #for tx_hash in list(self.slpv1_validity.keys()):
+            #if tx_hash not in self.transactions:
 
     @profiler
     def save_transactions(self, write=False):
@@ -280,6 +291,12 @@ class Abstract_Wallet(PrintError, QObject):
             self.storage.put('pruned_txo', self.pruned_txo)
             history = self.from_Address_dict(self._history)
             self.storage.put('addr_history', history)
+
+            ### SLP stuff
+
+            self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
+            self.storage.put('slpv1_validity', self.slpv1_validity)
+
             if write:
                 self.storage.write()
 
@@ -607,10 +624,10 @@ class Abstract_Wallet(PrintError, QObject):
         for tx_hash, height in h:
             l = self.txi.get(tx_hash, {}).get(address, [])
             for txi, v in l:
-                sent[txi] = height                
+                sent[txi] = height
         return received, sent
 
-    # This method is updated for SLP to prevent tokens from being spent 
+    # This method is updated for SLP to prevent tokens from being spent
     # in normal txn or txns with token_id other than the one specified
     def get_addr_utxo(self, address, slpTokenId=None):
         coins, spent = self.get_addr_io(address)
@@ -624,7 +641,7 @@ class Abstract_Wallet(PrintError, QObject):
                 try:
                     coins.pop(txo['txid'] + ":" + str(txo['idx']))
                 except Exception as e:
-                    pass       
+                    pass
         out = {}
         for txo, v in coins.items():
             tx_height, value, is_cb = v
@@ -785,77 +802,90 @@ class Abstract_Wallet(PrintError, QObject):
                     dd[addr].append((ser, v))
 
             """ SLP: Handle incoming SLP transaction outputs here """
-            self.handleSlpTransaction(tx, tx_hash)
+            self.handleSlpTransaction(tx_hash, tx)
 
             # save
             self.transactions[tx_hash] = tx
 
-    def handleSlpTransaction(self, tx, tx_hash):
-        vout0_type, slp_opreturn, v = tx.outputs()[0]
+    def handleSlpTransaction(self, tx_hash, tx):
+        try:
+            vout0_type, slp_opreturn, v = tx.outputs()[0]
+        except IndexError:
+            pass
         if vout0_type is TYPE_SCRIPT:
             slpMsg = None
             try:
                 slpMsg = SlpMessage.parseSlpOutputScript(slp_opreturn)
-                if slpMsg is not None:
-                    if slpMsg.transaction_type == "TRAN":
-                        # TODO: check for and handle MINT baton
-                        for i, qty in enumerate(slpMsg.op_return_fields['token_output']):
-                            if len(tx.outputs()) > i and i - 1 < 19: # "i - 1" is used becuase i = 0 is for OP_RETURN msg
-                                _type, addr, _ = tx.outputs()[i]
-                                if _type is TYPE_ADDRESS:
-                                    if qty > 0: #if self.is_mine(addr) and qty > 0:
-                                        try: 
-                                            self._slp_txo[addr] 
-                                        except KeyError: 
-                                            self._slp_txo[addr] = []
-                                        self._slp_txo[addr].append(
-                                        { 
-                                            'txid': tx_hash, 
-                                            'idx': i, 
-                                            'token_id': slpMsg.op_return_fields['token_id_hex'], 
-                                            'qty': qty,
-                                            'validation_status': 'valid', # can be '', 'valid' or 'invalid'
-                                            'type': 'TRAN',
-                                            'op_return': slp_opreturn.to_script()
-                                        })
-                    elif slpMsg.transaction_type == "INIT":
-                        # TODO: check for and handle MINT baton
-                        _type, addr, _ = tx.outputs()[1]
-                        if _type is TYPE_ADDRESS:
-                            if slpMsg.op_return_fields['initial_token_mint_quantity'] > 0: #if self.is_mine(addr) and qty > 0:
-                                try: 
-                                    self._slp_txo[addr] 
-                                except KeyError: 
-                                    self._slp_txo[addr] = []
-                                self._slp_txo[addr].append(
-                                { 
-                                    'txid': tx_hash, 
-                                    'idx': 1, 
-                                    'token_id': tx_hash, 
-                                    'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
-                                    'validation_status': 'valid',
-                                    'type': 'INIT',
-                                    'op_return': slp_opreturn.to_script()
-                                })
-                    elif slpMsg.transaction_type == "MINT":
-                        # TODO: check for and handle MINT baton
-                        _type, addr, _ = tx.outputs()[1]
-                        if _type is TYPE_ADDRESS:
-                            if slpMsg.op_return_fields['token_mint_quantity'] > 0: #if self.is_mine(addr) and qty > 0:
-                                try: 
-                                    self._slp_txo[addr] 
-                                except KeyError: 
-                                    self._slp_txo[addr] = []
-                                self._slp_txo[addr].append(
-                                { 
-                                    'txid': tx_hash, 
-                                    'idx': 1, 
-                                    'token_id': tx_hash, 
-                                    'qty': slpMsg.op_return_fields['token_mint_quantity'],
-                                    'validation_status': '',
-                                    'type': 'MINT',
-                                    'op_return': slp_opreturn.to_script()
-                                })
+
+                if slpMsg.token_type == 1:
+                    cached_val = self.slpv1_validity.get(tx_hash, 0)
+                    if cached_val == 0:
+                        # Unknown validity, fire up a validation engine background job.
+                        def callback(job):
+                            val = job.nodes[0].validity
+                            if val != 0:
+                                self.slpv1_validity[tx_hash] = val
+                        job = slp_validator_0x01.make_job(tx, self, self.network,
+                                                          debug=2, reset=False)
+                        job.add_callback(callback)
+
+                if slpMsg.transaction_type == "TRAN":
+                    # truncate outputs list
+                    amounts = slpMsg.op_return_fields['token_output'][:len(tx.outputs())]
+                    for i, qty in enumerate(amounts):
+                        _type, addr, _ = tx.outputs()[i]
+                        if _type is TYPE_ADDRESS and qty > 0:
+                            try:
+                                self._slp_txo[addr]
+                            except KeyError:
+                                self._slp_txo[addr] = []
+                            self._slp_txo[addr].append(
+                            {
+                                'txid': tx_hash,
+                                'idx': i,
+                                'token_id': slpMsg.op_return_fields['token_id_hex'],
+                                'qty': qty,
+                                'validation_status': 'valid', # can be '', 'valid' or 'invalid'
+                                'type': 'TRAN',
+                            })
+                elif slpMsg.transaction_type == "INIT":
+                    # TODO: check for and handle MINT baton
+                    _type, addr, _ = tx.outputs()[1]
+                    if _type is TYPE_ADDRESS:
+                        if slpMsg.op_return_fields['initial_token_mint_quantity'] > 0: #if self.is_mine(addr) and qty > 0:
+                            try:
+                                self._slp_txo[addr]
+                            except KeyError:
+                                self._slp_txo[addr] = []
+                            self._slp_txo[addr].append(
+                            {
+                                'txid': tx_hash,
+                                'idx': 1,
+                                'token_id': tx_hash,
+                                'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
+                                'validation_status': 'valid',
+                                'type': 'INIT',
+                            })
+                elif slpMsg.transaction_type == "MINT":
+                    # TODO: check for and handle MINT baton
+                    _type, addr, _ = tx.outputs()[1]
+                    if _type is TYPE_ADDRESS:
+                        if slpMsg.op_return_fields['token_mint_quantity'] > 0: #if self.is_mine(addr) and qty > 0:
+                            try:
+                                self._slp_txo[addr]
+                            except KeyError:
+                                self._slp_txo[addr] = []
+                            self._slp_txo[addr].append(
+                            {
+                                'txid': tx_hash,
+                                'idx': 1,
+                                'token_id': tx_hash,
+                                'qty': slpMsg.op_return_fields['token_mint_quantity'],
+                                'validation_status': '',
+                                'type': 'MINT',
+                            })
+                else:
+                    raise ValueError(slpMsg.transaction_type)
                 # Send a signal for gui to consume for updates
                 if slpMsg.transaction_type == "INIT":
                     self.update_token_list_sig.emit(tx_hash, tx_hash[0:5], 0, False, True)
@@ -925,8 +955,8 @@ class Abstract_Wallet(PrintError, QObject):
 
     def get_slp_history(self):
         history = []
-        slp_history = self.storage.get('slp_history' ) 
-        for h_item in slp_history: 
+        slp_history = self.storage.get('slp_history' )
+        for h_item in slp_history:
             txid=h_item["txid"]
             delta=h_item["delta"]
             tokentype=h_item["tokentype"]
@@ -934,9 +964,9 @@ class Abstract_Wallet(PrintError, QObject):
                 validity=h_item["validity"]
             else:
                 validity=0
-            height, conf, timestamp = self.get_tx_height(txid) 
-            history.append((txid, height, conf, timestamp, delta,tokentype,validity)) 
-        history.sort(key = lambda x: self.get_txpos(x[0])) 
+            height, conf, timestamp = self.get_tx_height(txid)
+            history.append((txid, height, conf, timestamp, delta,tokentype,validity))
+        history.sort(key = lambda x: self.get_txpos(x[0]))
         return history
 
     def get_history(self, domain=None):
