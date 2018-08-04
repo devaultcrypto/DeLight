@@ -789,8 +789,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 text = _("Server is lagging ({} blocks)").format(server_lag)
                 icon = QIcon(":icons/status_lagging.png")
             else:
+                text = ""
+                if self.wallet.send_slpTokenId is not None:
+                    text += "Token Balance (valid): %s; "%(self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0]) 
                 c, u, x = self.wallet.get_balance()
-                text =  _("Balance" ) + ": %s "%(self.format_amount_and_units(c))
+                text +=  _("BCH Balance" ) + ": %s "%(self.format_amount_and_units(c))
                 if u:
                     text +=  " [%s unconfirmed]"%(self.format_amount(u, True).strip())
                 if x:
@@ -1125,6 +1128,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.wallet.send_slpTokenId = None
         else:
             self.wallet.send_slpTokenId = self.slp_token_gui_hash_list[slp_index]
+        self.update_status()
 
     def create_send_tab(self):
         # A 4-column grid layout.  All the stretch is in the last column.
@@ -1290,6 +1294,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.amount_e.shortcut.connect(self.spend_max)
         self.payto_e.textChanged.connect(self.update_fee)
         self.amount_e.textEdited.connect(self.update_fee)
+        self.slp_amount_e.textEdited.connect(self.update_fee)
         self.message_opreturn_e.textEdited.connect(self.update_fee)
         self.message_opreturn_e.textChanged.connect(self.update_fee)
         self.message_opreturn_e.editingFinished.connect(self.update_fee)
@@ -1432,10 +1437,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 else:
                     msgFactory = slp.SlpTokenTransactionFactory(1, self.wallet.send_slpTokenId)
                     slp_tran = msgFactory.buildTransferOpReturnOutput_V1([ int(self.slp_amount_e.text()) ])
-                    outputs.append(slp_tran)
+                    outputs.insert(0, slp_tran)
                 opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
                 if self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
-                    outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
+                    outputs.insert(0, self.output_for_opreturn_stringdata(opreturn_message))
                 tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False), outputs, self.config, fee)
                 self.not_enough_funds = False
                 self.not_enough_funds_slp = False
@@ -1868,6 +1873,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.set_pay_from([])
             self.tx_external_keypairs = {}
             self.update_status()
+            self.slp_amount_e.setText('')
             run_hook('do_clear', self)
         else:
             self.not_enough_funds = False
