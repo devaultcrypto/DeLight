@@ -637,7 +637,7 @@ class Abstract_Wallet(PrintError, QObject):
             coins.pop(txi)
         # removes token that are either unrelated, or unvalidated
         for txo in token_addr_txo:
-            if slpTokenId is None or txo['token_id'] != slpTokenId or txo['validation_status'] != 'valid':
+            if slpTokenId is None or txo['token_id'] != slpTokenId or self.slpv1_validity.get(txo['txid'], 0) is not 1: #txo['validation_status'] != 'valid':
                 try:
                     coins.pop(txo['txid'] + ":" + str(txo['idx']))
                 except Exception as e:
@@ -704,12 +704,12 @@ class Abstract_Wallet(PrintError, QObject):
                     if (txo['txid'] + ":" + str(txo['idx'])) in spent: continue
                     """ add to balance if token_id matches """
                     if slpTokenId == txo['token_id']:
-                        status = txo['validation_status']
-                        if status == 'valid':
+                        status = self.slpv1_validity.get(txo['txid'], 0)
+                        if status is 1: # Valid DAG
                             valid_token_bal += txo['qty']
-                        elif status == 'invalid':
+                        elif status is 2 or status is 3: # Invalid DAG (2=bad slpmessage, 3=inputs lack enough tokens / missing mint baton)
                             invalid_token_bal += txo['qty']
-                        elif status == '':
+                        elif status is 0: # Unknown DAG status (should be in processing queue)
                             unvalidated_token_bal += txo['qty']
             return (valid_token_bal, unvalidated_token_bal, invalid_token_bal)
         except Exception as e:
@@ -812,10 +812,11 @@ class Abstract_Wallet(PrintError, QObject):
             slpMsg = None
             try:
                 slpMsg = SlpMessage.parseSlpOutputScript(slp_opreturn)
-
                 if slpMsg.token_type == 1:
                     cached_val = self.slpv1_validity.get(tx_hash, 0)
                     if cached_val == 0:
+                        self.slpv1_validity[tx_hash] = 0
+                        self.storage.put('slpv1_validity', self.slpv1_validity)
                         # Unknown validity, fire up a validation engine background job.
                         def callback(job):
                             val = job.nodes[0].validity
@@ -841,7 +842,6 @@ class Abstract_Wallet(PrintError, QObject):
                                 'idx': i,
                                 'token_id': slpMsg.op_return_fields['token_id_hex'],
                                 'qty': qty,
-                                'validation_status': 'valid', # can be '', 'valid' or 'invalid'
                                 'type': 'TRAN',
                             })
                 elif slpMsg.transaction_type == "INIT":
@@ -859,7 +859,6 @@ class Abstract_Wallet(PrintError, QObject):
                                 'idx': 1,
                                 'token_id': tx_hash,
                                 'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
-                                'validation_status': 'valid',
                                 'type': 'INIT',
                             })
                 elif slpMsg.transaction_type == "MINT":
@@ -877,7 +876,6 @@ class Abstract_Wallet(PrintError, QObject):
                                 'idx': 1,
                                 'token_id': tx_hash,
                                 'qty': slpMsg.op_return_fields['token_mint_quantity'],
-                                'validation_status': '',
                                 'type': 'MINT',
                             })
                 else:
