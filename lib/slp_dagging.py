@@ -27,8 +27,11 @@ These principles have been followed in case threading ever gets added:
   regardless of threading!
 """
 
+import sys
 import threading
 import queue
+import traceback
+import weakref
 import collections
 from .transaction import Transaction
 
@@ -132,7 +135,7 @@ class ValidatorGeneric:
 
 
 ########
-# The DAG building class
+# Validation jobbing mechanics (downloading txes, building graph
 ########
 
 class ValidationJob:
@@ -182,8 +185,19 @@ class ValidationJob:
             self.depth_limit = INF_DEPTH - 1
         else:
             self.depth_limit = depth_limit
+        self.callbacks = []
+
         self._statelock = threading.Lock()
 
+    def __repr__(self,):
+        if self.running:
+            state = 'running'
+        else:
+            try:
+                state = 'stopped:%r'%(self.stop_reason,)
+            except AttributeError:
+                state = 'waiting'
+        return "<%s object (%s) for txids=%r>"%(type(self).__qualname__, state, self.txids)
 
     ## Job state management
 
@@ -195,18 +209,34 @@ class ValidationJob:
             self.stopping = False
             self.running = True
         try:
-            self.mainloop()
+            retval = self.mainloop()
+        except:
+            retval = 'crashed'
+            raise
         finally:
             with self._statelock:
+                self.stop_reason = retval
                 self.running = False
                 self.stopping = False
+                cbl = tuple(self.callbacks) # make copy while locked
+            for cbr in cbl:
+                cb = cbr() # indirect
+                if cb is None:
+                    # cleanup
+                    try:
+                        self.callbacks.remove(cbr)
+                    except ValueError:
+                        pass
+                else:
+                    cb(self)
+            return self.stop_reason
 
     def stop(self,):
         """ Call from another thread, to request stopping (this function
         returns immediately, however it may take time to finish the current
         set of micro-tasks.)
 
-        If already stopped then this is ignored and False returned.
+        If not running then this is ignored and False returned.
         Otherwise, True is returned."""
         with self._statelock:
             if self.running:
@@ -215,21 +245,52 @@ class ValidationJob:
             else:
                 return False
 
-    @property
-    def runstatus(self,):
-        with self._statelock:
-            if self.stopping:
-                return "stopping"
-            elif self.running:
-                return "running"
-            else:
-                return "stopped"
+    #@property
+    #def runstatus(self,):
+        #with self._statelock:
+            #if self.stopping:
+                #return "stopping"
+            #elif self.running:
+                #return "running"
+            #else:
+                #return "stopped"
 
+    def add_callback(self, cb, way='direct'):
+        """
+        Callback will be called with cb(job) upon stopping. May be called
+        multiple times (if job restarted); will be called immediately as
+        well if job was already stopped.
+
+        `way` may be
+        - 'direct': store direct reference to `cb`.
+        - 'weak'  : store weak reference to `cb`
+        - 'weakmethod' : store WeakMethod reference to `cb`.
+
+         (Use 'weakmethod' for bound methods! See weakref documentation.
+        """
+        if way == 'direct':
+            cbr = lambda: cb
+        elif way == 'weak':
+            cbr = weakref.ref(cb)
+        elif way == 'weakmethod':
+            cbr = weakref.WeakMethod(cb)
+        else:
+            raise ValueError(way)
+        with self._statelock:
+            self.callbacks.append(cbr)
+            try:
+                _ = self.stop_reason
+                was_stopped = True
+            except AttributeError:
+                was_stopped = False
+        if was_stopped:
+            cb(self)
 
     ## Validation logic (breadth-first traversal)
 
     @property
     def nodes(self,):
+        # get target nodes
         return [self.graph.get_node(t) for t in self.txids]
 
     def mainloop(self,):
@@ -252,17 +313,17 @@ class ValidationJob:
         while True:
             if self.stopping:
                 self.graph.debug("stop requested")
-                break
+                return "stopped"
 
             if not any(n.active for n in nodes):
                 self.graph.debug("target nodes finished")
-                break
+                return True
 
             # fetch all finite-depth nodes
             waiting = self.graph.get_waiting(maxdepth=self.depth_limit - 1)
             if len(waiting) == 0: # No waiting nodes at all ==> completed.
                 self.graph.debug("exhausted graph without conclusion.")
-                break
+                return "inconclusive"
 
             interested_txids = {n.txid for n in waiting
                                 if (n.depth <= self.currentdepth)}
@@ -270,7 +331,7 @@ class ValidationJob:
                 self.currentdepth += 1
                 if self.currentdepth > self.depth_limit:
                     self.graph.debug("reached depth stop.")
-                    break
+                    return "depth limit reached"
                 self.graph.debug("moving to depth = %d", self.currentdepth)
                 continue
 
@@ -280,6 +341,8 @@ class ValidationJob:
 
             # do graph maintenance (ping() validation, depth recalculations)
             self.graph.run_sched()
+
+            # print entire graph (could take a lot of time!)
             if self.debugging_graph_state:
                 self.graph.debug("Active graph state:")
                 n_active = 0
@@ -291,14 +354,10 @@ class ValidationJob:
                 if n_active == 0:
                     self.graph.debug("    (empty)")
 
-
             txids_gotten = interested_txids.difference(txids_missing)
-  #          print("VAL:Obtained %d txids (of %d requested):   %r"%( len(txids_gotten), len(interested_txids), txids_gotten))
             if len(txids_gotten) == 0:
-                raise RuntimeError("cannot get any txes; stuck!")
-
-        #end
-
+                return "missing txes"
+        raise RuntimeError('loop ended')
 
 
     def get_txes(self, txid_iterable, callback, errors='print'):
@@ -311,7 +370,7 @@ class ValidationJob:
         Returns a set of txids that could not be obtained, for whatever
         reason.
 
-        `errors` may be 'ignore' or 'raise'
+        `errors` may be 'ignore' or 'raise' or 'print'.
         """
 
         txid_set = set(txid_iterable)
@@ -374,6 +433,113 @@ class ValidationJob:
         return txid_set
 
 
+class ValidationJobManager:
+    """
+    A single thread that processes validation jobs sequentially.
+    """
+    def __init__(self, threadname="ValidationJobManager"):
+        # ---
+        self.jobs_lock = threading.Lock()
+        # the following things are locked
+        self.job_current = None
+        self.jobs_pending  = []   # list of jobs waiting to run.
+        self.jobs_finished = []   # list of jobs finished normally.
+        self.jobs_paused   = []   # list of jobs that stopped without finishing.
+        self.all_jobs = weakref.WeakSet()
+        self.wakeup = threading.Event()  # for kicking the mainloop to wake up if it has fallen asleep
+        # ---
+
+        self._killing = False  # set by .kill()
+
+        # Kick off the thread
+        self.thread = threading.Thread(target=self.mainloop, name=threadname, daemon=True)
+        self.thread.start()
+
+    def add_job(self, job):
+        """ Throws ValueError if job is already pending. """
+        with self.jobs_lock:
+            if job in self.all_jobs:
+                raise ValueError
+            self.all_jobs.add(job)
+            self.jobs_pending.append(job)
+        self.wakeup.set()
+
+    def pause_job(self, job):
+        """
+        Returns True if job was running or pending.
+        Returns False otherwise.
+        """
+        with self.jobs_lock:
+            if job is self.job_current:
+                if job.stop():
+                    return True
+                else:
+                    # rare situation
+                    # - running job just stopped.
+                    return False
+            else:
+                try:
+                    self.jobs_pending.remove(job)
+                except ValueError:
+                    return False
+                else:
+                    self.jobs_paused.append(job)
+                    return True
+
+    def unpause_job(self, job):
+        """ Take a paused job and put it back into pending.
+
+        Throws ValueError if job is not in paused list. """
+        with self.jobs_lock:
+            self.jobs_paused.remove(job)
+            self.jobs_pending.append(job)
+        self.wakeup.set()
+
+    def kill(self, ):
+        """Request to stop running job (if any) and to after end thread.
+        Irreversible."""
+        self._killing = True
+        self.wakeup.set()
+        try:
+            self.job_current.stop()
+        except:
+            pass
+
+    def mainloop(self,):
+        try:
+            if threading.current_thread() is not self.thread:
+                raise RuntimeError('wrong thread')
+            while True:
+                if self._killing:
+                    return
+                with self.jobs_lock:
+                    self.wakeup.clear()
+                    try:
+                        self.job_current = self.jobs_pending.pop(0)
+                    except IndexError:
+                        # prepare to sleep, outside lock
+                        self.job_current = None
+                if self.job_current is None:
+                    self.wakeup.wait()
+                    continue
+
+                try:
+                    retval = self.job_current.run()
+                except BaseException as e:
+                    print("vvvvv validation job error traceback", file=sys.stderr)
+                    traceback.print_exc()
+                    print("^^^^^ validation job %r error traceback"%(self.job_current,), file=sys.stderr)
+                    self.jobs_paused.append(self.job_current)
+                else:
+                    if retval is True:
+                        self.jobs_finished.append(self.job_current)
+                    else:
+                        self.jobs_paused.append(self.job_current)
+        except:
+            traceback.print_exc()
+            print("Thread %s crashed :("%(self.thread.name,), file=sys.stderr)
+
+
 ########
 # Graph stuff below
 ########
@@ -427,16 +593,28 @@ class TokenGraph:
         self._sched_ping = set()
         self._sched_recalc_depth = set()
 
-
         # create singletons for pruning
         self.prunednodes = {v:NodeInactive(v, None) for v in validator.validity_states.keys()}
 
         # Threading rule: we never call node functions while locked.
         # self._lock = ... # threading not enabled.
 
+    def reset(self, ):
+        # copy nodes and reset self
+        prevnodes = self._nodes
+        TokenGraph.__init__(self, self.validator)
+
+        # nuke Connections to encourage prompt GC
+        for n in prevnodes.values():
+            try:
+                n.conn_children = []
+                n.conn_parents = []
+            except:
+                pass
+
     def debug(self, formatstr, *args):
         if self.debugging:
-            print("DEBUG-DAG: " + formatstr%args)
+            print("DEBUG-DAG: " + formatstr%args, file=sys.stderr)
 
     def get_node(self, txid):
         # with self._lock:
@@ -552,7 +730,7 @@ class Node:
             return 'inactive'
 
     def __repr__(self,):
-        return "<%s %s txid=%r>"%(type(self).__name__, self.status, self.txid)
+        return "<%s %s txid=%r>"%(type(self).__qualname__, self.status, self.txid)
 
 
     ## Child connection adding/removing
@@ -645,11 +823,9 @@ class Node:
 
         self.waiting = False
 
-        if len(self.conn_parents) == 0:
-            # no parents? ready to validate now! (e.g., genesis tx)
-            self.graph.add_ping(self)
-        else:
-            # normally we just ping all children.
+        self.graph.add_ping(self)
+        if len(self.conn_parents) != 0:
+            # (no parents? children will be pinged after validation)
             for c in self.conn_children:
                 self.graph.add_ping(c.child)
 

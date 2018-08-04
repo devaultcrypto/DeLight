@@ -7,52 +7,85 @@ Validate SLP token transactions with declared version 0x01.
 This uses the graph searching mechanism from slp_dagging.py
 """
 
-from .transaction import Transaction
-from . import slp
-from . import network
-from . import slp_dagging
-from .bitcoin import TYPE_SCRIPT
 import threading
 
+from .transaction import Transaction
+from . import slp
+from .slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage
+from .slp_dagging import TokenGraph, ValidationJob, ValidationJobManager
+from .bitcoin import TYPE_SCRIPT
 
-# Global db for shared graphs (each token_id has its own graph).
+### Uncomment one of the following options:
+
+# Have a shared thread for validating all SLP token_ids sequentially
+shared_jobmgr = ValidationJobManager(threadname="ValidationJobs_SLP0x01")
+
+## Each token_id gets its own thread (thread spam?)
+#shared_jobmgr = None
+
+###
+
+# Global db for shared graphs (each token_id_hex has its own graph).
 graph_db_lock = threading.Lock()
-graph_db = dict()   # token_id -> TokenGraph
-def get_graph(token_id):
+graph_db = dict()   # token_id_hex -> (TokenGraph, ValidationJobManager)
+def get_graph(token_id_hex):
     with graph_db_lock:
         try:
-            return graph_db[token_id]
+            return graph_db[token_id_hex]
         except KeyError:
-#            print("DEBUG SLP: starting graph for token_id=%r"%( token_id,))
-            val = Validator_SLP_0x01(token_id)
-            graph = slp_dagging.TokenGraph(val)
-#            graph.debugging = True
-            graph_db[token_id] = graph
-            return graph
-def kill_graph(token_id):
-    del graph_db[token_id]
+            val = Validator_SLP_0x01(token_id_hex)
+
+            graph = TokenGraph(val)
+
+            if shared_jobmgr:
+                jobmgr = shared_jobmgr
+            else:
+                jobmgr = ValidationJobManager(threadname="ValidationJobs_token_id_%.10s"%(token_id_hex,))
+
+            graph_db[token_id_hex] = (graph, jobmgr)
+
+            return graph_db[token_id_hex]
+def kill_graph(token_id_hex):
+    try:
+        graph, jobmgr = graph_db.pop(token_id_hex)
+    except KeyError:
+        return
+    if jobmgr != shared_jobmgr:
+        jobmgr.kill()
+    graph.reset()
 
 
-def make_job(tx, wallet, network, debug=False, reset=False, **kwargs):
+def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, **kwargs):
     """
     Basic validation job maker for a single transaction.
+
+    Returns job
     """
-    slpMsg = slp.SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
+    slpMsg = SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
+
     if slpMsg.transaction_type == 'INIT':
-        token_id = tx.txid()
+        token_id_hex = tx.txid()
     else:
-        token_id = slpMsg.op_return_fields['token_id_hex']
+        token_id_hex = slpMsg.op_return_fields['token_id_hex']
 
     if reset:
         try:
-            kill_graph(token_id)
+            kill_graph(token_id_hex)
         except KeyError:
             pass
-    graph = get_graph(token_id)
+
+    graph, jobmgr = get_graph(token_id_hex)
     graph.debugging = bool(debug)
-    job = slp_dagging.ValidationJob(graph, [tx.txid()], network,
-                                    txcachegetter=wallet.transactions.__getitem__,
-                                    **kwargs)
+
+    job = ValidationJob(graph, [tx.txid()], network,
+                        txcachegetter=wallet.transactions.__getitem__,
+                        **kwargs)
+    if debug == 2:
+        # enable printing whole graph state for every step.
+        job.debugging_graph_state = True
+
+    jobmgr.add_job(job)
+
     return job
 
 
@@ -66,15 +99,15 @@ class Validator_SLP_0x01:
         3: 'Invalid: insufficient valid inputs'
         }
 
-    def __init__(self, token_id):
-        self.token_id = token_id
+    def __init__(self, token_id_hex):
+        self.token_id_hex = token_id_hex
 
     def get_info(self,tx):
         """
         Enforce internal consensus rules (check all rules that don't involve
         information from inputs).
 
-        Prune if mismatched token_id from this validator or SLP version other than 1.
+        Prune if mismatched token_id_hex from this validator or SLP version other than 1.
         """
         txouts = tx.outputs()
         if len(txouts) < 1:
@@ -84,10 +117,10 @@ class Validator_SLP_0x01:
         # consensus-invalid op_return messages. In this procedure we check the
         # remaining internal rules, having to do with the overall transaction.
         try:
-            slpMsg = slp.SlpMessage.parseSlpOutputScript(txouts[0][1])
-        except slp.SlpUnsupportedSlpTokenType as e:
+            slpMsg = SlpMessage.parseSlpOutputScript(txouts[0][1])
+        except SlpUnsupportedSlpTokenType as e:
             return ('prune', 0)
-        except slp.SlpInvalidOutputMessage as e:
+        except SlpInvalidOutputMessage as e:
 #            print("DEBUG SLP: %.10s... invalid: %r"%(tx.txid(), e))
             return ('prune', 2)
 
@@ -102,12 +135,12 @@ class Validator_SLP_0x01:
         # Consensus rule 2: other outputs with OP_RETURN not allowed.
         other_scripts = [o[1] for o in txouts[1:] if o[0] == TYPE_SCRIPT]
         for sc in other_scripts:
-            if sc.script.startswith(b'\x6a'):
+            if sc.to_script().startswith(b'\x6a'):
                 #print("DEBUG SLP: %.10s... invalid: %r"%(tx.txid(), e))
                 return ('prune', 2)
 
         if slpMsg.transaction_type == 'TRAN':
-            token_id = slpMsg.op_return_fields['token_id_hex']
+            token_id_hex = slpMsg.op_return_fields['token_id_hex']
 
             # need to examine all inputs
             vin_mask = (True,)*len(tx.inputs())
@@ -120,7 +153,7 @@ class Validator_SLP_0x01:
             # outputs straight from the token amounts
             outputs = slpMsg.op_return_fields['token_output']
         elif slpMsg.transaction_type == 'INIT':
-            token_id = tx.txid()
+            token_id_hex = tx.txid()
 
             vin_mask = (False,)*len(tx.inputs()) # don't need to examine any inputs.
 
@@ -134,7 +167,7 @@ class Validator_SLP_0x01:
                 outputs = [None]*(mintvout-1) + ['MINT']
             outputs[1] = slpMsg.op_return_fields['initial_token_mint_quantity']
         elif slpMsg.transaction_type == 'MINT':
-            token_id = slpMsg.op_return_fields['token_id_hex']
+            token_id_hex = slpMsg.op_return_fields['token_id_hex']
 
             vin_mask = (True,)*len(tx.inputs()) # need to examine all vins, even for baton.
 
@@ -150,8 +183,8 @@ class Validator_SLP_0x01:
         else:
             raise RuntimeError(slpMsg.transaction_type)
 
-        if token_id != self.token_id:
-            return ('prune', 0)  # mismatched token_id
+        if token_id_hex != self.token_id_hex:
+            return ('prune', 0)  # mismatched token_id_hex
 
         # truncate / expand outputs list to match tx outputs length
         outputs = tuple(outputs[:len(txouts)])

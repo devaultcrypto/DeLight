@@ -543,6 +543,9 @@ class Commands:
         """
 
         from . import slp_validator_0x01
+        from queue import Queue, Empty
+
+        q = Queue()
 
         if self.wallet and txid in self.wallet.transactions:
             tx = self.wallet.transactions[txid]
@@ -553,12 +556,21 @@ class Commands:
             else:
                 raise BaseException("Unknown transaction")
 
-        job = slp_validator_0x01.make_job(tx, self.wallet, self.network, debug=debug, reset=reset)
-        job.debugging_graph_state = debug # enable printing whole graph state for every step
-        job.run()
-        n = job.nodes[0]
+        if debug:
+            print("Note -- debug info now printed to stderr")
+        job = slp_validator_0x01.make_job(tx, self.wallet, self.network,
+                                          debug=2, reset=reset)
+        job.add_callback(q.put, way='weakmethod')
+        try:
+            q.get(timeout=3)
+        except Empty:
+            print("Validation job taking too long. Returning now as to not freeze UI for too long!")
+            print("(returned job is still running in background)")
+            return job
 
-        return job.graph.validator.validity_states[n.validity]
+        n = job.nodes[0]
+        validity_name = job.graph.validator.validity_states[n.validity]
+        return validity_name
 
     @command('')
     def encrypt(self, pubkey, message):
