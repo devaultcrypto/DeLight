@@ -717,7 +717,7 @@ class Abstract_Wallet(PrintError, QObject):
                             unvalidated_token_bal += txo['qty']
             return (valid_token_bal, unvalidated_token_bal, invalid_token_bal)
         except Exception as e:
-            pass
+            raise e
 
     def get_utxos(self, domain = None, exclude_frozen = False, mature = False, confirmed_only = False):
         coins = []
@@ -834,7 +834,7 @@ class Abstract_Wallet(PrintError, QObject):
                     amounts = slpMsg.op_return_fields['token_output'][:len(tx.outputs())]
                     for i, qty in enumerate(amounts):
                         _type, addr, _ = tx.outputs()[i]
-                        if _type is TYPE_ADDRESS and qty > 0:
+                        if _type is TYPE_ADDRESS and qty > 0 and self.is_mine(addr):
                             try:
                                 self._slp_txo[addr]
                             except KeyError:
@@ -852,7 +852,7 @@ class Abstract_Wallet(PrintError, QObject):
                     # TODO: check for and handle MINT baton
                     _type, addr, _ = tx.outputs()[1]
                     if _type is TYPE_ADDRESS:
-                        if slpMsg.op_return_fields['initial_token_mint_quantity'] > 0: #if self.is_mine(addr) and qty > 0:
+                        if slpMsg.op_return_fields['initial_token_mint_quantity'] > 0 and self.is_mine(addr):
                             try:
                                 self._slp_txo[addr]
                             except KeyError:
@@ -870,7 +870,7 @@ class Abstract_Wallet(PrintError, QObject):
                     # TODO: check for and handle MINT baton
                     _type, addr, _ = tx.outputs()[1]
                     if _type is TYPE_ADDRESS:
-                        if slpMsg.op_return_fields['token_mint_quantity'] > 0: #if self.is_mine(addr) and qty > 0:
+                        if slpMsg.op_return_fields['token_mint_quantity'] > 0 and self.is_mine(addr):
                             try:
                                 self._slp_txo[addr]
                             except KeyError:
