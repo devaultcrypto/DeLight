@@ -109,7 +109,7 @@ class HistoryList(MyTreeWidget):
             tx_hash, height, conf, timestamp, delta,tokentype,validity= h_item
             status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
             icon = QIcon("icons/" + TX_ICONS[status])
-            if validity==1:
+            if validity!=1:
                 icon=QIcon("icons/unconfirmed.png") 
             tokenname=tok_name_dict.get(tokentype) # use get format to avoid exception if none 
             if tokenname is None:
