@@ -930,8 +930,12 @@ class Abstract_Wallet(PrintError, QObject):
             txid=h_item["txid"]
             delta=h_item["delta"]
             tokentype=h_item["tokentype"]
+            if "validity" in h_item:
+                validity=h_item["validity"]
+            else:
+                validity=0
             height, conf, timestamp = self.get_tx_height(txid) 
-            history.append((txid, height, conf, timestamp, delta,tokentype)) 
+            history.append((txid, height, conf, timestamp, delta,tokentype,validity)) 
         history.sort(key = lambda x: self.get_txpos(x[0])) 
         return history
 
