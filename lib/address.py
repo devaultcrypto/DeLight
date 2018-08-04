@@ -261,18 +261,24 @@ class ScriptOutput(namedtuple("ScriptAddressTuple", "script")):
                         if op[1] is None:
                             ret += "<EMPTY>"
                         else:
-                            # Try to make a friendly string.
-                            try:
-                                friendlystring = op[1].decode('ascii') # raises UnicodeDecodeError with bytes > 127.
-
-                                uglies = 0
-                                for b in op[1]:
-                                    if b < 0x20 or b == 0x7f:
-                                        uglies += 1
-                                if 2*uglies >= len(friendlystring):
-                                    friendlystring = None
-                            except UnicodeDecodeError:
+                            if hex_only:
                                 friendlystring = None
+                            else:
+                                # Attempt to make a friendly string, or fail to hex
+                                try:
+                                    # Ascii only
+                                    friendlystring = op[1].decode('ascii') # raises UnicodeDecodeError with bytes > 127.
+
+                                    # Count ugly characters (that need escaping in python strings' repr())
+                                    uglies = 0
+                                    for b in op[1]:
+                                        if b < 0x20 or b == 0x7f:
+                                            uglies += 1
+                                    # Less than half of characters may be ugly.
+                                    if 2*uglies >= len(op[1]):
+                                        friendlystring = None
+                                except UnicodeDecodeError:
+                                    friendlystring = None
 
                             if friendlystring is None:
                                 ret += lookup(op[0]) + " " + op[1].hex()
