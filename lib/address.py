@@ -246,7 +246,7 @@ class ScriptOutput(namedtuple("ScriptAddressTuple", "script")):
         return ScriptOutput(bytes(script))
 
     def to_ui_string(self, hex_only = False):
-        '''Convert to user-readable OP-codes (plus text), eg OP_RETURN (12) Hello there!
+        '''Convert to user-readable OP-codes (plus text), eg OP_RETURN (12) "Hello there!"
            Or, to a hexadecimal string if that fails.
            Note that this function is the inverse of from_string() only if called with hex_only = True!'''
         if self.script and not hex_only:
@@ -261,10 +261,23 @@ class ScriptOutput(namedtuple("ScriptAddressTuple", "script")):
                         if op[1] is None:
                             ret += "<EMPTY>"
                         else:
+                            # Try to make a friendly string.
                             try:
-                                ret += lookup(op[0]) + " " + op[1].decode('utf-8')
+                                friendlystring = op[1].decode('ascii') # raises UnicodeDecodeError with bytes > 127.
+
+                                uglies = 0
+                                for b in op[1]:
+                                    if b < 0x20 or b == 0x7f:
+                                        uglies += 1
+                                if 2*uglies >= len(friendlystring):
+                                    friendlystring = None
                             except UnicodeDecodeError:
+                                friendlystring = None
+
+                            if friendlystring is None:
                                 ret += lookup(op[0]) + " " + op[1].hex()
+                            else:
+                                ret += lookup(op[0]) + " " + repr(friendlystring)
                     elif isinstance(op, int):
                         ret += lookup(op)
                     else:
@@ -272,7 +285,7 @@ class ScriptOutput(namedtuple("ScriptAddressTuple", "script")):
                 return ret
             except ScriptError:
                 # Truncated script -- so just default to normal 'hex' encoding below.
-                pass      
+                pass
         return self.script.hex()
 
     def to_asm(self):
@@ -341,13 +354,13 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
 
     @classmethod
     def show_cashaddr(cls, format):
-        if format==1: 
+        if format==1:
             cls.FMT_UI = cls.FMT_CASHADDR;
         elif format==2:
             cls.FMT_UI = cls.FMT_SLPADDR;
         else:
             cls.FMT_UI = cls.FMT_LEGACY;
-             
+
 
     @classmethod
     def from_cashaddr_string(cls, string):
@@ -384,10 +397,10 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         else:
             assert kind == cashaddr.SCRIPT_TYPE
             return cls(addr_hash, cls.ADDR_P2SH)
-  
+
     @classmethod
     def from_string(cls, string):
-        '''Construct from an address string.''' 
+        '''Construct from an address string.'''
         if len(string) > 35:
             if ":" in string:
                 addrpiece1,addrpiece2 = string.split(":")
@@ -396,7 +409,7 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
                 else:
                     return cls.from_cashaddr_string(string)
             else:
-               return cls.from_cashaddr_string(string) 
+               return cls.from_cashaddr_string(string)
 
         raw = Base58.decode_check(string)
 
