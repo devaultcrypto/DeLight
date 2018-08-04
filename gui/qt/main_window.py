@@ -178,7 +178,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         add_optional_tab(tabs, self.slp_mgt_tab, QIcon(":icons/tab_slp_icon.png"), _("Tokens"), "tokens")
         add_optional_tab(tabs, self.converter_tab, QIcon(":icons/tab_converter.png"), _("Address Converter"), "converter", True)
         add_optional_tab(tabs, self.console_tab, QIcon(":icons/tab_console.png"), _("Con&sole"), "console")
-        add_optional_tab(tabs, self.slp_history_tab, QIcon(":icons/tab_converter.png"), _("SLP History"), "slp_history", True)
+        add_optional_tab(tabs, self.slp_history_tab, QIcon(":icons/tab_slp_icon.png"), _("SLP History"), "slp_history", True)
         
 
         tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
