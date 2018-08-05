@@ -23,30 +23,6 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
-
-
-
-Wallet file expects slp_history in the format like so:
-
-"slp_history": [
-        {
-            "delta": "50000",
-            "tokentype": "333",
-            "txid": "a5................your tx id...................................4d"
-        },
-        {
-            "delta": "32000",
-            "tokentype": "444",
-            "txid": "41.................your tx id..................................7e"
-        }
-    ],
-
-
-
-'''
-
-
 
 import webbrowser
 
@@ -70,7 +46,6 @@ TX_ICONS = [
 ]
 
 
-
 class HistoryList(MyTreeWidget):
     filter_columns = [2, 3, 4]  # Date, Description, Amount
 
@@ -83,7 +58,7 @@ class HistoryList(MyTreeWidget):
         self.sortByColumn(0, Qt.AscendingOrder)
 
     def refresh_headers(self):
-        headers = [ '', '',_('Date'), _('Token Type') , _('Amount') ]
+        headers = [ '', '',_('Date'), _('Token Name') , _('Amount') ]
 
         self.update_headers(headers)
 
@@ -93,12 +68,10 @@ class HistoryList(MyTreeWidget):
 
     @profiler
     def on_update(self):
-
-
         self.wallet = self.parent.wallet
         h = self.wallet.get_history(self.get_domain())
         slp_history =self.wallet.get_slp_history()
-        slp_token_list =  self.config.get('slp_tokens', [])
+        slp_token_list = self.parent.slp_token_list
         tok_name_dict = {}
         item = self.currentItem()
         current_tx = item.data(0, Qt.UserRole) if item else None
@@ -109,58 +82,81 @@ class HistoryList(MyTreeWidget):
             tx_hash, height, conf, timestamp, delta, token_id, validity= h_item
             status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
 
-            if validity == 0:
-                # For in-progress validation, always show gears regardless of confirmation status.
-                icon=QIcon("icons/unconfirmed.png")
-            elif validity in (2,3):
-                # Erase invalid transactions from SLP history gui
-                continue
-            else: #validity == 1
-                # For SLP valid, show the confirmation status (gears, few-confirmations, or green check)
-                icon = QIcon("icons/" + TX_ICONS[status])
+            deltastr = str(delta)
+
             try:
                 tokenname=tok_name_dict[token_id]
+                unktoken = False
             except KeyError:
-                # If a token is not in our list of known token_ids, don't show it to user!
+                tokenname = _("Unknown token ID, right click to add...")
+                unktoken = True
+
+            if unktoken and validity in (0,1):
+                # If a token is not in our list of known token_ids, warn the user!
+                icon=QIcon("icons/warning.png")
+                icontooltip = _("Unknown token ID")
+                deltastr = '(%s)'%(deltastr,)
+            elif validity == 0:
+                # For in-progress validation, always show gears regardless of confirmation status.
+                icon=QIcon("icons/warning.png")
+                icontooltip = _("SLP validation in progress...")
+            elif validity in (2,3):
+                ## Option 1 - Show bad SLP txes with red warning and kill the amount.
+                #icon=QIcon("icons/expired.png")
+                #icontooltip = "SLP invalid!"
+                #deltastr = "---"
+
+                # Option 2 - Erase invalid transactions from SLP history gui
                 continue
-            if tokenname is None:
-                tokenname="UNKNOWN"
-            entry = ['', '', status_str, tokenname, str(delta)]
+            elif validity == 1:
+                # For SLP valid known txes, show the confirmation status (gears, few-confirmations, or green check)
+                icon = QIcon("icons/" + TX_ICONS[status])
+                icontooltip = _("SLP valid; ") + str(conf) + " confirmation" + ("s" if conf != 1 else "")
+            else:
+                raise ValueError(validity)
+
+            entry = ['', '', status_str, tokenname, deltastr]
             item = SortableTreeWidgetItem(entry)
+            item.setTextAlignment(4, Qt.AlignRight)
+            item.setFont(4, QFont(MONOSPACE_FONT))
+            if delta < 0:
+                item.setForeground(4, QBrush(QColor("#BC1E1E")))
             self.insertTopLevelItem(0, item)
             item.setIcon(0, icon)
+            item.setToolTip(0, icontooltip)
             item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
-            if tx_hash:
-                item.setData(0, Qt.UserRole, tx_hash)
-        if len(slp_history) > 0 and current_tx == tx_hash:
-            self.setCurrentItem(item)
+            item.setData(0, Qt.UserRole, (tx_hash, token_id))
+            if current_tx == tx_hash:
+                self.setCurrentItem(item)
 
     def on_doubleclick(self, item, column):
         if self.permit_edit(item, column):
             super(HistoryList, self).on_doubleclick(item, column)
         else:
-            tx_hash = item.data(0, Qt.UserRole)
+            tx_hash, token_id = item.data(0, Qt.UserRole)
             tx = self.wallet.transactions.get(tx_hash)
             self.parent.show_transaction(tx)
 
     def update_labels(self):
-        root = self.invisibleRootItem()
-        child_count = root.childCount()
-        for i in range(child_count):
-            item = root.child(i)
-            txid = item.data(0, Qt.UserRole)
-            label = self.wallet.get_label(txid)
-            item.setText(3, label)
+        raise NotImplementedError("this shouldn't get called!")
+        #root = self.invisibleRootItem()
+        #child_count = root.childCount()
+        #for i in range(child_count):
+            #item = root.child(i)
+            #txid = item.data(0, Qt.UserRole)
+            #label = self.wallet.get_label(txid)
+            #item.setText(3, label)
 
     def update_item(self, tx_hash, height, conf, timestamp):
-        status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
-        icon = QIcon(":icons/" +  TX_ICONS[status])
-        items = self.findItems(tx_hash, Qt.UserRole|Qt.MatchContains|Qt.MatchRecursive, column=1)
-        if items:
-            item = items[0]
-            item.setIcon(0, icon)
-            item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
-            item.setText(2, status_str)
+        raise NotImplementedError("this shouldn't get called!")
+        #status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
+        #icon = QIcon(":icons/" +  TX_ICONS[status])
+        #items = self.findItems(tx_hash, Qt.UserRole|Qt.MatchContains|Qt.MatchRecursive, column=1)
+        #if items:
+            #item = items[0]
+            #item.setIcon(0, icon)
+            #item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
+            #item.setText(2, status_str)
 
     def create_menu(self, position):
         self.selectedIndexes()
@@ -168,7 +164,7 @@ class HistoryList(MyTreeWidget):
         if not item:
             return
         column = self.currentColumn()
-        tx_hash = item.data(0, Qt.UserRole)
+        tx_hash, token_id = item.data(0, Qt.UserRole)
         if not tx_hash:
             return
         if column is 0:
@@ -192,6 +188,12 @@ class HistoryList(MyTreeWidget):
             # We grab a fresh reference to the current item, as it has been deleted in a reported issue.
             menu.addAction(_("Edit {}").format(column_title),
                 lambda: self.currentItem() and self.editItem(self.currentItem(), column))
+
+        for d in self.parent.slp_token_list:
+            if d['hash'] == token_id:
+                break
+        else:
+            menu.addAction(_("Add this token ID"), lambda: self.parent.new_slp_token_dialog(token_id_hex = token_id))
 
         menu.addAction(_("Details"), lambda: self.parent.show_transaction(tx))
         if is_unconfirmed and tx:
