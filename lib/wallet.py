@@ -705,11 +705,11 @@ class Abstract_Wallet(PrintError, QObject):
                     """ add to balance if token_id matches """
                     if slpTokenId == txo['token_id']:
                         status = self.slpv1_validity.get(txo['txid'], 0)
-                        if status is 1: # Valid DAG
+                        if status == 1: # Valid DAG
                             valid_token_bal += txo['qty']
-                        elif status is 2 or status is 3: # Invalid DAG (2=bad slpmessage, 3=inputs lack enough tokens / missing mint baton)
+                        elif status == 2 or status == 3: # Invalid DAG (2=bad slpmessage, 3=inputs lack enough tokens / missing mint baton)
                             invalid_token_bal += txo['qty']
-                        elif status is 0: # Unknown DAG status (should be in processing queue)
+                        elif status == 0: # Unknown DAG status (should be in processing queue)
                             unvalidated_token_bal += txo['qty']
             return (valid_token_bal, unvalidated_token_bal, invalid_token_bal)
         except Exception as e:
