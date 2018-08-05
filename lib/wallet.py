@@ -884,6 +884,14 @@ class Abstract_Wallet(PrintError, QObject):
             self.update_token_list_sig.emit(slpMsg.op_return_fields['token_id_hex'], slpMsg.op_return_fields['token_id_hex'][0:5], 0, False, True)
 #        self.new_slp_txn_sig.emit(slpMsg)  # <-- this does not exist
 
+    def rebuild_slp(self, forget_validity=False):
+        """Wipe away old SLP data and rerun on the entire tx set."""
+        with self.transaction_lock:
+            self._slp_txo = {}
+            if forget_validity:
+                self.slpv1_validity = {}
+            for txid, tx in self.transactions.items():
+                self.handleSlpTransaction(txid, tx)
 
     def remove_transaction(self, tx_hash):
         with self.transaction_lock:
