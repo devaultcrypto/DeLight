@@ -73,10 +73,10 @@ class SlpMgt(MyTreeWidget):
         menu.exec_(self.viewport().mapToGlobal(position))
 
 
-    def get_balance_from_hash_id(self):
+    def get_balance_from_hash_id(self,slpTokenId):
         # implement by looking at UTXO for this token!
         # for now return dummy value.
-        bal=1000
+        bal,dummy1,dummy2=self.parent.wallet.get_slp_token_balance(slpTokenId)
         return bal
 
 
@@ -86,7 +86,7 @@ class SlpMgt(MyTreeWidget):
             hash_id=i["hash"]
             name=i["name"]
             dec_prec = i["dec_prec"] 
-            calculated_balance= self.get_balance_from_hash_id()
+            calculated_balance= self.get_balance_from_hash_id(hash_id)
             item = QTreeWidgetItem([str(hash_id),str(name),str(dec_prec),str(calculated_balance)])
             item.setData(0, Qt.UserRole, hash_id)
             self.addTopLevelItem(item)
