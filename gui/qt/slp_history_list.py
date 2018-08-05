@@ -121,7 +121,7 @@ class HistoryList(MyTreeWidget):
             item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
             if tx_hash:
                 item.setData(0, Qt.UserRole, tx_hash)
-        if current_tx == tx_hash:
+        if len(slp_history) > 0 and current_tx == tx_hash:
             self.setCurrentItem(item)
 
     def on_doubleclick(self, item, column):
