@@ -88,7 +88,7 @@ class HistoryList(MyTreeWidget):
                 tokenname=tok_name_dict[token_id]
                 unktoken = False
             except KeyError:
-                tokenname = _("Unknown token ID, right click to add...")
+                tokenname = _("Unknown token ID (%.4s...), right click to add..."%(token_id,))
                 unktoken = True
 
             if unktoken and validity in (0,1):

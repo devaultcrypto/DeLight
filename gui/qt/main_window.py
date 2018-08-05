@@ -2316,9 +2316,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 #            line1 = QLabel()
             line1.setText(token_id_hex)
             line1.setReadOnly(True)
-        line1.setFixedWidth(280)
+        line1.setFixedWidth(550)
         line2 = QLineEdit()
-        line2.setFixedWidth(280)
+        line2.setFixedWidth(200)
         #line3 = QSpinBox()
         #line3.setRange(0,9)
         #if decimals is not None:
@@ -2327,7 +2327,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         #else:
             #line3.setValue(0)
         #line3.setFixedWidth(50)
-        grid.addWidget(QLabel(_("Genesis Hash Id")), 1, 0)
+        grid.addWidget(QLabel(_("Token ID")), 1, 0)
         grid.addWidget(line1, 1, 1)
         grid.addWidget(QLabel(_("Token Name")), 2, 0)
         grid.addWidget(line2, 2, 1)
