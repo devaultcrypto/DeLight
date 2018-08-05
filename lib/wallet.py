@@ -65,8 +65,6 @@ from .contacts import Contacts
 from .slp import SlpMessage, SlpParsingError
 from . import slp_validator_0x01
 
-from PyQt5.QtCore import QObject, pyqtSignal
-
 TX_STATUS = [
     _('Unconfirmed parent'),
     _('Low fee'),
@@ -155,7 +153,7 @@ def sweep(privkeys, network, config, recipient, fee=None, imax=100):
     return tx
 
 
-class Abstract_Wallet(PrintError, QObject):
+class Abstract_Wallet(PrintError):
     """
     Wallet classes are created to handle various address generation methods.
     Completion states (watching-only, single account, no seed, etc) are handled inside classes.
@@ -164,7 +162,6 @@ class Abstract_Wallet(PrintError, QObject):
     max_change_outputs = 3
 
     def __init__(self, storage):
-        QObject.__init__(self)
         self.send_slpTokenId = None
 
         self.electrum_version = PACKAGE_VERSION
