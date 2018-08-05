@@ -2309,7 +2309,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def new_slp_token_dialog(self, token_id_hex=None): #, decimals=None):
         d = WindowModalDialog(self, _("New Token type"))
         vbox = QVBoxLayout(d)
-#        vbox.addWidget(QLabel(_('New token type') + ':'))
+        vbox.addWidget(QLabel(_('Avoid counterfeits - carefully compare the token ID with a trusted source.')))
         grid = QGridLayout()
         line1 = QLineEdit()
         if token_id_hex is not None:
