@@ -62,7 +62,7 @@ from .paymentrequest import PR_PAID, PR_UNPAID, PR_UNKNOWN, PR_EXPIRED
 from .paymentrequest import InvoiceStore
 from .contacts import Contacts
 
-from .slp import SlpMessage
+from .slp import SlpMessage, SlpParsingError
 from . import slp_validator_0x01
 
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -797,97 +797,93 @@ class Abstract_Wallet(PrintError, QObject):
                         dd[addr] = []
                     dd[addr].append((ser, v))
 
-            """ SLP: Handle incoming SLP transaction outputs here """
-            self.handleSlpTransaction(tx_hash, tx)
-
             # save
             self.transactions[tx_hash] = tx
 
+            ### SLP: Handle incoming SLP transaction outputs here
+            self.handleSlpTransaction(tx_hash, tx)
+
     def handleSlpTransaction(self, tx_hash, tx):
         try:
-            vout0_type, slp_opreturn, v = tx.outputs()[0]
-        except IndexError:
-            pass
-        if vout0_type is TYPE_SCRIPT:
-            slpMsg = None
-            try:
-                slpMsg = SlpMessage.parseSlpOutputScript(slp_opreturn)
-                if slpMsg.token_type == 1:
-                    cached_val = self.slpv1_validity.get(tx_hash, 0)
-                    if cached_val == 0:
-                        self.slpv1_validity[tx_hash] = 0
-                        self.storage.put('slpv1_validity', self.slpv1_validity)
-                        # Unknown validity, fire up a validation engine background job.
-                        def callback(job):
-                            val = job.nodes[0].validity
-                            if val != 0:
-                                self.slpv1_validity[tx_hash] = val
-                        job = slp_validator_0x01.make_job(tx, self, self.network,
-                                                          debug=2, reset=False)
-                        job.add_callback(callback)
+            slpMsg = SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
+        except (SlpParsingError, IndexError):
+            return
 
-                if slpMsg.transaction_type == "TRAN":
-                    # truncate outputs list
-                    amounts = slpMsg.op_return_fields['token_output'][:len(tx.outputs())]
-                    for i, qty in enumerate(amounts):
-                        _type, addr, _ = tx.outputs()[i]
-                        if _type is TYPE_ADDRESS and qty > 0 and self.is_mine(addr):
-                            try:
-                                self._slp_txo[addr]
-                            except KeyError:
-                                self._slp_txo[addr] = []
-                            self._slp_txo[addr].append(
-                            {
-                                'txid': tx_hash,
-                                'idx': i,
-                                'token_id': slpMsg.op_return_fields['token_id_hex'],
-                                'qty': qty,
-                                'type': 'TRAN',
-                            })
-                elif slpMsg.transaction_type == "INIT":
-                    # TODO: check for and handle MINT baton
-                    _type, addr, _ = tx.outputs()[1]
-                    if _type is TYPE_ADDRESS:
-                        if slpMsg.op_return_fields['initial_token_mint_quantity'] > 0 and self.is_mine(addr):
-                            try:
-                                self._slp_txo[addr]
-                            except KeyError:
-                                self._slp_txo[addr] = []
-                            self._slp_txo[addr].append(
-                            {
-                                'txid': tx_hash,
-                                'idx': 1,
-                                'token_id': tx_hash,
-                                'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
-                                'type': 'INIT',
-                            })
-                elif slpMsg.transaction_type == "MINT":
-                    # TODO: check for and handle MINT baton
-                    _type, addr, _ = tx.outputs()[1]
-                    if _type is TYPE_ADDRESS:
-                        if slpMsg.op_return_fields['token_mint_quantity'] > 0 and self.is_mine(addr):
-                            try:
-                                self._slp_txo[addr]
-                            except KeyError:
-                                self._slp_txo[addr] = []
-                            self._slp_txo[addr].append(
-                            {
-                                'txid': tx_hash,
-                                'idx': 1,
-                                'token_id': tx_hash,
-                                'qty': slpMsg.op_return_fields['token_mint_quantity'],
-                                'type': 'MINT',
-                            })
-                else:
-                    raise ValueError(slpMsg.transaction_type)
-                # Send a signal for gui to consume for updates
-                if slpMsg.transaction_type == "INIT":
-                    self.update_token_list_sig.emit(tx_hash, tx_hash[0:5], 0, False, True)
-                elif slpMsg.transaction_type == "TRAN":
-                    self.update_token_list_sig.emit(slpMsg.op_return_fields['token_id_hex'], slpMsg.op_return_fields['token_id_hex'][0:5], 0, False, True)
-                self.new_slp_txn_sig.emit(slpMsg)
-            except Exception as e:
-                pass
+        if slpMsg.token_type == 1:
+            with self.transaction_lock:
+                if tx_hash not in self.slpv1_validity:
+                    # Unknown validity, fire up a validation engine background job.
+                    self.slpv1_validity[tx_hash] = 0
+                    def callback(job):
+                        val = job.nodes[0].validity
+                        if val != 0:
+                            with self.transaction_lock:
+                                self.slpv1_validity[tx_hash] = val
+                    job = slp_validator_0x01.make_job(tx, self, self.network,
+                                                      debug=2, reset=False)
+                    job.add_callback(callback)
+
+        if slpMsg.transaction_type == "TRAN":
+            # truncate outputs list
+            amounts = slpMsg.op_return_fields['token_output'][:len(tx.outputs())]
+            for i, qty in enumerate(amounts):
+                _type, addr, _ = tx.outputs()[i]
+                if _type is TYPE_ADDRESS and qty > 0 and self.is_mine(addr):
+                    try:
+                        self._slp_txo[addr]
+                    except KeyError:
+                        self._slp_txo[addr] = []
+                    self._slp_txo[addr].append(
+                    {
+                        'txid': tx_hash,
+                        'idx': i,
+                        'token_id': slpMsg.op_return_fields['token_id_hex'],
+                        'qty': qty,
+                        'type': 'TRAN',
+                    })
+        elif slpMsg.transaction_type == "INIT":
+            # TODO: check for and handle MINT baton
+            _type, addr, _ = tx.outputs()[1]
+            if _type is TYPE_ADDRESS:
+                if slpMsg.op_return_fields['initial_token_mint_quantity'] > 0 and self.is_mine(addr):
+                    try:
+                        self._slp_txo[addr]
+                    except KeyError:
+                        self._slp_txo[addr] = []
+                    self._slp_txo[addr].append(
+                    {
+                        'txid': tx_hash,
+                        'idx': 1,
+                        'token_id': tx_hash,
+                        'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
+                        'type': 'INIT',
+                    })
+        elif slpMsg.transaction_type == "MINT":
+            # TODO: check for and handle MINT baton
+            _type, addr, _ = tx.outputs()[1]
+            if _type is TYPE_ADDRESS:
+                if slpMsg.op_return_fields['token_mint_quantity'] > 0 and self.is_mine(addr):
+                    try:
+                        self._slp_txo[addr]
+                    except KeyError:
+                        self._slp_txo[addr] = []
+                    self._slp_txo[addr].append(
+                    {
+                        'txid': tx_hash,
+                        'idx': 1,
+                        'token_id': tx_hash,
+                        'qty': slpMsg.op_return_fields['token_mint_quantity'],
+                        'type': 'MINT',
+                    })
+        else:
+            raise RuntimeError(slpMsg.transaction_type)
+        # Send a signal for gui to consume for updates
+        if slpMsg.transaction_type == "INIT":
+            self.update_token_list_sig.emit(tx_hash, tx_hash[0:5], 0, False, True)
+        elif slpMsg.transaction_type == "TRAN":
+            self.update_token_list_sig.emit(slpMsg.op_return_fields['token_id_hex'], slpMsg.op_return_fields['token_id_hex'][0:5], 0, False, True)
+#        self.new_slp_txn_sig.emit(slpMsg)  # <-- this does not exist
+
 
     def remove_transaction(self, tx_hash):
         with self.transaction_lock:
