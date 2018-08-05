@@ -1337,8 +1337,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.message_opreturn_e.editingFinished.connect(entry_changed)
 
         def slp_amount_changed():
+            not_enough_funds_slp = False
+            if self.wallet.send_slpTokenId is not None:
+                try:
+                    total_token_out = int(self.slp_amount_e.text())
+                    if total_token_out > self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0]:
+                        not_enough_funds_slp = True
+                except ValueError:
+                    pass
+
             text = ""
-            if self.not_enough_funds_slp:
+            if not_enough_funds_slp: #self.not_enough_funds_slp:
                 amt_color, fee_color = ColorScheme.RED, ColorScheme.RED
                 text = _( "Not enough funds for selected token")
             elif self.slp_amount_e.isModified():
