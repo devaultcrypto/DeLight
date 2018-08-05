@@ -69,7 +69,7 @@ TX_ICONS = [
     "confirmed.png",
 ]
 
- 
+
 
 class HistoryList(MyTreeWidget):
     filter_columns = [2, 3, 4]  # Date, Description, Amount
@@ -84,40 +84,40 @@ class HistoryList(MyTreeWidget):
 
     def refresh_headers(self):
         headers = [ '', '',_('Date'), _('Token Type') , _('Amount') ]
-          
+
         self.update_headers(headers)
 
     def get_domain(self):
         '''Replaced in address_dialog.py'''
         return self.wallet.get_addresses()
- 
+
     @profiler
     def on_update(self):
 
 
         self.wallet = self.parent.wallet
         h = self.wallet.get_history(self.get_domain())
-        slp_history =self.wallet.get_slp_history() 
-        slp_token_list =  self.config.get('slp_tokens')
+        slp_history =self.wallet.get_slp_history()
+        slp_token_list =  self.config.get('slp_tokens', [])
         tok_name_dict = {}
-        item = self.currentItem() 
+        item = self.currentItem()
         current_tx = item.data(0, Qt.UserRole) if item else None
         self.clear()
         for tok in slp_token_list:
-            tok_name_dict[tok["hash"]]=tok["name"]  
-        for h_item in slp_history:  
+            tok_name_dict[tok["hash"]]=tok["name"]
+        for h_item in slp_history:
             tx_hash, height, conf, timestamp, delta,tokentype,validity= h_item
             status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
             icon = QIcon("icons/" + TX_ICONS[status])
             if validity!=1:
-                icon=QIcon("icons/unconfirmed.png") 
-            tokenname=tok_name_dict.get(tokentype) # use get format to avoid exception if none 
+                icon=QIcon("icons/unconfirmed.png")
+            tokenname=tok_name_dict.get(tokentype) # use get format to avoid exception if none
             if tokenname is None:
                 tokenname="UNKNOWN"
             entry = ['', '', status_str, tokenname, delta]
             item = SortableTreeWidgetItem(entry)
             self.insertTopLevelItem(0, item)
-            item.setIcon(0, icon) 
+            item.setIcon(0, icon)
             item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
             if tx_hash:
                 item.setData(0, Qt.UserRole, tx_hash)
@@ -156,8 +156,8 @@ class HistoryList(MyTreeWidget):
         item = self.currentItem()
         if not item:
             return
-        column = self.currentColumn() 
-        tx_hash = item.data(0, Qt.UserRole) 
+        column = self.currentColumn()
+        tx_hash = item.data(0, Qt.UserRole)
         if not tx_hash:
             return
         if column is 0:

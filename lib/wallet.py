@@ -955,7 +955,7 @@ class Abstract_Wallet(PrintError, QObject):
 
     def get_slp_history(self):
         history = []
-        slp_history = self.storage.get('slp_history' )
+        slp_history = self.storage.get('slp_history', [])
         for h_item in slp_history:
             txid=h_item["txid"]
             delta=h_item["delta"]

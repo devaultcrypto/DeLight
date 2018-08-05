@@ -133,7 +133,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.tx_notifications = []
         self.tl_windows = []
         self.tx_external_keypairs = {}
-        self.slp_token_list = self.config.get('slp_tokens')
+        self.slp_token_list = self.config.get('slp_tokens', [])
         self.slp_token_gui_hash_list = []
         self.slp_token_gui_list = []
         Address.show_cashaddr(config.get('addr_format', 0))
@@ -159,7 +159,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.contacts_tab = self.create_contacts_tab()
         self.slp_mgt_tab = self.create_slp_mgt_tab()
         self.converter_tab = self.create_converter_tab()
-        self.slp_history_tab = self.create_slp_history_tab() 
+        self.slp_history_tab = self.create_slp_history_tab()
         tabs.addTab(self.create_history_tab(), QIcon(":icons/tab_history.png"), _('History'))
         tabs.addTab(self.send_tab, QIcon(":icons/tab_send.png"), _('Send'))
         tabs.addTab(self.receive_tab, QIcon(":icons/tab_receive.png"), _('Receive'))
@@ -179,7 +179,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         add_optional_tab(tabs, self.converter_tab, QIcon(":icons/tab_converter.png"), _("Address Converter"), "converter", True)
         add_optional_tab(tabs, self.console_tab, QIcon(":icons/tab_console.png"), _("Con&sole"), "console")
         add_optional_tab(tabs, self.slp_history_tab, QIcon(":icons/tab_slp_icon.png"), _("SLP History"), "slp_history", True)
-        
+
 
         tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setCentralWidget(tabs)
@@ -206,7 +206,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.notify_transactions_signal.connect(self.notify_transactions)
         self.history_list.setFocus(True)
         self.slp_history_list.setFocus(True)
-  
+
         # network callbacks
         if self.network:
             self.network_signal.connect(self.on_network_qt)
@@ -225,17 +225,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.new_fx_history_signal.connect(self.on_fx_history)
 
         # update fee slider in case we missed the callback
-        self.fee_slider.update() 
-        self.load_wallet(wallet) 
+        self.fee_slider.update()
+        self.load_wallet(wallet)
 
         #Get SLP Token list from Config file and update associated GUI lists
         self.slp_token_list_update()
 
-        self.connect_slots(gui_object.timer) 
+        self.connect_slots(gui_object.timer)
         self.fetch_alias()
- 
+
     def slp_token_list_update(self):
-        self.slp_token_list = self.config.get('slp_tokens')
+        self.slp_token_list = self.config.get('slp_tokens', [])
         self.slp_token_gui_list=["NONE"]
         self.slp_token_gui_hash_list=["0"]
         if self.slp_token_list:
@@ -275,12 +275,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def toggle_tab(self, tab, forceStatus = 0):
 
-        # forceStatus = 0 , do nothing 
+        # forceStatus = 0 , do nothing
         # forceStatus = 1 , force Show
         # forceStatus = 2 , force hide
         if forceStatus==1:
             show=True
-        elif forceStatus==2:     
+        elif forceStatus==2:
             show=False
         else:
             show = not self.config.get('show_{}_tab'.format(tab.tab_name), False)
@@ -394,7 +394,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.wallet = wallet
         self.wallet.update_token_list_sig.connect(self.set_slp_token)
         self.update_recently_visited(wallet.storage.path)
-        # address used to create a dummy transaction and estimate transaction fee 
+        # address used to create a dummy transaction and estimate transaction fee
         self.history_list.update()
         self.slp_history_list.update()
         self.address_list.update()
@@ -415,8 +415,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.hide()
         else:
             self.show()
-        self.watching_only_changed() 
-        run_hook('load_wallet', wallet, self) 
+        self.watching_only_changed()
+        run_hook('load_wallet', wallet, self)
 
     def init_geometry(self):
         winpos = self.wallet.storage.get("winpos-qt")
@@ -688,11 +688,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.config.set_key('io_dir', os.path.dirname(fileName), True)
         return fileName
 
-    def connect_slots(self, sender): 
+    def connect_slots(self, sender):
         sender.timer_signal.connect(self.timer_actions)
 
     def timer_actions(self):
- 
+
         # Note this runs in the GUI thread
         if self.need_update.is_set():
             self.need_update.clear()
@@ -771,7 +771,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def update_status(self):
         if not self.wallet:
             return
- 
+
         if self.network is None or not self.network.is_running():
             text = _("Offline")
             icon = QIcon(":icons/status_disconnected.png")
@@ -791,7 +791,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             else:
                 text = ""
                 if self.wallet.send_slpTokenId is not None:
-                    text += "Token Balance (valid): %s; "%(self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0]) 
+                    text += "Token Balance (valid): %s; "%(self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0])
                 c, u, x = self.wallet.get_balance()
                 text +=  _("BCH Balance" ) + ": %s "%(self.format_amount_and_units(c))
                 if u:
@@ -817,19 +817,19 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
 
     def update_wallet(self):
- 
+
         self.update_status()
         if self.wallet.up_to_date or not self.network or not self.network.is_connected():
             self.update_tabs()
 
     def update_tabs(self):
- 
+
         self.history_list.update()
         self.slp_history_list.update()
         self.request_list.update()
         self.address_list.update()
         self.utxo_list.update()
-        self.contact_list.update() 
+        self.contact_list.update()
         self.slp_token_list_tab.update()
         self.invoice_list.update()
         self.update_completions()
@@ -841,12 +841,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return l
 
     def create_slp_history_tab(self):
-         
+
         from .slp_history_list import HistoryList
-        
+
         self.slp_history_list = l = HistoryList(self)
         l.searchable_list = l
-        
+
         return l
 
     def show_address(self, addr):
@@ -1109,7 +1109,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.qr_window and self.qr_window.isVisible():
             self.qr_window.set_content(self.receive_address_e.text(), amount,
                                        message, uri)
- 
+
 
     def on_slptok(self):
         tok_index=self.slp_token_type_combo.currentIndex()
@@ -1141,8 +1141,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.amount_e = BTCAmountEdit(self.get_decimal_point)
 
         self.slp_amount_e = BTCAmountEdit(self.get_decimal_point)
- 
-        self.slp_token_type_combo = QComboBox() 
+
+        self.slp_token_type_combo = QComboBox()
         self.slp_token_type_combo.setFixedWidth(200)
         self.slp_token_type_combo.currentIndexChanged.connect(self.on_slptok)
         self.payto_e = PayToEdit(self)
@@ -1198,7 +1198,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(self.amount_e, 5, 1)
 
 
-        
+
 
         self.fiat_send_e = AmountEdit(self.fx.get_currency if self.fx else '')
         if not self.fx or not self.fx.is_enabled():
@@ -1228,7 +1228,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         self.fee_slider = FeeSlider(self, self.config, fee_cb)
         self.fee_slider.setFixedWidth(140)
-        
+
         self.fee_custom_lbl = HelpLabel(self.get_custom_fee_text(),
                                         _('This is the fee rate that will be used for this transaction.')
                                         + "\n\n" + _('It is calculated from the Custom Fee Rate in preferences, but can be overridden from the manual fee edit on this form (if enabled).')
@@ -1236,7 +1236,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.fee_custom_lbl.setFixedWidth(140)
 
         self.fee_slider_mogrifier()
-        
+
         self.fee_e = BTCAmountEdit(self.get_decimal_point)
         if not self.config.get('show_fee', False):
             self.fee_e.setVisible(False)
@@ -1256,7 +1256,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(self.slp_amount_label, 6, 0)
         grid.addWidget(self.slp_amount_e, 6, 1)
 
-        
+
         msg = _('Amount to be sent.') + '\n\n' \
               + _('The amount will be displayed in red if you do not have enough funds in your wallet.') + ' ' \
               + _('Note that if you have frozen some of your addresses, the available funds will be lower than your total balance.') + '\n\n' \
@@ -1264,17 +1264,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.slp_token_type_label = HelpLabel(_('Token Type'), msg)
         grid.addWidget(self.slp_token_type_label, 7, 0)
         grid.addWidget(self.slp_token_type_combo, 7, 1)
- 
- 
+
+
         if not self.config.get('enable_slp'):
             self.slp_amount_label.setHidden(True)
-            self.slp_token_type_label.setHidden(True) 
-            self.slp_token_type_combo.setCurrentIndex(0)        
+            self.slp_token_type_label.setHidden(True)
+            self.slp_token_type_combo.setCurrentIndex(0)
             self.slp_token_type_combo.setHidden(True)
             self.slp_amount_e.setAmount(0)
             self.slp_amount_e.setText("")
-            self.slp_amount_e.setHidden(True) 
-             
+            self.slp_amount_e.setHidden(True)
+
         grid.addWidget(self.fee_e_label, 8, 0)
         grid.addWidget(self.fee_slider, 8, 1)
         grid.addWidget(self.fee_custom_lbl, 8, 1)
@@ -1358,7 +1358,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
             self.statusBar().showMessage(text)
             self.slp_amount_e.setStyleSheet(amt_color.as_stylesheet())
-        
+
         self.slp_amount_e.textChanged.connect(slp_amount_changed)
 
         self.invoices_label = QLabel(_('Invoices'))
@@ -1392,7 +1392,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if r:
             return r
         return (TYPE_ADDRESS, self.wallet.dummy_address())
-    
+
     def get_custom_fee_text(self, fee_rate = None):
         if not self.config.has_custom_fee_rate():
             return ""
@@ -1481,7 +1481,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if fee is not None:
                 fee_rate = fee / tx.estimated_size()
         self.fee_slider_mogrifier(self.get_custom_fee_text(fee_rate))
-    
+
     def fee_slider_mogrifier(self, text = None):
         fee_slider_hidden = self.config.has_custom_fee_rate()
         self.fee_slider.setHidden(fee_slider_hidden)
@@ -1569,7 +1569,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                         self.wallet.send_slpTokenId = slpMsg.op_return_fields['token_id_hex']
                 except:
                     pass
-                outputs.append(self.output_for_opreturn_stringdata(opreturn_message)) 
+                outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
         except OPReturnTooLarge as e:
             self.show_error(str(e))
             return
@@ -1601,7 +1601,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 msg += _('Do you wish to continue?')
                 if not self.question(msg):
                     return
-                    
+
         if not outputs:
             self.show_error(_('No outputs'))
             return
@@ -1622,7 +1622,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def do_send(self, preview = False):
         if run_hook('abort_send', self):
             return
-        if self.slp_token_type_combo.currentIndex() is not 0:   
+        if self.slp_token_type_combo.currentIndex() is not 0:
             if self.slp_amount_e.get_amount() is 0 or self.slp_amount_e.get_amount() is None:
                 self.show_message(_("No SLP token amount provided."))
                 return
@@ -1865,7 +1865,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def do_clear(self):
         """
         If SLP token is not selected proceed as normal, otherwise see
-        the else-statement below which provides modified "do_clear" behavior 
+        the else-statement below which provides modified "do_clear" behavior
         after a payment is sent
         """
         if self.slp_token_type_combo.currentIndex() is 0:
@@ -1990,10 +1990,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.utxo_list = l = UTXOList(self)
         self.cashaddr_toggled_signal.connect(l.update)
         return self.create_list_tab(l)
- 
+
     def create_slp_mgt_tab(self):
         from .slp_mgt import SlpMgt
-        self.slp_token_list_tab = l = SlpMgt(self) 
+        self.slp_token_list_tab = l = SlpMgt(self)
         return self.create_list_tab(l)
 
     def create_contacts_tab(self):
@@ -2058,7 +2058,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def set_slp_token(self, hash_id, token_name, dec_prec, show_errors=True, new_token_msg=False):
 
         # Duplicate hash id error
-        if hash_id in str(self.slp_token_list): 
+        if hash_id in str(self.slp_token_list):
             if show_errors:
                 self.show_error(_('Token with duplicate hash Id exists'))
             self.slp_token_list_tab.update()  # Displays original unchanged value
@@ -2066,13 +2066,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         #Hash id validation
         hexregex='^[a-fA-F0-9]+$'
-        gothex=re.match(hexregex,hash_id) 
+        gothex=re.match(hexregex,hash_id)
         if gothex is None or len(hash_id) is not 64:
             if show_errors:
                 self.show_error(_('Invalid Hash_Id'))
             self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
-      
+
         #decimal precision validation
         decregex='^[0-9]$'
         gotdec=re.match(decregex,str(dec_prec))
@@ -2081,7 +2081,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.show_error(_('Decimal precision should be 0-9'))
             self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
- 
+
         #token name validation
         if len(token_name)> 20:
             if show_errors:
@@ -2092,7 +2092,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if new_token_msg:
             self.show_error(_('A new type of Token has been received. (token name: ' + token_name + ')'))
         new_entry=dict({'hash':hash_id,'name':token_name,'dec_prec':dec_prec})
-        existing_entries=self.slp_token_list 
+        existing_entries=self.slp_token_list
         existing_entries.append(new_entry)
         self.config.set_key('slp_tokens', existing_entries)
         self.slp_token_list_tab.update()
@@ -2114,10 +2114,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                              .format(" + ".join(labels))):
             return
         for i in self.slp_token_list:
-            if i["hash"] in labels: 
+            if i["hash"] in labels:
                 myInd=self.slp_token_list.index(i)
-                self.slp_token_list.pop(myInd) 
-        self.slp_token_list_tab.update()  
+                self.slp_token_list.pop(myInd)
+        self.slp_token_list_tab.update()
         # RUN ADDITIONAL UPDATES ON WALLET
 
     def show_invoice(self, key):
@@ -2270,7 +2270,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tab = self.tabs.currentWidget()
         if hasattr(tab, 'searchable_list'):
             tab.searchable_list.filter(t)
- 
+
     def new_contact_dialog(self):
         d = WindowModalDialog(self, _("New Contact"))
         vbox = QVBoxLayout(d)
@@ -2961,13 +2961,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return QIcon(":icons/tab_converter_bw.png")
 
 
-    def update_cashaddr_icon(self): 
+    def update_cashaddr_icon(self):
         self.addr_converter_button.setIcon(self.cashaddr_icon())
 
-    def toggle_cashaddr_status_bar(self): 
+    def toggle_cashaddr_status_bar(self):
         self.toggle_cashaddr(self.config.get('addr_format', 0))
 
-    def toggle_cashaddr_settings(self,state):   
+    def toggle_cashaddr_settings(self,state):
         self.toggle_cashaddr(state,True)
 
     def toggle_cashaddr(self, format,specified = False):
@@ -2978,7 +2978,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 max_format=1
             format+=1
             if format>max_format:
-                format=0  
+                format=0
         self.config.set_key('addr_format', format)
         Address.show_cashaddr(format)
         for window in self.gui_object.windows:
@@ -3002,7 +3002,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         addr_format_combo.addItems(addr_format_choices)
         addr_format_combo.setCurrentIndex(self.config.get("addr_format"))
         addr_format_combo.currentIndexChanged.connect(self.toggle_cashaddr_settings)
-        
+
         gui_widgets.append((addr_format_label,addr_format_combo))
 
         # language
@@ -3047,14 +3047,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         def on_customfee(x):
             amt = customfee_e.get_amount()
             m = int(amt * 1000.0) if amt is not None else None
-            self.config.set_key('customfee', m) 
+            self.config.set_key('customfee', m)
             self.fee_slider.update()
             self.fee_slider_mogrifier()
-    
-        customfee_e = BTCSatsByteEdit() 
+
+        customfee_e = BTCSatsByteEdit()
         customfee_e.setAmount(self.config.custom_fee_rate() / 1000.0 if self.config.has_custom_fee_rate() else None)
         customfee_e.textChanged.connect(on_customfee)
-        customfee_label = HelpLabel(_('Custom Fee Rate'), _('Custom Fee Rate in Satoshis per byte')) 
+        customfee_label = HelpLabel(_('Custom Fee Rate'), _('Custom Fee Rate in Satoshis per byte'))
         fee_widgets.append((customfee_label, customfee_e))
 
         feebox_cb = QCheckBox(_('Edit fees manually'))
@@ -3148,8 +3148,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.update_status()
         unit_combo.currentIndexChanged.connect(lambda x: on_unit(x, nz))
         gui_widgets.append((unit_label, unit_combo))
-      
-    
+
+
 
         block_explorers = web.BE_sorted_list()
         msg = _('Choose which online block explorer to use for functions that open a web browser')
@@ -3229,7 +3229,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         ex_combo = QComboBox()
 
         def on_slptok_pref(x):
- 
+
             if x:
                 self.toggle_tab(self.slp_mgt_tab,1)
                 self.toggle_tab(self.slp_history_tab,1)
@@ -3238,12 +3238,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if not x:
                 self.toggle_tab(self.slp_mgt_tab,2)
                 self.toggle_tab(self.slp_history_tab,2)
-                self.slp_token_type_combo.setCurrentIndex(0)        
+                self.slp_token_type_combo.setCurrentIndex(0)
                 self.slp_amount_e.setAmount(0)
                 self.slp_amount_e.setText("")
             self.config.set_key('enable_slp', bool(x))
-            self.slp_amount_e.setHidden(not x)  
-            self.slp_token_type_combo.setHidden(not x) 
+            self.slp_amount_e.setHidden(not x)
+            self.slp_token_type_combo.setHidden(not x)
             self.slp_amount_label.setHidden(not x)
             self.slp_token_type_label.setHidden(not x)
 
@@ -3261,7 +3261,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.op_return_toolong = False
             self.message_opreturn_e.setHidden(not x)
             self.opreturn_label.setHidden(not x)
-             
+
         enable_opreturn = bool(self.config.get('enable_opreturn'))
         opret_cb = QCheckBox(_('Enable OP_RETURN output'))
         opret_cb.setToolTip(_('Enable posting messages with OP_RETURN.'))
@@ -3320,7 +3320,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if not self.fx: return
             self.fx.set_history_config(checked)
             update_exchanges()
-            self.history_list.refresh_headers() 
+            self.history_list.refresh_headers()
             self.slp_history_list.refresh_headers()
             if self.fx.is_enabled() and checked:
                 # reset timeout to get historical rates
@@ -3397,7 +3397,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.wallet.thread.stop()
         if self.network:
             self.network.unregister_callback(self.on_network)
-            
+
         # We catch these errors with the understanding that there is no recovery at
         # this point, given user has likely performed an action we cannot recover
         # cleanly from.  So we attempt to exit as cleanly as possible.
