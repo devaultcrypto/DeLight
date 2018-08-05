@@ -885,7 +885,6 @@ class Abstract_Wallet(PrintError, QObject):
             self.update_token_list_sig.emit(tx_hash, tx_hash[0:5], 0, False, True)
         elif slpMsg.transaction_type == "TRAN":
             self.update_token_list_sig.emit(slpMsg.op_return_fields['token_id_hex'], slpMsg.op_return_fields['token_id_hex'][0:5], 0, False, True)
-#        self.new_slp_txn_sig.emit(slpMsg)  # <-- this does not exist
 
     def rebuild_slp(self, forget_validity=False):
         """Wipe away old SLP data and rerun on the entire tx set."""
@@ -1122,17 +1121,14 @@ class Abstract_Wallet(PrintError, QObject):
         if not inputs:
             raise NotEnoughFunds()
 
-        # look at outputs to see if SLP tokens are trying to be spent
-        try:
+        # make sure SLP token spending is not greater than valid balance
+        if self.send_slpTokenId is not None:
             slpMsg = SlpMessage.parseSlpOutputScript(outputs[0][1])
             if slpMsg.transaction_type == "TRAN":
                 total_token_out = sum(slpMsg.op_return_fields['token_output'])
-                if total_token_out > self.get_slp_token_balance(slpMsg.op_return_fields['token_id_hex'])[0]:
+                valid_token_balance = self.get_slp_token_balance(slpMsg.op_return_fields['token_id_hex'])[0]
+                if total_token_out > valid_token_balance:
                     raise NotEnoughFundsSlp()
-        except NotEnoughFundsSlp:
-            raise NotEnoughFundsSlp()
-        except:
-            pass
 
         if fixed_fee is None and config.fee_per_kb() is None:
             raise BaseException('Dynamic fee estimates not available')
