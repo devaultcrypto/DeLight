@@ -833,14 +833,15 @@ class Abstract_Wallet(PrintError, QObject):
                         self._slp_txo[addr]
                     except KeyError:
                         self._slp_txo[addr] = []
-                    self._slp_txo[addr].append(
-                    {
-                        'txid': tx_hash,
-                        'idx': i,
-                        'token_id': slpMsg.op_return_fields['token_id_hex'],
-                        'qty': qty,
-                        'type': 'TRAN',
-                    })
+                    if not any(x['txid'] == tx_hash and x['idx'] for x in self._slp_txo[addr]):
+                        self._slp_txo[addr].append(
+                        {
+                            'txid': tx_hash,
+                            'idx': i,
+                            'token_id': slpMsg.op_return_fields['token_id_hex'],
+                            'qty': qty,
+                            'type': 'TRAN',
+                        })
         elif slpMsg.transaction_type == "INIT":
             # TODO: check for and handle MINT baton
             _type, addr, _ = tx.outputs()[1]
@@ -850,14 +851,15 @@ class Abstract_Wallet(PrintError, QObject):
                         self._slp_txo[addr]
                     except KeyError:
                         self._slp_txo[addr] = []
-                    self._slp_txo[addr].append(
-                    {
-                        'txid': tx_hash,
-                        'idx': 1,
-                        'token_id': tx_hash,
-                        'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
-                        'type': 'INIT',
-                    })
+                    if not any(x['txid'] == tx_hash and x['idx'] for x in self._slp_txo[addr]):
+                        self._slp_txo[addr].append(
+                        {
+                            'txid': tx_hash,
+                            'idx': 1,
+                            'token_id': tx_hash,
+                            'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
+                            'type': 'INIT',
+                        })
         elif slpMsg.transaction_type == "MINT":
             # TODO: check for and handle MINT baton
             _type, addr, _ = tx.outputs()[1]
@@ -867,14 +869,15 @@ class Abstract_Wallet(PrintError, QObject):
                         self._slp_txo[addr]
                     except KeyError:
                         self._slp_txo[addr] = []
-                    self._slp_txo[addr].append(
-                    {
-                        'txid': tx_hash,
-                        'idx': 1,
-                        'token_id': tx_hash,
-                        'qty': slpMsg.op_return_fields['token_mint_quantity'],
-                        'type': 'MINT',
-                    })
+                    if not any(x['txid'] == tx_hash and x['idx'] for x in self._slp_txo[addr]):
+                        self._slp_txo[addr].append(
+                        {
+                            'txid': tx_hash,
+                            'idx': 1,
+                            'token_id': tx_hash,
+                            'qty': slpMsg.op_return_fields['token_mint_quantity'],
+                            'type': 'MINT',
+                        })
         else:
             raise RuntimeError(slpMsg.transaction_type)
         # Send a signal for gui to consume for updates
