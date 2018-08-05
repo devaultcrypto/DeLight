@@ -960,9 +960,7 @@ class Abstract_Wallet(PrintError, QObject):
             for tx_hash, height, conf, timestamp, delta, validity in t_history:
                 history.append((tx_hash, height, conf, timestamp, delta, token_id, validity))
         history.sort(key = lambda x: self.get_txpos(x[0]), reverse=True)
-        import sys
-        print(histories, file=sys.stderr)
-        print(history, file=sys.stderr)
+
         return history
 
     def get_slp_histories(self, domain=None):
