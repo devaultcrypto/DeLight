@@ -392,7 +392,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def load_wallet(self, wallet):
         wallet.thread = TaskThread(self, self.on_error)
         self.wallet = wallet
-        self.wallet.update_token_list_sig.connect(self.set_slp_token)
         self.update_recently_visited(wallet.storage.path)
         # address used to create a dummy transaction and estimate transaction fee
         self.history_list.update()

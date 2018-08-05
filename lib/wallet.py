@@ -162,7 +162,6 @@ class Abstract_Wallet(PrintError, QObject):
     """
 
     max_change_outputs = 3
-    update_token_list_sig = pyqtSignal(str, str, int, bool, bool)
 
     def __init__(self, storage):
         QObject.__init__(self)
@@ -880,11 +879,6 @@ class Abstract_Wallet(PrintError, QObject):
                         })
         else:
             raise RuntimeError(slpMsg.transaction_type)
-        # Send a signal for gui to consume for updates
-        if slpMsg.transaction_type == "INIT":
-            self.update_token_list_sig.emit(tx_hash, tx_hash[0:5], 0, False, True)
-        elif slpMsg.transaction_type == "TRAN":
-            self.update_token_list_sig.emit(slpMsg.op_return_fields['token_id_hex'], slpMsg.op_return_fields['token_id_hex'][0:5], 0, False, True)
 
     def rebuild_slp(self, forget_validity=False):
         """Wipe away old SLP data and rerun on the entire tx set."""
