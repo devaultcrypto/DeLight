@@ -2054,17 +2054,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return True
 
     @pyqtSlot(str, str, int, bool, bool)
-    def set_slp_token(self, hash_id, token_name, show_errors=True, new_token_msg=False):
+    def set_slp_token(self, hash_id, token_name, show_errors=True, new_token_msg=False, allow_overwrite=False):
         token_name = token_name.strip()
 
         # Duplication error
         for d in self.slp_token_list:
-            if d['hash'] == hash_id:
+            if d['hash'] == hash_id and not allow_overwrite:
                 if show_errors:
                     self.show_error(_('Token with this hash id exists already'))
                 self.slp_token_list_tab.update()  # Displays original unchanged value
                 return False
-            if d['name'] == token_name:
+            if d['name'] == token_name and not d['hash'] == hash_id:
                 if show_errors:
                     self.show_error(_('Token with this name exists already'))
                 self.slp_token_list_tab.update()  # Displays original unchanged value
@@ -2101,6 +2101,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if new_token_msg:
             self.show_error(_('A new type of Token has been received. (token name: ' + token_name + ')'))
         new_entry=dict({'hash':hash_id,'name':token_name,'decimals':decimals_divisibility})
+
+        # remove old entries (should only happen with allow_overwrite)
+        for d in list(self.slp_token_list):
+            if d['hash'] == hash_id:
+                self.slp_token_list.remove(d)
+
         self.slp_token_list.append(new_entry)
         self.config.set_key('slp_tokens', self.slp_token_list)
         self.slp_token_list_tab.update()

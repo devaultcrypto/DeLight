@@ -50,9 +50,7 @@ class SlpMgt(MyTreeWidget):
         return item.text(1) != "openalias"
 
     def on_edited(self, item, column, prior):
-        if column == 0:  # Remove old contact if renamed
-            self.parent.contacts.pop(prior)
-        self.parent.set_slp_token(item.text(0), item.text(1),item.text(2))
+        self.parent.set_slp_token(item.text(0), item.text(1), allow_overwrite=True)
 
     def create_menu(self, position):
         menu = QMenu()
