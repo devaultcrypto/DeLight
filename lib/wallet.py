@@ -952,22 +952,73 @@ class Abstract_Wallet(PrintError, QObject):
         # Store fees
         self.tx_fees.update(tx_fees)
 
-
-    def get_slp_history(self):
+    def get_slp_history(self, domain=None):
         history = []
-        slp_history = self.storage.get('slp_history', [])
-        for h_item in slp_history:
-            txid=h_item["txid"]
-            delta=h_item["delta"]
-            tokentype=h_item["tokentype"]
-            if "validity" in h_item:
-                validity=h_item["validity"]
-            else:
-                validity=0
-            height, conf, timestamp = self.get_tx_height(txid)
-            history.append((txid, height, conf, timestamp, delta,tokentype,validity))
-        history.sort(key = lambda x: self.get_txpos(x[0]))
+        histories = self.get_slp_histories(domain=domain)
+        # Take separate token histories and flatten them, then sort them.
+        for token_id,t_history in histories.items():
+            for tx_hash, height, conf, timestamp, delta, validity in t_history:
+                history.append((tx_hash, height, conf, timestamp, delta, token_id, validity))
+        history.sort(key = lambda x: self.get_txpos(x[0]), reverse=True)
+        import sys
+        print(histories, file=sys.stderr)
+        print(history, file=sys.stderr)
         return history
+
+    def get_slp_histories(self, domain=None):
+        # Based on get_history.
+        # We return a dict of histories, one history per token_id.
+
+        # get domain
+        if domain is None:
+            domain = self.get_addresses()
+
+        #1. Big iteration to find all deltas and put them in the right place.
+        token_tx_deltas = defaultdict(lambda: defaultdict(int)) # defaultdict of defaultdicts of ints :)
+        for addr in domain:
+            h = self.get_address_history(addr)
+            for tx_hash, height in h:
+                if tx_hash in self.pruned_txo.values():
+                    continue
+                if tx_hash in self.slpv1_validity: # only get txos for SLP
+                    txodelta = 0
+                    # scan over all entries in _slp_txo, finding every matching txhash
+                    for d in self._slp_txo.get(addr,[]):
+                        if d['txid'] != tx_hash:
+                            continue
+                        txotoken = d['token_id']  # will be same for all found records
+                        txodelta += d['qty']
+                    if txodelta > 0:
+                        token_tx_deltas[txotoken][tx_hash] += txodelta  # received!
+
+                # scan over all txi's, trying to find if they were tokens, which tokens, and how much
+                # (note that non-SLP txes can spend (burn) SLP --- and SLP of tokenA can burn tokenB)
+                for n, _ in self.txi.get(tx_hash, {}).get(addr, []):
+                    prevtxid, prevout_str = n.rsplit(':',1)
+                    if prevtxid not in self.slpv1_validity:
+                        continue
+                    prevout = int(prevout_str)
+                    # scan over all entries in _slp_txo, finding matching txid,idx
+                    for d in self._slp_txo.get(addr,[]):
+                        if d['txid'] == prevtxid and d['idx'] == prevout:
+                            token_tx_deltas[d['token_id']][tx_hash] -= d['qty']  # spent!
+                            break
+
+        # 2. create sorted history
+        histories = {}
+        for token_id, tx_deltas in token_tx_deltas.items():
+            history = histories[token_id] = []
+            for tx_hash in tx_deltas:
+                delta = tx_deltas[tx_hash]
+                height, conf, timestamp = self.get_tx_height(tx_hash)
+                validity = self.slpv1_validity[tx_hash]
+                history.append((tx_hash, height, conf, timestamp, delta, validity))
+            history.sort(key = lambda x: self.get_txpos(x[0]))
+            history.reverse()
+
+        # 3. At this point we could compute running balances, but let's not.
+
+        return histories
 
     def get_history(self, domain=None):
         # get domain

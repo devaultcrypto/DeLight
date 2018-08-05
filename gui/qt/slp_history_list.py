@@ -106,15 +106,26 @@ class HistoryList(MyTreeWidget):
         for tok in slp_token_list:
             tok_name_dict[tok["hash"]]=tok["name"]
         for h_item in slp_history:
-            tx_hash, height, conf, timestamp, delta,tokentype,validity= h_item
+            tx_hash, height, conf, timestamp, delta, token_id, validity= h_item
             status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
-            icon = QIcon("icons/" + TX_ICONS[status])
-            if validity!=1:
+
+            if validity == 0:
+                # For in-progress validation, always show gears regardless of confirmation status.
                 icon=QIcon("icons/unconfirmed.png")
-            tokenname=tok_name_dict.get(tokentype) # use get format to avoid exception if none
+            elif validity in (2,3):
+                # Erase invalid transactions from SLP history gui
+                continue
+            else: #validity == 1
+                # For SLP valid, show the confirmation status (gears, few-confirmations, or green check)
+                icon = QIcon("icons/" + TX_ICONS[status])
+            try:
+                tokenname=tok_name_dict[token_id]
+            except KeyError:
+                # If a token is not in our list of known token_ids, don't show it to user!
+                continue
             if tokenname is None:
                 tokenname="UNKNOWN"
-            entry = ['', '', status_str, tokenname, delta]
+            entry = ['', '', status_str, tokenname, str(delta)]
             item = SortableTreeWidgetItem(entry)
             self.insertTopLevelItem(0, item)
             item.setIcon(0, icon)
