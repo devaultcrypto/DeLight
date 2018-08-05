@@ -40,7 +40,7 @@ class SlpMgt(MyTreeWidget):
     filter_columns = [0, 1,2]  # Key, Value
 
     def __init__(self, parent):
-        MyTreeWidget.__init__(self, parent, self.create_menu, [_('Hash Id'), _('Token Name'), _('Decimals'),_('Balance')], 0, [0])
+        MyTreeWidget.__init__(self, parent, self.create_menu, [_('Token ID'), _('Token Name'), _('Decimals'),_('Balance')], 0, [0])
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.setSortingEnabled(True)
         self.editable_columns=[1]
@@ -56,7 +56,7 @@ class SlpMgt(MyTreeWidget):
         menu = QMenu()
         selected = self.selectedItems()
         if not selected:
-            menu.addAction(_("New token type"), lambda: self.parent.new_slp_token_dialog())
+            menu.addAction(_("Add new token type"), lambda: self.parent.new_slp_token_dialog())
         else:
             names = [item.text(0) for item in selected]
             keys = [item.text(0) for item in selected]

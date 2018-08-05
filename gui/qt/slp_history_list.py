@@ -193,7 +193,7 @@ class HistoryList(MyTreeWidget):
             if d['hash'] == token_id:
                 break
         else:
-            menu.addAction(_("Add this token ID"), lambda: self.parent.new_slp_token_dialog(token_id_hex = token_id))
+            menu.addAction(_("Add new token type"), lambda: self.parent.new_slp_token_dialog(token_id_hex = token_id))
 
         menu.addAction(_("Details"), lambda: self.parent.show_transaction(tx))
         if is_unconfirmed and tx:
