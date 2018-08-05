@@ -2055,14 +2055,21 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return True
 
     @pyqtSlot(str, str, int, bool, bool)
-    def set_slp_token(self, hash_id, token_name, dec_prec, show_errors=True, new_token_msg=False):
+    def set_slp_token(self, hash_id, token_name, show_errors=True, new_token_msg=False):
+        token_name = token_name.strip()
 
-        # Duplicate hash id error
-        if hash_id in str(self.slp_token_list):
-            if show_errors:
-                self.show_error(_('Token with duplicate hash Id exists'))
-            self.slp_token_list_tab.update()  # Displays original unchanged value
-            return False
+        # Duplication error
+        for d in self.slp_token_list:
+            if d['hash'] == hash_id:
+                if show_errors:
+                    self.show_error(_('Token with this hash id exists already'))
+                self.slp_token_list_tab.update()  # Displays original unchanged value
+                return False
+            if d['name'] == token_name:
+                if show_errors:
+                    self.show_error(_('Token with this name exists already'))
+                self.slp_token_list_tab.update()  # Displays original unchanged value
+                return False
 
         #Hash id validation
         hexregex='^[a-fA-F0-9]+$'
@@ -2073,30 +2080,33 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
 
-        #decimal precision validation
-        decregex='^[0-9]$'
-        gotdec=re.match(decregex,str(dec_prec))
-        if gotdec is None:
-            if show_errors:
-                self.show_error(_('Decimal precision should be 0-9'))
-            self.slp_token_list_tab.update()  # Displays original unchanged value
-            return False
+        #decimal divisibility must be downloaded from genesis tx, we cannot allow users to have different values
+        # placeholder for now
+        decimals_divisibility = 0
+
+        #decregex='^[0-9]$'
+        #gotdec=re.match(decregex,str(dec_prec))
+        #if gotdec is None:
+            #if show_errors:
+                #self.show_error(_('Decimal precision should be 0-9'))
+            #self.slp_token_list_tab.update()  # Displays original unchanged value
+            #return False
 
         #token name validation
-        if len(token_name)> 20:
+        if len(token_name) < 1 or len(token_name)> 20:
             if show_errors:
-                self.show_error(_('Token name should be less than 20 characters'))
+                self.show_error(_('Token name should be 1-20 characters'))
             self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
 
         if new_token_msg:
             self.show_error(_('A new type of Token has been received. (token name: ' + token_name + ')'))
-        new_entry=dict({'hash':hash_id,'name':token_name,'dec_prec':dec_prec})
-        existing_entries=self.slp_token_list
-        existing_entries.append(new_entry)
-        self.config.set_key('slp_tokens', existing_entries)
+        new_entry=dict({'hash':hash_id,'name':token_name,'decimals':decimals_divisibility})
+        self.slp_token_list.append(new_entry)
+        self.config.set_key('slp_tokens', self.slp_token_list)
         self.slp_token_list_tab.update()
         self.slp_token_list_update()
+        self.slp_history_tab.update()
         return True
 
     def delete_contacts(self, labels):
@@ -2117,7 +2127,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if i["hash"] in labels:
                 myInd=self.slp_token_list.index(i)
                 self.slp_token_list.pop(myInd)
+        self.config.set_key('slp_tokens', self.slp_token_list)
         self.slp_token_list_tab.update()
+        self.slp_history_tab.update()
         # RUN ADDITIONAL UPDATES ON WALLET
 
     def show_invoice(self, key):
@@ -2289,27 +2301,37 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if d.exec_():
             self.set_contact(line2.text(), line1.text())
 
-    def new_slp_token_dialog(self):
+    def new_slp_token_dialog(self, token_id_hex=None): #, decimals=None):
         d = WindowModalDialog(self, _("New Token type"))
         vbox = QVBoxLayout(d)
-        vbox.addWidget(QLabel(_('New token type') + ':'))
+#        vbox.addWidget(QLabel(_('New token type') + ':'))
         grid = QGridLayout()
         line1 = QLineEdit()
+        if token_id_hex is not None:
+#            line1 = QLabel()
+            line1.setText(token_id_hex)
+            line1.setReadOnly(True)
         line1.setFixedWidth(280)
         line2 = QLineEdit()
         line2.setFixedWidth(280)
-        line3 = QLineEdit()
-        line3.setFixedWidth(280)
+        #line3 = QSpinBox()
+        #line3.setRange(0,9)
+        #if decimals is not None:
+            #line3.setValue(decimals)
+            #line3.setReadOnly(True)
+        #else:
+            #line3.setValue(0)
+        #line3.setFixedWidth(50)
         grid.addWidget(QLabel(_("Genesis Hash Id")), 1, 0)
         grid.addWidget(line1, 1, 1)
         grid.addWidget(QLabel(_("Token Name")), 2, 0)
         grid.addWidget(line2, 2, 1)
-        grid.addWidget(QLabel(_("Decimal Precision")), 3, 0)
-        grid.addWidget(line3, 3, 1)
+        #grid.addWidget(QLabel(_("Decimals Divisibility")), 3, 0)
+        #grid.addWidget(line3, 3, 1)
         vbox.addLayout(grid)
         vbox.addLayout(Buttons(CancelButton(d), OkButton(d)))
         if d.exec_():
-            self.set_slp_token(line1.text(), line2.text(), line3.text())
+            self.set_slp_token(line1.text(), line2.text()) #, line3.value())
 
     def show_master_public_keys(self):
         dialog = WindowModalDialog(self, _("Wallet Information"))

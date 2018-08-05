@@ -54,12 +54,11 @@ class SlpMgt(MyTreeWidget):
             self.parent.contacts.pop(prior)
         self.parent.set_slp_token(item.text(0), item.text(1),item.text(2))
 
-    
     def create_menu(self, position):
         menu = QMenu()
         selected = self.selectedItems()
         if not selected:
-            menu.addAction(_("New token type"), lambda: self.parent.new_slp_token_dialog()) 
+            menu.addAction(_("New token type"), lambda: self.parent.new_slp_token_dialog())
         else:
             names = [item.text(0) for item in selected]
             keys = [item.text(0) for item in selected]
@@ -81,13 +80,15 @@ class SlpMgt(MyTreeWidget):
 
 
     def on_update(self):
-        self.clear() 
+        self.clear()
         for i in self.parent.slp_token_list:
             hash_id=i["hash"]
             name=i["name"]
-            dec_prec = i["dec_prec"] 
+            if 'dec_prec' in i: # rename field
+                i["decimals"] = i.pop("dec_prec")
+            decimals_divisibility = i["decimals"]
             calculated_balance= self.get_balance_from_hash_id()
-            item = QTreeWidgetItem([str(hash_id),str(name),str(dec_prec),str(calculated_balance)])
+            item = QTreeWidgetItem([str(hash_id),str(name),str(decimals_divisibility),str(calculated_balance)])
             item.setData(0, Qt.UserRole, hash_id)
             self.addTopLevelItem(item)
         run_hook('update_slp_mgt_tab', self)
