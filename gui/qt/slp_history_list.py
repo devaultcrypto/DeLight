@@ -125,7 +125,9 @@ class HistoryList(MyTreeWidget):
             item = SortableTreeWidgetItem(entry)
             item.setTextAlignment(4, Qt.AlignRight)
             item.setFont(4, QFont(MONOSPACE_FONT))
-            if delta < 0:
+            if unktoken:
+                item.setForeground(4, QBrush(QColor("#888888")))
+            elif delta < 0:
                 item.setForeground(4, QBrush(QColor("#BC1E1E")))
             self.insertTopLevelItem(0, item)
             item.setIcon(0, icon)
