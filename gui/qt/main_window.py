@@ -1346,8 +1346,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             not_enough_funds_slp = False
             if self.wallet.send_slpTokenId is not None:
                 try:
-                    total_token_out = int(self.slp_amount_e.text())
-                    if total_token_out > self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0]:
+                    total_token_out = self.slp_amount_e.get_amount()
+                    if total_token_out is not None and total_token_out > self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0]:
                         not_enough_funds_slp = True
                 except ValueError:
                     pass
@@ -1452,8 +1452,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 elif self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
                     outputs.insert(0, self.output_for_opreturn_stringdata(opreturn_message))
                 else:
-                    token_outputs = [ int(self.slp_amount_e.text()) ]
-                    token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0] - int(self.slp_amount_e.text())
+                    amt = self.slp_amount_e.get_amount()
+                    token_outputs = [ amt ]
+                    token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0] - amt
                     if token_change > 0:
                         token_outputs.append(token_change)
                         _type, addr = self.get_payto_or_dummy()
@@ -1575,9 +1576,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 except:
                     pass
                 outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
-            else: 
-                token_outputs.append(int(self.slp_amount_e.text()))
-                token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0] - int(self.slp_amount_e.text())
+            else:
+                amt = self.slp_amount_e.get_amount()
+                token_outputs.append(amt)
+                token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0] - amt
                 if token_change > 0:
                     token_outputs.append(token_change)
                 msgFactory = slp.SlpTokenTransactionFactory(1, self.wallet.send_slpTokenId)
@@ -1617,7 +1619,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         """ SLP: Add an additional token change output """
         change_addr = None
-        if len(token_outputs) > 1 and len(outputs) - 1 < len(token_outputs): 
+        if len(token_outputs) > 1 and len(outputs) - 1 < len(token_outputs):
             """ start of logic copied from wallet.py """
             addrs = self.wallet.get_change_addresses()[-self.wallet.gap_limit_for_change:]
             if self.wallet.use_change and addrs:
