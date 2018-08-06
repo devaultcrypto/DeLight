@@ -278,11 +278,9 @@ class SlpTokenTransactionFactory():
         script.extend(self.getPushDataOpcode(qty))
         script.extend(qty)
 
-        # TODO: handle max_final_token_supply -- future baton case
-        #scriptBuffer = ScriptOutput.from_string(script)
         scriptBuffer = ScriptOutput(bytes(script))
         if len(scriptBuffer.script) > 223:
-            raise OPReturnTooLarge(_("OP_RETURN message too large, needs to be under 220 bytes"))
+            raise OPReturnTooLarge(_("OP_RETURN message too large, cannot be larger than 223 bytes"))
         return (TYPE_SCRIPT, scriptBuffer, 0)
 
     # Type 1 Token TRAN Message
@@ -319,7 +317,7 @@ class SlpTokenTransactionFactory():
             script.extend(q)
         scriptBuffer = ScriptOutput(bytes(script))
         if len(scriptBuffer.script) > 223:
-            raise OPReturnTooLarge(_("OP_RETURN message too large, needs to be under 220 bytes"))
+            raise OPReturnTooLarge(_("OP_RETURN message too large, cannot be larger than 223 bytes"))
         return (TYPE_SCRIPT, scriptBuffer, 0)
 
     @staticmethod
