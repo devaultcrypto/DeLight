@@ -169,7 +169,7 @@ class SlpMessage:
             if len(chunks[3]) != 32:
                 raise SlpInvalidOutputMessage('token_id is wrong length')
             slpMsg.op_return_fields['token_id_hex'] = chunks[3].hex()
-            v = slpMsg.op_return_fields['mint_baton_vout'] = SlpMessage.parseChunkToInt(chunks[8], 1, 1)
+            v = slpMsg.op_return_fields['mint_baton_vout'] = SlpMessage.parseChunkToInt(chunks[4], 1, 1)
             if v is not None and v < 2:
                 raise SlpInvalidOutputMessage('Mint baton cannot be on vout=0 or 1')
             slpMsg.op_return_fields['additional_token_quantity'] = SlpMessage.parseChunkToInt(chunks[5], 8, 8, True)
