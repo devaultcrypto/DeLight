@@ -794,8 +794,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 if token_id is not None:
                     for d in self.slp_token_list:
                         if d['hash'] == token_id:
-                            bal = Decimal(self.wallet.get_slp_token_balance(token_id)[0])
-                            bal = bal.scaleb(-d['decimals'])
+                            bal = format_satoshis(self.wallet.get_slp_token_balance(token_id)[0],
+                                                  decimal_point=d['decimals'],)
                             text += "Token Balance (valid): %s; "%(bal,)
                             break
                 c, u, x = self.wallet.get_balance()
