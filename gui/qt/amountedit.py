@@ -101,6 +101,37 @@ class BTCAmountEdit(AmountEdit):
         else:
             self.setText(format_satoshis_plain(amount, self.decimal_point()))
 
+class SLPAmountEdit(AmountEdit):
+
+    def __init__(self, name, decimals, is_int = False, parent=None):
+        AmountEdit.__init__(self, self._base_unit, is_int, parent)
+        self.set_token(name, decimals)
+
+    def set_token(self, name, decimals):
+        self.token_name = name
+        self.token_decimals = decimals
+
+    def _base_unit(self,):
+        return self.token_name
+
+    def decimal_point(self,):
+        return self.token_decimals
+
+    def get_amount(self):
+        try:
+            x = Decimal(str(self.text()))
+        except:
+            return None
+        p = pow(10, self.decimal_point())
+        return int( p * x )
+
+    def setAmount(self, amount):
+        if amount is None:
+            self.setText(" ") # Space forces repaint in case units changed
+        else:
+            self.setText(format_satoshis_plain(amount, self.decimal_point()))
+
+
 class BTCkBEdit(BTCAmountEdit):
     def _base_unit(self):
         return BTCAmountEdit._base_unit(self) + '/kB'
@@ -115,7 +146,7 @@ class BTCSatsByteEdit(BTCAmountEdit):
             x = float(Decimal(str(self.text())))
         except:
             return None
-        return x if x > 0.0 else None    
+        return x if x > 0.0 else None
     def setAmount(self, amount):
         if amount is None:
             self.setText(" ") # Space forces repaint in case units changed

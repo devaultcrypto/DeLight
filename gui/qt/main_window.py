@@ -63,6 +63,7 @@ import electroncash.web as web
 import electroncash.slp as slp
 
 from .amountedit import AmountEdit, BTCAmountEdit, MyLineEdit, BTCkBEdit, BTCSatsByteEdit
+from .amountedit import SLPAmountEdit
 from .qrcodewidget import QRCodeWidget, QRDialog
 from .qrtextedit import ShowQRTextEdit, ScanQRTextEdit
 from .transaction_dialog import show_transaction
@@ -1125,8 +1126,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         slp_index = self.slp_token_type_combo.currentIndex()
         if slp_index == 0:
             self.wallet.send_slpTokenId = None
+            self.slp_amount_e.setHidden(True)
+            self.slp_amount_label.setHidden(True)
         else:
             self.wallet.send_slpTokenId = self.slp_token_gui_hash_list[slp_index]
+            self.slp_amount_e.setHidden(False)
+            self.slp_amount_label.setHidden(False)
+            tok_dict = {d['hash']:d for d in self.slp_token_list}
+            tok = tok_dict[self.wallet.send_slpTokenId]
+            self.slp_amount_e.set_token(tok['name'],tok['decimals'])
         self.update_status()
 
     def create_send_tab(self):
@@ -1139,7 +1147,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         from .paytoedit import PayToEdit
         self.amount_e = BTCAmountEdit(self.get_decimal_point)
 
-        self.slp_amount_e = BTCAmountEdit(self.get_decimal_point)
+        self.slp_amount_e = SLPAmountEdit('tokens', 0)
 
         self.slp_token_type_combo = QComboBox()
         self.slp_token_type_combo.setFixedWidth(200)
