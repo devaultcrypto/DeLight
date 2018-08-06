@@ -159,6 +159,8 @@ class SlpMessage:
             slpMsg.op_return_fields['token_output'] = (0,) + \
                     tuple( SlpMessage.parseChunkToInt(field, 8, 8, True) for field in chunks[4:] )
             # maximum 19 allowed token outputs, plus 1 for the explicit [0] we inserted.
+            if len(slpMsg.op_return_fields['token_output']) < 2:
+                raise SlpInvalidOutputMessage('Missing output amounts')
             if len(slpMsg.op_return_fields['token_output']) > 20:
                 raise SlpInvalidOutputMessage('More than 19 output amounts')
         elif slpMsg.transaction_type == 'MINT':
