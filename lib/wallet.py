@@ -829,7 +829,7 @@ class Abstract_Wallet(PrintError):
                         self._slp_txo[addr]
                     except KeyError:
                         self._slp_txo[addr] = []
-                    if not any(x['txid'] == tx_hash and x['idx'] for x in self._slp_txo[addr]):
+                    if not any(x['txid'] == tx_hash and x['idx'] == i for x in self._slp_txo[addr]):
                         self._slp_txo[addr].append(
                         {
                             'txid': tx_hash,
@@ -847,7 +847,7 @@ class Abstract_Wallet(PrintError):
                         self._slp_txo[addr]
                     except KeyError:
                         self._slp_txo[addr] = []
-                    if not any(x['txid'] == tx_hash and x['idx'] for x in self._slp_txo[addr]):
+                    if not any(x['txid'] == tx_hash and x['idx'] == 1 for x in self._slp_txo[addr]):
                         self._slp_txo[addr].append(
                         {
                             'txid': tx_hash,
@@ -865,7 +865,7 @@ class Abstract_Wallet(PrintError):
                         self._slp_txo[addr]
                     except KeyError:
                         self._slp_txo[addr] = []
-                    if not any(x['txid'] == tx_hash and x['idx'] for x in self._slp_txo[addr]):
+                    if not any(x['txid'] == tx_hash and x['idx'] == 1 for x in self._slp_txo[addr]):
                         self._slp_txo[addr].append(
                         {
                             'txid': tx_hash,
@@ -1161,7 +1161,7 @@ class Abstract_Wallet(PrintError):
         if not inputs:
             raise NotEnoughFunds()
 
-        # make sure SLP token spending is not greater than valid balance
+        """ SLP: make sure SLP token spending is not greater than valid balance """
         if self.send_slpTokenId is not None:
             slpMsg = SlpMessage.parseSlpOutputScript(outputs[0][1])
             if slpMsg.transaction_type == "TRAN":
@@ -1209,7 +1209,7 @@ class Abstract_Wallet(PrintError):
             if self.send_slpTokenId is not None and self.send_slpTokenId != '0':
                 sweep = True
             tx = coin_chooser.make_tx(inputs, outputs, change_addrs[:max_change],
-                                      fee_estimator, self.dust_threshold(), sweep=sweep)
+                                      fee_estimator, self.dust_threshold(), slp_sweep=sweep)
         else:
             sendable = sum(map(lambda x:x['value'], inputs))
             _type, data, value = outputs[i_max]
@@ -1229,7 +1229,8 @@ class Abstract_Wallet(PrintError):
             return
 
         # Sort the inputs and outputs deterministically
-        tx.BIP_LI01_sort()
+        if self.send_slpTokenId is None:
+            tx.BIP_LI01_sort()
         # Timelock tx to current height.
         locktime = self.get_local_height()
         if locktime == -1: # We have no local height data (no headers synced).
