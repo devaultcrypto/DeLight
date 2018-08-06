@@ -790,8 +790,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 icon = QIcon(":icons/status_lagging.png")
             else:
                 text = ""
-                if self.wallet.send_slpTokenId is not None:
-                    text += "Token Balance (valid): %s; "%(self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0])
+                token_id = self.wallet.send_slpTokenId
+                if token_id is not None:
+                    for d in self.slp_token_list:
+                        if d['hash'] == token_id:
+                            bal = Decimal(self.wallet.get_slp_token_balance(token_id)[0])
+                            bal = bal.scaleb(-d['decimals'])
+                            text += "Token Balance (valid): %s; "%(bal,)
+                            break
                 c, u, x = self.wallet.get_balance()
                 text +=  _("BCH Balance" ) + ": %s "%(self.format_amount_and_units(c))
                 if u:
