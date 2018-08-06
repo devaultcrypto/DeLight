@@ -1453,10 +1453,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 outputs = [(_type, addr, amount)]
             try:
                 opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
-                if self.wallet.send_slpTokenId is None:
-                    pass
-                elif self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
+                if self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
                     outputs.insert(0, self.output_for_opreturn_stringdata(opreturn_message))
+                elif self.wallet.send_slpTokenId is None:
+                    pass
                 else:
                     amt = self.slp_amount_e.get_amount()
                     token_outputs = [ amt ]
@@ -1572,9 +1572,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         token_outputs = []
         opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
         try:
-            if self.wallet.send_slpTokenId is None:
-                pass
-            elif self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
+            if self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
                 try:
                     slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
                     if slpMsg.transaction_type == "TRAN" and not preview:
@@ -1582,6 +1580,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 except:
                     pass
                 outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
+            elif self.wallet.send_slpTokenId is None:
+                pass
             else:
                 amt = self.slp_amount_e.get_amount()
                 token_outputs.append(amt)
