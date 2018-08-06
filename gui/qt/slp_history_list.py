@@ -30,6 +30,7 @@ from .util import *
 import electroncash.web as web
 from electroncash.i18n import _
 from electroncash.util import timestamp_to_datetime, profiler
+from electroncash.util import format_satoshis
 
 
 TX_ICONS = [
@@ -71,31 +72,36 @@ class HistoryList(MyTreeWidget):
         self.wallet = self.parent.wallet
         h = self.wallet.get_history(self.get_domain())
         slp_history =self.wallet.get_slp_history()
-        slp_token_list = self.parent.slp_token_list
-        tok_name_dict = {}
+
+        tok_dict = {d['hash']:d for d in self.parent.slp_token_list}
+
         item = self.currentItem()
         current_tx = item.data(0, Qt.UserRole) if item else None
         self.clear()
-        for tok in slp_token_list:
-            tok_name_dict[tok["hash"]]=tok["name"]
+
         for h_item in slp_history:
             tx_hash, height, conf, timestamp, delta, token_id, validity= h_item
             status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
 
-            deltastr = str(delta)
-
             try:
-                tokenname=tok_name_dict[token_id]
-                unktoken = False
+                tinfo = tok_dict[token_id]
             except KeyError:
-                tokenname = _("Unknown token ID (%.4s...), right click to add..."%(token_id,))
                 unktoken = True
+                tokenname = _("Unknown token ID (%.4s...), right click to add..."%(token_id,))
+                deltastr = '%+d'%(delta,)
+            else:
+                unktoken = False
+                tokenname=tinfo['name']
+                deltastr = format_satoshis(delta, is_diff=True, decimal_point=tinfo['decimals'],)
+
+                # right-pad with spaces so the decimal points line up
+                d1,d2 = deltastr.rsplit('.',1)
+                deltastr += " "*(9-len(d2))
 
             if unktoken and validity in (0,1):
                 # If a token is not in our list of known token_ids, warn the user!
                 icon=QIcon("icons/warning.png")
                 icontooltip = _("Unknown token ID")
-                deltastr = '(%s)'%(deltastr,)
             elif validity == 0:
                 # For in-progress validation, always show gears regardless of confirmation status.
                 icon=QIcon("icons/warning.png")
