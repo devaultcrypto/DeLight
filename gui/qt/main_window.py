@@ -1123,7 +1123,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.amount_e.setAmount(546)
             self.amount_e.setFrozen(True)
         slp_index = self.slp_token_type_combo.currentIndex()
-        if slp_index is 0:
+        if slp_index == 0:
             self.wallet.send_slpTokenId = None
         else:
             self.wallet.send_slpTokenId = self.slp_token_gui_hash_list[slp_index]
@@ -1244,7 +1244,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         # we go back to auto-calculate mode and put a fee back.
         self.fee_e.editingFinished.connect(self.update_fee)
         self.connect_fields(self, self.amount_e, self.fiat_send_e, self.fee_e)
-
 
 
         msg = _('Amount to be sent.') + '\n\n' \
@@ -1647,8 +1646,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def do_send(self, preview = False):
         if run_hook('abort_send', self):
             return
-        if self.slp_token_type_combo.currentIndex() is not 0:
-            if self.slp_amount_e.get_amount() is 0 or self.slp_amount_e.get_amount() is None:
+        if self.slp_token_type_combo.currentIndex() != 0:
+            if self.slp_amount_e.get_amount() == 0 or self.slp_amount_e.get_amount() is None:
                 self.show_message(_("No SLP token amount provided."))
                 return
         r = self.read_send_tab(preview=preview)
@@ -1805,7 +1804,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         in order to keep the amount field locked and Max button disabled
         when the payto field is edited when a token is selected.
         '''
-        if self.slp_token_type_combo.currentIndex() is 0:
+        if self.slp_token_type_combo.currentIndex() == 0:
             self.amount_e.setFrozen(b)
             self.max_button.setEnabled(not b)
 
@@ -1893,7 +1892,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         the else-statement below which provides modified "do_clear" behavior
         after a payment is sent
         """
-        if self.slp_token_type_combo.currentIndex() is 0:
+        if self.slp_token_type_combo.currentIndex() == 0:
             self.is_max = False
             self.not_enough_funds = False
             self.not_enough_funds_slp = False
