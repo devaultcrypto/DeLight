@@ -295,9 +295,14 @@ class Abstract_Wallet(PrintError):
         self._slp_txo = self.to_Address_dict(self.storage.get('slp_txo', {}))
         self.slpv1_validity = self.storage.get('slpv1_validity', {})
 
-
     def disable_slp(self):
         self._enable_slp = False
+
+        self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
+        self.storage.put('slpv1_validity', self.slpv1_validity)
+
+        del self._slp_txo
+        del self.slpv1_validity
 
     def clear_history(self):
         with self.transaction_lock:
