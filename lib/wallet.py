@@ -860,7 +860,7 @@ class Abstract_Wallet(PrintError):
             # TODO: check for and handle MINT baton
             _type, addr, _ = tx.outputs()[1]
             if _type is TYPE_ADDRESS:
-                if slpMsg.op_return_fields['token_mint_quantity'] > 0 and self.is_mine(addr):
+                if slpMsg.op_return_fields['additional_token_quantity'] > 0 and self.is_mine(addr):
                     try:
                         self._slp_txo[addr]
                     except KeyError:
@@ -870,8 +870,8 @@ class Abstract_Wallet(PrintError):
                         {
                             'txid': tx_hash,
                             'idx': 1,
-                            'token_id': tx_hash,
-                            'qty': slpMsg.op_return_fields['token_mint_quantity'],
+                            'token_id': slpMsg.op_return_fields['token_id_hex'],
+                            'qty': slpMsg.op_return_fields['additional_token_quantity'],
                             'type': 'MINT',
                         })
         else:

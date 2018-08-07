@@ -164,7 +164,7 @@ class Validator_SLP_0x01:
             if mintvout is None:
                 outputs = [None,None]
             else:
-                outputs = [None]*(mintvout-1) + ['MINT']
+                outputs = [None]*(mintvout) + ['MINT']
             outputs[1] = slpMsg.op_return_fields['initial_token_mint_quantity']
         elif slpMsg.transaction_type == 'MINT':
             token_id_hex = slpMsg.op_return_fields['token_id_hex']
@@ -178,7 +178,7 @@ class Validator_SLP_0x01:
             if mintvout is None:
                 outputs = [None,None]
             else:
-                outputs = [None]*(mintvout-1) + ['MINT']
+                outputs = [None]*(mintvout) + ['MINT']
             outputs[1] = slpMsg.op_return_fields['additional_token_quantity']
         else:
             raise RuntimeError(slpMsg.transaction_type)
@@ -214,11 +214,12 @@ class Validator_SLP_0x01:
                 raise RuntimeError('Unexpected', inputs_info)
             return (True, 1)   # genesis is always valid.
         elif myinfo == 'MINT':
-            if not all(inp[3] == 'MINT'): # non-MINT inputs should be pruned.
-                raise RuntimeError('Unexpected', inputs_info)
+            if not all(inp[2] == 'MINT' for inp in inputs_info):
+                raise RuntimeError('non-MINT inputs should have been pruned!', inputs_info)
             if len(inputs_info) == 0:
                 return (False, 3) # no baton? invalid.
-            if all(inp[2] == 1 for inp in inputs_info):
+            if all(inp[1] == 1 for inp in inputs_info):
+                # why do we use 'all' here?
                 # multiple 'valid' baton inputs are possible with double spending.
                 # technically 'valid' though miners will never confirm.
                 return (True, 1)
