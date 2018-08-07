@@ -1128,6 +1128,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.amount_e.setFrozen(False)
         else:
             self.max_button.setEnabled(False)
+            self.is_max = False
             self.amount_e.setAmount(546)
             self.amount_e.setFrozen(True)
         slp_index = self.slp_token_type_combo.currentIndex()
