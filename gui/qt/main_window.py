@@ -231,7 +231,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.load_wallet(wallet)
 
         #Get SLP Token list from Config file and update associated GUI lists
-        self.slp_token_list_update()
+        if self.config.get('enable_slp'):
+            self.slp_token_list_update()
 
         self.connect_slots(gui_object.timer)
         self.fetch_alias()
@@ -394,6 +395,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def load_wallet(self, wallet):
         wallet.thread = TaskThread(self, self.on_error)
         self.wallet = wallet
+        self.wallet.enable_slp() if self.config.get('enable_slp') else self.wallet.disable_slp()
         self.update_recently_visited(wallet.storage.path)
         # address used to create a dummy transaction and estimate transaction fee
         self.history_list.update()
@@ -1459,7 +1461,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     outputs.insert(0, self.output_for_opreturn_stringdata(opreturn_message))
                 elif self.wallet.send_slpTokenId is None:
                     pass
-                else:
+                elif self.config.get('enable_slp'):
                     amt = self.slp_amount_e.get_amount()
                     token_outputs = [ amt ]
                     token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0] - amt
@@ -1575,16 +1577,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
         try:
             if self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
-                try:
-                    slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
-                    if slpMsg.transaction_type == "TRAN" and not preview:
-                        self.wallet.send_slpTokenId = slpMsg.op_return_fields['token_id_hex']
-                except:
-                    pass
+                if self.config.get('enable_slp'):
+                    try:
+                        slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
+                        if slpMsg.transaction_type == "TRAN" and not preview:
+                            self.wallet.send_slpTokenId = slpMsg.op_return_fields['token_id_hex']
+                    except:
+                        pass
                 outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
             elif self.wallet.send_slpTokenId is None:
                 pass
-            else:
+            elif self.config.get('enable_slp'):
                 amt = self.slp_amount_e.get_amount()
                 token_outputs.append(amt)
                 token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0] - amt
@@ -1627,23 +1630,25 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         """ SLP: Add an additional token change output """
         change_addr = None
-        if len(token_outputs) > 1 and len(outputs) - 1 < len(token_outputs):
-            """ start of logic copied from wallet.py """
-            addrs = self.wallet.get_change_addresses()[-self.wallet.gap_limit_for_change:]
-            if self.wallet.use_change and addrs:
-                # New change addresses are created only after a few
-                # confirmations.  Select the unused addresses within the
-                # gap limit; if none take one at random
-                change_addrs = [addr for addr in addrs if
-                                self.wallet.get_num_tx(addr) == 0]
-                if not change_addrs:
-                    import random
-                    change_addrs = [random.choice(addrs)]
-            else:
-                change_addrs = [inputs[0]['address']]
-            """ end of logic copied from wallet.py """
-            change_addr = change_addrs[0]
-            outputs.append((TYPE_ADDRESS, change_addr, 546))
+        if self.config.get('enable_slp'):
+            if len(token_outputs) > 1 and len(outputs) - 1 < len(token_outputs):
+                """ start of logic copied from wallet.py """
+                addrs = self.wallet.get_change_addresses()[-self.wallet.gap_limit_for_change:]
+                if self.wallet.use_change and addrs:
+                    # New change addresses are created only after a few
+                    # confirmations.  Select the unused addresses within the
+                    # gap limit; if none take one at random
+                    change_addrs = [addr for addr in addrs if
+                                    self.wallet.get_num_tx(addr) == 0]
+                    if not change_addrs:
+                        import random
+                        change_addrs = [random.choice(addrs)]
+                else:
+                    change_addrs = [inputs[0]['address']]
+                """ end of logic copied from wallet.py """
+                change_addr = change_addrs[0]
+                outputs.append((TYPE_ADDRESS, change_addr, 546))
+        
         if not outputs:
             self.show_error(_('No outputs'))
             return
@@ -1664,7 +1669,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def do_send(self, preview = False):
         if run_hook('abort_send', self):
             return
-        if self.slp_token_type_combo.currentIndex() != 0:
+        if self.config.get('enable_slp') and self.slp_token_type_combo.currentIndex() != 0:
             if self.slp_amount_e.get_amount() == 0 or self.slp_amount_e.get_amount() is None:
                 self.show_message(_("No SLP token amount provided."))
                 return
@@ -3256,7 +3261,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         ex_combo = QComboBox()
 
         def on_slptok_pref(x):
-
             if x:
                 self.toggle_tab(self.slp_mgt_tab,1)
                 self.toggle_tab(self.slp_history_tab,1)
@@ -3273,13 +3277,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.slp_token_type_combo.setHidden(not x)
             self.slp_amount_label.setHidden(not x)
             self.slp_token_type_label.setHidden(not x)
+            try:
+                self.wallet.enable_slp() if self.config.get('enable_slp') else self.wallet.disable_slp()
+            except AttributeError:
+                pass
 
         enable_slp = bool(self.config.get('enable_slp'))
         slp_cb = QCheckBox(_('Enable SLP tokens'))
         slp_cb.setToolTip(_('Enable managing and sending SLP tokens.'))
         slp_cb.setChecked(enable_slp)
         slp_cb.stateChanged.connect(on_slptok_pref)
-        tx_widgets.append((slp_cb,None))
+        tx_widgets.append((slp_cb, None))
 
         def on_opret(x):
             self.config.set_key('enable_opreturn', bool(x))

@@ -162,6 +162,8 @@ class Abstract_Wallet(PrintError):
     max_change_outputs = 3
 
     def __init__(self, storage):
+        # SLP stuff
+        self._enable_slp = False
         self.send_slpTokenId = None
 
         self.electrum_version = PACKAGE_VERSION
@@ -262,9 +264,8 @@ class Abstract_Wallet(PrintError):
                 self.transactions.pop(tx_hash)
 
         ### SLP stuff
-
+        ### This needs to stay enabled - even with SLP off
         self._slp_txo = self.to_Address_dict(self.storage.get('slp_txo', {}))
-
         self.slpv1_validity = self.storage.get('slpv1_validity', {})
         ## Prune off validities of things we aren't interested in.
         #for tx_hash in list(self.slpv1_validity.keys()):
@@ -289,12 +290,18 @@ class Abstract_Wallet(PrintError):
             self.storage.put('addr_history', history)
 
             ### SLP stuff
-
-            self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
-            self.storage.put('slpv1_validity', self.slpv1_validity)
+            if self._enable_slp:
+                self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
+                self.storage.put('slpv1_validity', self.slpv1_validity)
 
             if write:
                 self.storage.write()
+
+    def enable_slp(self):
+        self._enable_slp = True
+
+    def disable_slp(self):
+        self._enable_slp = False
 
     def clear_history(self):
         with self.transaction_lock:
@@ -631,8 +638,10 @@ class Abstract_Wallet(PrintError):
         # removes spent coins
         for txi in spent:
             coins.pop(txi)
+        
+        ### SLP stuff
         # removes token that are either unrelated, or unvalidated
-        if not get_all:
+        if self._enable_slp and not get_all:
             for txo in token_addr_txo:
                 if slpTokenId is None or txo['token_id'] != slpTokenId or self.slpv1_validity.get(txo['txid'], 0) is not 1: #txo['validation_status'] != 'valid':
                     try:
@@ -798,7 +807,8 @@ class Abstract_Wallet(PrintError):
             self.transactions[tx_hash] = tx
 
             ### SLP: Handle incoming SLP transaction outputs here
-            self.handleSlpTransaction(tx_hash, tx)
+            if self._enable_slp:
+                self.handleSlpTransaction(tx_hash, tx)
 
     def handleSlpTransaction(self, tx_hash, tx):
         try:
@@ -1170,7 +1180,7 @@ class Abstract_Wallet(PrintError):
             raise NotEnoughFunds()
 
         """ SLP: make sure SLP token spending is not greater than valid balance """
-        if self.send_slpTokenId is not None:
+        if self._enable_slp and self.send_slpTokenId is not None:
             slpMsg = SlpMessage.parseSlpOutputScript(outputs[0][1])
             if slpMsg.transaction_type == "TRAN":
                 total_token_out = sum(slpMsg.op_return_fields['token_output'])
@@ -1214,7 +1224,7 @@ class Abstract_Wallet(PrintError):
             coin_chooser = coinchooser.CoinChooserPrivacy()
             # determine if this transaction should utilize all available inputs
             sweep = False
-            if self.send_slpTokenId is not None and self.send_slpTokenId != '0':
+            if self._enable_slp and self.send_slpTokenId is not None and self.send_slpTokenId != '0':
                 sweep = True
             tx = coin_chooser.make_tx(inputs, outputs, change_addrs[:max_change],
                                       fee_estimator, self.dust_threshold(), slp_sweep=sweep)
@@ -1237,7 +1247,7 @@ class Abstract_Wallet(PrintError):
             return
 
         # Sort the inputs and outputs deterministically
-        if self.send_slpTokenId is None:
+        if not self._enable_slp or self.send_slpTokenId is None:
             tx.BIP_LI01_sort()
         # Timelock tx to current height.
         locktime = self.get_local_height()
