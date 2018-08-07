@@ -1644,7 +1644,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 """ end of logic copied from wallet.py """
                 change_addr = change_addrs[0]
                 outputs.append((TYPE_ADDRESS, change_addr, 546))
-        
+
         if not outputs:
             self.show_error(_('No outputs'))
             return
@@ -3001,11 +3001,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def toggle_cashaddr(self, format,specified = False):
         #Gui toggle should just increment, if "specified" is True it is being set from preferences, so leave the value as is.
         if specified==False:
-            max_format=2
-            if self.config.get('enable_slp')!=True:
+            if self.config.get('enable_slp'):
+                max_format=2
+            else:
                 max_format=1
             format+=1
-            if format>max_format:
+            if format > max_format:
                 format=0
         self.config.set_key('addr_format', format)
         Address.show_cashaddr(format)
@@ -3257,26 +3258,30 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         ex_combo = QComboBox()
 
         def on_slptok_pref(x):
+            x = bool(x)
+            self.config.set_key('enable_slp', x)
             if x:
                 self.toggle_tab(self.slp_mgt_tab,1)
                 self.toggle_tab(self.slp_history_tab,1)
                 opret_cb.setChecked(False)
                 self.config.set_key('enable_opreturn',False)
-            if not x:
+            else:
                 self.toggle_tab(self.slp_mgt_tab,2)
                 self.toggle_tab(self.slp_history_tab,2)
                 self.slp_token_type_combo.setCurrentIndex(0)
                 self.slp_amount_e.setAmount(0)
                 self.slp_amount_e.setText("")
-            self.config.set_key('enable_slp', bool(x))
+                self.toggle_cashaddr(self.config.get('addr_format') - 1)
             self.slp_amount_e.setHidden(not x)
             self.slp_token_type_combo.setHidden(not x)
             self.slp_amount_label.setHidden(not x)
             self.slp_token_type_label.setHidden(not x)
             try:
-                self.wallet.enable_slp() if self.config.get('enable_slp') else self.wallet.disable_slp()
-            except AttributeError:
+                wallet = self.wallet
+            except AttributeError: # can happen before load_wallet()
                 pass
+            else:
+                wallet.enable_slp() if x else wallet.disable_slp()
 
         enable_slp = bool(self.config.get('enable_slp'))
         slp_cb = QCheckBox(_('Enable SLP tokens'))
