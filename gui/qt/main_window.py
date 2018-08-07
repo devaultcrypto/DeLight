@@ -395,11 +395,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def load_wallet(self, wallet):
         wallet.thread = TaskThread(self, self.on_error)
         self.wallet = wallet
-        self.wallet.enable_slp() if self.config.get('enable_slp') else self.wallet.disable_slp()
+        if self.config.get('enable_slp'):
+            self.wallet.enable_slp()
+            self.slp_history_list.update()
+        else:
+            self.wallet.disable_slp()
         self.update_recently_visited(wallet.storage.path)
         # address used to create a dummy transaction and estimate transaction fee
         self.history_list.update()
-        self.slp_history_list.update()
         self.address_list.update()
         self.utxo_list.update()
         self.need_update.set()
@@ -834,14 +837,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def update_tabs(self):
 
         self.history_list.update()
-        self.slp_history_list.update()
         self.request_list.update()
         self.address_list.update()
         self.utxo_list.update()
         self.contact_list.update()
-        self.slp_token_list_tab.update()
         self.invoice_list.update()
         self.update_completions()
+        if self.config.get('enable_slp'):
+            self.slp_history_list.update()
+            self.slp_token_list_tab.update()
 
     def create_history_tab(self):
         from .history_list import HistoryList

@@ -263,14 +263,6 @@ class Abstract_Wallet(PrintError):
                 self.print_error("removing unreferenced tx", tx_hash)
                 self.transactions.pop(tx_hash)
 
-        ### SLP stuff
-        ### This needs to stay enabled - even with SLP off
-        self._slp_txo = self.to_Address_dict(self.storage.get('slp_txo', {}))
-        self.slpv1_validity = self.storage.get('slpv1_validity', {})
-        ## Prune off validities of things we aren't interested in.
-        #for tx_hash in list(self.slpv1_validity.keys()):
-            #if tx_hash not in self.transactions:
-
     @profiler
     def save_transactions(self, write=False):
         with self.transaction_lock:
@@ -299,6 +291,10 @@ class Abstract_Wallet(PrintError):
 
     def enable_slp(self):
         self._enable_slp = True
+
+        self._slp_txo = self.to_Address_dict(self.storage.get('slp_txo', {}))
+        self.slpv1_validity = self.storage.get('slpv1_validity', {})
+
 
     def disable_slp(self):
         self._enable_slp = False
@@ -634,14 +630,14 @@ class Abstract_Wallet(PrintError):
     # in normal txn or txns with token_id other than the one specified
     def get_addr_utxo(self, address, slpTokenId=None, get_all=False):
         coins, spent = self.get_addr_io(address)
-        token_addr_txo = self.get_slp_addr_txo(address)
         # removes spent coins
         for txi in spent:
             coins.pop(txi)
-        
+
         ### SLP stuff
         # removes token that are either unrelated, or unvalidated
         if self._enable_slp and not get_all:
+            token_addr_txo = self.get_slp_addr_txo(address)
             for txo in token_addr_txo:
                 if slpTokenId is None or txo['token_id'] != slpTokenId or self.slpv1_validity.get(txo['txid'], 0) is not 1: #txo['validation_status'] != 'valid':
                     try:
