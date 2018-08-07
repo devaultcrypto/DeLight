@@ -954,7 +954,7 @@ class Abstract_Wallet(PrintError):
 
         return history
 
-    def get_slp_histories(self, domain=None):
+    def get_slp_histories(self, domain=None, validities_considered=(0,1)):
         # Based on get_history.
         # We return a dict of histories, one history per token_id.
 
@@ -969,7 +969,8 @@ class Abstract_Wallet(PrintError):
             for tx_hash, height in h:
                 if tx_hash in self.pruned_txo.values():
                     continue
-                if tx_hash in self.slpv1_validity: # only get txos for SLP
+                val = self.slpv1_validity.get(tx_hash)
+                if val in validities_considered: # only get txos for SLP
                     txodelta = 0
                     # scan over all entries in _slp_txo, finding every matching txhash
                     for d in self._slp_txo.get(addr,[]):
@@ -984,7 +985,8 @@ class Abstract_Wallet(PrintError):
                 # (note that non-SLP txes can spend (burn) SLP --- and SLP of tokenA can burn tokenB)
                 for n, _ in self.txi.get(tx_hash, {}).get(addr, []):
                     prevtxid, prevout_str = n.rsplit(':',1)
-                    if prevtxid not in self.slpv1_validity:
+                    val = self.slpv1_validity.get(prevtxid)
+                    if val not in validities_considered:
                         continue
                     prevout = int(prevout_str)
                     # scan over all entries in _slp_txo, finding matching txid,idx
@@ -1000,7 +1002,7 @@ class Abstract_Wallet(PrintError):
             for tx_hash in tx_deltas:
                 delta = tx_deltas[tx_hash]
                 height, conf, timestamp = self.get_tx_height(tx_hash)
-                validity = self.slpv1_validity[tx_hash]
+                validity = self.slpv1_validity.get(tx_hash)  # may be None if it's a burn tx
                 history.append((tx_hash, height, conf, timestamp, delta, validity))
             history.sort(key = lambda x: self.get_txpos(x[0]))
             history.reverse()

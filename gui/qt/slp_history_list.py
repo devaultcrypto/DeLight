@@ -107,14 +107,12 @@ class HistoryList(MyTreeWidget):
                 # For in-progress validation, always show gears regardless of confirmation status.
                 icon=QIcon("icons/warning.png")
                 icontooltip = _("SLP validation in progress...")
-            elif validity in (2,3):
-                ## Option 1 - Show bad SLP txes with red warning and kill the amount.
-                #icon=QIcon("icons/expired.png")
-                #icontooltip = "SLP invalid!"
-                #deltastr = "---"
-
-                # Option 2 - Erase invalid transactions from SLP history gui
-                continue
+            elif validity in (None,2,3):
+                icon=QIcon("icons/expired.png")
+                if validity is None:
+                    icontooltip = "non-SLP (tokens burned!)"
+                else:
+                    icontooltip = "SLP invalid (tokens burned!)"
             elif validity == 1:
                 # For SLP valid known txes, show the confirmation status (gears, few-confirmations, or green check)
                 icon = QIcon("icons/" + TX_ICONS[status])
