@@ -180,8 +180,8 @@ class Validator_SLP_0x01:
             else:
                 outputs = [None]*(mintvout) + ['MINT']
             outputs[1] = slpMsg.op_return_fields['additional_token_quantity']
-        else:
-            raise RuntimeError(slpMsg.transaction_type)
+        elif slpMsg.transaction_type == 'COMM':
+            return ('prune', 0)
 
         if token_id_hex != self.token_id_hex:
             return ('prune', 0)  # mismatched token_id_hex

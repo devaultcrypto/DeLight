@@ -174,7 +174,8 @@ class SlpMessage:
                 raise SlpInvalidOutputMessage('Mint baton cannot be on vout=0 or 1')
             slpMsg.op_return_fields['additional_token_quantity'] = SlpMessage.parseChunkToInt(chunks[5], 8, 8, True)
         elif slpMsg.transaction_type == 'COMM':
-            raise NotImplementedError
+            # We don't know how to handle this right now, just return slpMsg of 'COMM' type
+            slpMsg.op_return_fields['info'] = 'slp.py not parsing yet \xaf\\_(\u30c4)_/\xaf'
         else:
             raise SlpInvalidOutputMessage('Bad transaction type', slpMsg.transaction_type)
         return slpMsg
