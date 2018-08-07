@@ -398,6 +398,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.config.get('enable_slp'):
             self.wallet.enable_slp()
             self.slp_history_list.update()
+            self.slp_token_list_tab.update()
         else:
             self.wallet.disable_slp()
         self.update_recently_visited(wallet.storage.path)
@@ -2148,7 +2149,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         self.slp_token_list_tab.update()
         self.slp_token_list_update()
-        self.slp_history_tab.update()
+        self.slp_history_list.update()
         return True
 
     def delete_contacts(self, labels):
@@ -2171,7 +2172,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.slp_token_list.pop(myInd)
         self.config.set_key('slp_tokens', self.slp_token_list)
         self.slp_token_list_tab.update()
-        self.slp_history_tab.update()
+        self.slp_history_list.update()
         # RUN ADDITIONAL UPDATES ON WALLET
 
     def show_invoice(self, key):
