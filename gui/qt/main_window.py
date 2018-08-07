@@ -60,16 +60,17 @@ try:
 except:
     plot_history = None
 import electroncash.web as web
-import electroncash.slp as slp
 
 from .amountedit import AmountEdit, BTCAmountEdit, MyLineEdit, BTCkBEdit, BTCSatsByteEdit
-from .amountedit import SLPAmountEdit
 from .qrcodewidget import QRCodeWidget, QRDialog
 from .qrtextedit import ShowQRTextEdit, ScanQRTextEdit
 from .transaction_dialog import show_transaction
 from .fee_slider import FeeSlider
 
 from .util import *
+
+import electroncash.slp as slp
+from .amountedit import SLPAmountEdit
 
 class StatusBarButton(QPushButton):
     def __init__(self, icon, tooltip, func):
@@ -2094,62 +2095,51 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.update_completions()
         return True
 
-    @pyqtSlot(str, str, int, bool, bool)
-    def set_slp_token(self, hash_id, token_name, show_errors=True, new_token_msg=False, allow_overwrite=False):
+    def add_token_type(self, token_id, token_name, decimals_divisibility, *, error_callback=None, show_errors=True, allow_overwrite=False):
+        if error_callback is None:
+            error_callback = self.show_error
+
         token_name = token_name.strip()
 
-        # Duplication error
+        # Check for duplication error
         for d in self.slp_token_list:
-            if d['hash'] == hash_id and not allow_overwrite:
+            if d['hash'] == token_id and not allow_overwrite:
                 if show_errors:
-                    self.show_error(_('Token with this hash id exists already'))
-                self.slp_token_list_tab.update()  # Displays original unchanged value
+                    error_callback(_('Token with this hash id exists already'))
                 return False
-            if d['name'] == token_name and not d['hash'] == hash_id:
+            if d['name'] == token_name and not d['hash'] == token_id:
                 if show_errors:
-                    self.show_error(_('Token with this name exists already'))
+                    error_callback(_('Token with this name exists already'))
                 self.slp_token_list_tab.update()  # Displays original unchanged value
                 return False
 
         #Hash id validation
         hexregex='^[a-fA-F0-9]+$'
-        gothex=re.match(hexregex,hash_id)
-        if gothex is None or len(hash_id) is not 64:
+        gothex=re.match(hexregex,token_id)
+        if gothex is None or len(token_id) is not 64:
             if show_errors:
-                self.show_error(_('Invalid Hash_Id'))
+                error_callback(_('Invalid Hash_Id'))
             self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
-
-        #decimal divisibility must be downloaded from genesis tx, we cannot allow users to have different values
-        # placeholder for now
-        decimals_divisibility = 0
-
-        #decregex='^[0-9]$'
-        #gotdec=re.match(decregex,str(dec_prec))
-        #if gotdec is None:
-            #if show_errors:
-                #self.show_error(_('Decimal precision should be 0-9'))
-            #self.slp_token_list_tab.update()  # Displays original unchanged value
-            #return False
 
         #token name validation
         if len(token_name) < 1 or len(token_name)> 20:
             if show_errors:
-                self.show_error(_('Token name should be 1-20 characters'))
+                error_callback(_('Token name should be 1-20 characters'))
             self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
 
-        if new_token_msg:
-            self.show_error(_('A new type of Token has been received. (token name: ' + token_name + ')'))
-        new_entry=dict({'hash':hash_id,'name':token_name,'decimals':decimals_divisibility})
+
+        new_entry=dict({'hash':token_id,'name':token_name,'decimals':decimals_divisibility})
 
         # remove old entries (should only happen with allow_overwrite)
         for d in list(self.slp_token_list):
-            if d['hash'] == hash_id:
+            if d['hash'] == token_id:
                 self.slp_token_list.remove(d)
 
         self.slp_token_list.append(new_entry)
         self.config.set_key('slp_tokens', self.slp_token_list)
+
         self.slp_token_list_tab.update()
         self.slp_token_list_update()
         self.slp_history_tab.update()
@@ -2346,38 +2336,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         vbox.addLayout(Buttons(CancelButton(d), OkButton(d)))
         if d.exec_():
             self.set_contact(line2.text(), line1.text())
-
-    def new_slp_token_dialog(self, token_id_hex=None): #, decimals=None):
-        d = WindowModalDialog(self, _("New Token type"))
-        vbox = QVBoxLayout(d)
-        vbox.addWidget(QLabel(_('Avoid counterfeits - carefully compare the token ID with a trusted source.')))
-        grid = QGridLayout()
-        line1 = QLineEdit()
-        if token_id_hex is not None:
-#            line1 = QLabel()
-            line1.setText(token_id_hex)
-            line1.setReadOnly(True)
-        line1.setFixedWidth(550)
-        line2 = QLineEdit()
-        line2.setFixedWidth(200)
-        #line3 = QSpinBox()
-        #line3.setRange(0,9)
-        #if decimals is not None:
-            #line3.setValue(decimals)
-            #line3.setReadOnly(True)
-        #else:
-            #line3.setValue(0)
-        #line3.setFixedWidth(50)
-        grid.addWidget(QLabel(_("Token ID")), 1, 0)
-        grid.addWidget(line1, 1, 1)
-        grid.addWidget(QLabel(_("Token Name")), 2, 0)
-        grid.addWidget(line2, 2, 1)
-        #grid.addWidget(QLabel(_("Decimals Divisibility")), 3, 0)
-        #grid.addWidget(line3, 3, 1)
-        vbox.addLayout(grid)
-        vbox.addLayout(Buttons(CancelButton(d), OkButton(d)))
-        if d.exec_():
-            self.set_slp_token(line1.text(), line2.text()) #, line3.value())
 
     def show_master_public_keys(self):
         dialog = WindowModalDialog(self, _("Wallet Information"))

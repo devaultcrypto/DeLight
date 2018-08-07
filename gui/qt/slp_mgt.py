@@ -33,14 +33,16 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import (
     QAbstractItemView, QFileDialog, QMenu, QTreeWidgetItem)
-from .util import MyTreeWidget
+from .util import *
 
+from electroncash.util import format_satoshis
+from .slp_add_token_dialog import SlpAddTokenDialog
 
 class SlpMgt(MyTreeWidget):
     filter_columns = [0, 1,2]  # Key, Value
 
     def __init__(self, parent):
-        MyTreeWidget.__init__(self, parent, self.create_menu, [_('Token ID'), _('Token Name'), _('Decimals'),_('Balance')], 0, [0])
+        MyTreeWidget.__init__(self, parent, self.create_menu, [_('Token ID'), _('Token Name'), _('Dec.'),_('Balance')], 0, [0])
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.setSortingEnabled(True)
         self.editable_columns=[1]
@@ -50,13 +52,13 @@ class SlpMgt(MyTreeWidget):
         return item.text(1) != "openalias"
 
     def on_edited(self, item, column, prior):
-        self.parent.set_slp_token(item.text(0), item.text(1), allow_overwrite=True)
+        self.parent.add_token_type(item.text(0), item.text(1), int(item.text(2)), allow_overwrite=True)
 
     def create_menu(self, position):
         menu = QMenu()
         selected = self.selectedItems()
         if not selected:
-            menu.addAction(_("Add new token type"), lambda: self.parent.new_slp_token_dialog())
+            menu.addAction(_("Add new token type"), lambda: SlpAddTokenDialog(self.parent,))
         else:
             names = [item.text(0) for item in selected]
             keys = [item.text(0) for item in selected]

@@ -32,6 +32,7 @@ from electroncash.i18n import _
 from electroncash.util import timestamp_to_datetime, profiler
 from electroncash.util import format_satoshis
 
+from .slp_add_token_dialog import SlpAddTokenDialog
 
 TX_ICONS = [
     "warning.png",
@@ -201,7 +202,7 @@ class HistoryList(MyTreeWidget):
             if d['hash'] == token_id:
                 break
         else:
-            menu.addAction(_("Add new token type"), lambda: self.parent.new_slp_token_dialog(token_id_hex = token_id))
+            menu.addAction(_("Add new token type"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = token_id))
 
         menu.addAction(_("Details"), lambda: self.parent.show_transaction(tx))
         if is_unconfirmed and tx:
