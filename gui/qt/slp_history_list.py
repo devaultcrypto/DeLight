@@ -190,17 +190,17 @@ class HistoryList(MyTreeWidget):
 
         menu = QMenu()
 
-        menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
-        if column in self.editable_columns:
-            # We grab a fresh reference to the current item, as it has been deleted in a reported issue.
-            menu.addAction(_("Edit {}").format(column_title),
-                lambda: self.currentItem() and self.editItem(self.currentItem(), column))
-
         for d in self.parent.slp_token_list:
             if d['hash'] == token_id:
                 break
         else:
             menu.addAction(_("Add new token type"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = token_id))
+
+        menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
+        if column in self.editable_columns:
+            # We grab a fresh reference to the current item, as it has been deleted in a reported issue.
+            menu.addAction(_("Edit {}").format(column_title),
+                lambda: self.currentItem() and self.editItem(self.currentItem(), column))
 
         menu.addAction(_("Details"), lambda: self.parent.show_transaction(tx))
         if is_unconfirmed and tx:

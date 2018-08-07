@@ -57,9 +57,10 @@ class SlpMgt(MyTreeWidget):
     def create_menu(self, position):
         menu = QMenu()
         selected = self.selectedItems()
-        if not selected:
-            menu.addAction(_("Add new token type"), lambda: SlpAddTokenDialog(self.parent,))
-        else:
+        current = self.currentItem()
+        if current:
+            menu.addAction(_("Details"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = current.text(0), token_name=current.text(1) ))
+        if selected:
             names = [item.text(0) for item in selected]
             keys = [item.text(0) for item in selected]
             column = self.currentColumn()
@@ -67,6 +68,7 @@ class SlpMgt(MyTreeWidget):
             column_data = '\n'.join([item.text(column) for item in selected])
             menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
             menu.addAction(_("Delete"), lambda: self.parent.delete_slp_token(keys))
+        menu.addAction(_("Add a new token type"), lambda: SlpAddTokenDialog(self.parent,))
 
         run_hook('create_contact_menu', menu, selected)
         menu.exec_(self.viewport().mapToGlobal(position))

@@ -39,23 +39,26 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         tx = Transaction(raw)
         self.handle_genesis_tx(tx)
 
-    def __init__(self, main_window, token_id_hex=None):
+    def __init__(self, main_window, token_id_hex=None, token_name=None):
+        self.provided_token_name = token_name
         # We want to be a top-level window
         QDialog.__init__(self, parent=None)
 
         self.main_window = main_window
         self.wallet = main_window.wallet
         self.network = main_window.network
+        self.app = main_window.app
 
         self.setWindowTitle(_("New Token type"))
 
         vbox = QVBoxLayout()
         self.setLayout(vbox)
 
-        vbox.addWidget(QLabel(_('Avoid counterfeits - carefully compare the token ID with a trusted source.')))
         vbox.addWidget(QLabel(_('Token ID:')))
 
-        self.token_id_e = QLineEdit()
+        self.token_id_e = ButtonsLineEdit()
+        if token_id_hex is not None:
+            self.token_id_e.addCopyButton(self.app)
         self.token_id_e.setFixedWidth(550)
         vbox.addWidget(self.token_id_e)
 
@@ -80,6 +83,22 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
 
+        warnpm = QIcon("icons/warning.png").pixmap(20,20)
+
+        l = QLabel(); l.setPixmap(warnpm)
+        hbox.addWidget(l)
+        hbox.addWidget(QLabel(_('Avoid counterfeits—carefully compare the token ID with a trusted source.')))
+        l = QLabel(); l.setPixmap(warnpm)
+        hbox.addWidget(l)
+
+        if self.provided_token_name is None:
+            namelabel = QLabel(_('To use tokens with this ID, assign it a name.'))
+            namelabel.setAlignment(Qt.AlignRight)
+            vbox.addWidget(namelabel)
+
+        hbox = QHBoxLayout()
+        vbox.addLayout(hbox)
+
         self.cancel_button = b = QPushButton(_("Cancel"))
         self.cancel_button.setAutoDefault(False)
         self.cancel_button.setDefault(False)
@@ -89,12 +108,15 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
 
         hbox.addStretch(1)
 
-        hbox.addWidget(QLabel(_('Token name:')))
+        hbox.addWidget(QLabel(_('Name in wallet:')))
         self.token_name_e = QLineEdit()
         self.token_name_e.setFixedWidth(200)
+        if self.provided_token_name is not None:
+            self.token_name_e.setText(self.provided_token_name)
         hbox.addWidget(self.token_name_e)
 
-        self.add_button = b = QPushButton(_("Add"))
+
+        self.add_button = b = QPushButton(_("Add") if self.provided_token_name is None else _("Change"))
         b.clicked.connect(self.add_token)
         self.add_button.setAutoDefault(True)
         self.add_button.setDefault(True)
@@ -172,7 +194,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
             ('token_doc_hash', _('doc hash'), 'hex'),
                  ]
 
-        cursor.insertText(_('Arbitrary genesis strings:'))
+        cursor.insertText(_('Issuer-declared strings in genesis:'))
         cursor.insertBlock()
         for k,n,e in fields:
             data = slpMsg.op_return_fields[k]
@@ -196,7 +218,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
                     friendlystring = None
 
             if len(data) == 0:
-                showstr = '<empty>'
+                showstr = '(empty)'
             elif friendlystring is None:
                 showstr = data.hex()
             else:
@@ -239,8 +261,9 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
     def add_token(self):
         # Make sure to throw an error dialog if name exists, hash exists, ...
         token_name = self.token_name_e.text()
+        ow = (self.provided_token_name is not None)
         ret = self.main_window.add_token_type(self.newtoken_token_id, token_name, self.newtoken_decimals,
-                                              error_callback = self.show_error)
+                                              error_callback = self.show_error, allow_overwrite=ow)
         if ret:
             self.add_button.setDisabled(True)
             self.close()
