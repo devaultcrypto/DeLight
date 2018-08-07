@@ -13,4 +13,4 @@ Planned Version 2 Features
 - Add UI/UX for INIT/MINT batons
 - Add UI/UX for issuer COMM tranasactions
 - Restructure wallet file to include token names dict
-- Bolster token saftey, make sure token loss is 100% ensured in edge cases when not in txo
+- Bolster token saftey, make sure token loss is 100% prevented in edge cases when not in txo
