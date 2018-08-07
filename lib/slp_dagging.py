@@ -229,7 +229,7 @@ class ValidationJob:
                         pass
                 else:
                     cb(self)
-            return self.stop_reason
+        return self.stop_reason
 
     def stop(self,):
         """ Call from another thread, to request stopping (this function
@@ -939,7 +939,7 @@ class Node:
         if ret is None: # undecided
             if not anyactive:
                 raise RuntimeError("Undecided with finalized parents",
-                                   self.txid, parent_info)
+                                   self.txid, self.myinfo, valinfo)
             return
         else: # decided
             self.graph.debug("%.10s... judgement based on inputs: %s",
