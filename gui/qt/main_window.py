@@ -850,13 +850,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return l
 
     def create_slp_history_tab(self):
-
         from .slp_history_list import HistoryList
-
         self.slp_history_list = l = HistoryList(self)
-        l.searchable_list = l
-
-        return l
+        return self.create_list_tab(l)
 
     def show_address(self, addr):
         from . import address_dialog
