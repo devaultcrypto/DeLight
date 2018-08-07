@@ -817,7 +817,8 @@ class Abstract_Wallet(PrintError):
                                 self.slpv1_validity[tx_hash] = val
                     job = slp_validator_0x01.make_job(tx, self, self.network,
                                                       debug=2, reset=False)
-                    job.add_callback(callback)
+                    if job is not None:
+                        job.add_callback(callback)
 
         if slpMsg.transaction_type == "TRAN":
             # truncate outputs list
@@ -874,6 +875,10 @@ class Abstract_Wallet(PrintError):
                             'qty': slpMsg.op_return_fields['additional_token_quantity'],
                             'type': 'MINT',
                         })
+        elif slpMsg.transaction_type == "COMM":
+            print("Got a COMM, not doing anything with them yet %r"%(slpMsg,))
+            # don't do anything with COMMs for now
+            pass
         else:
             raise RuntimeError(slpMsg.transaction_type)
 

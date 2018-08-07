@@ -85,6 +85,9 @@ class SlpMessage:
         self.transaction_type  = None
         self.op_return_fields = {}
 
+    def __repr__(self,):
+        return "<%s token_type=%d %r %r>"%(type(self).__qualname__, self.token_type, self.transaction_type, self.op_return_fields)
+
     # This method attempts to parse a ScriptOutput object as an SLP message.
     # Bad scripts will throw a subclass of SlpParsingError; any other exception indicates a bug in this code.
     # - Unrecognized SLP versions will throw SlpUnsupportedSlpTokenType.

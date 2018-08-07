@@ -59,14 +59,16 @@ def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, 
     """
     Basic validation job maker for a single transaction.
 
-    Returns job
+    Returns job, or None if it was not a validatable type
     """
     slpMsg = SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
 
     if slpMsg.transaction_type == 'INIT':
         token_id_hex = tx.txid()
-    else:
+    elif slpMsg.transaction_type in ('MINT', 'TRAN'):
         token_id_hex = slpMsg.op_return_fields['token_id_hex']
+    else:
+        return None
 
     if reset:
         try:
