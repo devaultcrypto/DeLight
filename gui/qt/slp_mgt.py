@@ -86,9 +86,15 @@ class SlpMgt(MyTreeWidget):
             name=i["name"]
             if 'dec_prec' in i: # rename field
                 i["decimals"] = i.pop("dec_prec")
-            decimals_divisibility = i["decimals"]
+            decimals = i["decimals"]
             calculated_balance= self.get_balance_from_hash_id(hash_id)
-            item = QTreeWidgetItem([str(hash_id),str(name),str(decimals_divisibility),str(calculated_balance)])
+            balancestr = format_satoshis(calculated_balance, decimal_point=decimals, num_zeros=decimals)
+            balancestr += ' '*(9-decimals)
+
+            item = QTreeWidgetItem([str(hash_id),str(name),str(decimals),balancestr])
+            item.setFont(0, QFont(MONOSPACE_FONT))
+            #item.setTextAlignment(2, Qt.AlignRight)
+            item.setTextAlignment(3, Qt.AlignRight)
+            item.setFont(3, QFont(MONOSPACE_FONT))
             item.setData(0, Qt.UserRole, hash_id)
             self.addTopLevelItem(item)
-        run_hook('update_slp_mgt_tab', self)
