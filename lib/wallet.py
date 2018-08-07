@@ -625,19 +625,20 @@ class Abstract_Wallet(PrintError):
 
     # This method is updated for SLP to prevent tokens from being spent
     # in normal txn or txns with token_id other than the one specified
-    def get_addr_utxo(self, address, slpTokenId=None):
+    def get_addr_utxo(self, address, slpTokenId=None, get_all=False):
         coins, spent = self.get_addr_io(address)
         token_addr_txo = self.get_slp_addr_txo(address)
         # removes spent coins
         for txi in spent:
             coins.pop(txi)
         # removes token that are either unrelated, or unvalidated
-        for txo in token_addr_txo:
-            if slpTokenId is None or txo['token_id'] != slpTokenId or self.slpv1_validity.get(txo['txid'], 0) is not 1: #txo['validation_status'] != 'valid':
-                try:
-                    coins.pop(txo['txid'] + ":" + str(txo['idx']))
-                except Exception as e:
-                    pass
+        if not get_all:
+            for txo in token_addr_txo:
+                if slpTokenId is None or txo['token_id'] != slpTokenId or self.slpv1_validity.get(txo['txid'], 0) is not 1: #txo['validation_status'] != 'valid':
+                    try:
+                        coins.pop(txo['txid'] + ":" + str(txo['idx']))
+                    except Exception as e:
+                        pass
         out = {}
         for txo, v in coins.items():
             tx_height, value, is_cb = v
@@ -711,14 +712,14 @@ class Abstract_Wallet(PrintError):
         except Exception as e:
             raise e
 
-    def get_utxos(self, domain = None, exclude_frozen = False, mature = False, confirmed_only = False):
+    def get_utxos(self, domain = None, exclude_frozen = False, mature = False, confirmed_only = False, get_all = False):
         coins = []
         if domain is None:
             domain = self.get_addresses()
         if exclude_frozen:
             domain = set(domain) - self.frozen_addresses
         for addr in domain:
-            utxos = self.get_addr_utxo(addr, slpTokenId = self.send_slpTokenId)
+            utxos = self.get_addr_utxo(addr, slpTokenId = self.send_slpTokenId, get_all = get_all)
             for x in utxos.values():
                 if confirmed_only and x['height'] <= 0:
                     continue
