@@ -46,6 +46,7 @@ class SlpMgt(MyTreeWidget):
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.setSortingEnabled(True)
         self.editable_columns=[1]
+        self.sortByColumn(1, Qt.AscendingOrder)
 
     def on_permit_edit(self, item, column):
         # openalias items shouldn't be editable
