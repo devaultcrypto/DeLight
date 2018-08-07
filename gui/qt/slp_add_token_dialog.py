@@ -222,7 +222,8 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         cursor.insertText(_('Initial issuance:') + ' ' + numtokens)
         cursor.insertBlock()
         cursor.insertText(issuance_type)
-        cursor.insertBlock()
+
+        #cursor.insertBlock()
 
         self.newtoken_genesis_tx      = tx
         self.newtoken_genesis_message = slpMsg
