@@ -88,13 +88,13 @@ class PayToEdit(ScanQRTextEdit):
             return bitcoin.TYPE_SCRIPT, ScriptOutput.from_string(x)
 
     def parse_address(self, line):
-        slp_token_type_index=self.parent.slp_token_type_combo.currentIndex()
+        slp_token_type_index=self.parent.token_type_combo.currentIndex()
         r = line.strip()
         m = re.match(RE_ALIAS, r)
-        address = m.group(2) if m else r 
+        address = m.group(2) if m else r
         if slp_token_type_index > 0:
             if "simpleledger" not in address:
-                address="simpleledger:"+address 
+                address="simpleledger:"+address
         return Address.from_string(address)
 
     def parse_amount(self, x):
@@ -149,7 +149,7 @@ class PayToEdit(ScanQRTextEdit):
             """
             The following line is commented out for SLP.
             If this line is not commented out then the amount field will
-            always be reset to 0 when the address text is edited.  
+            always be reset to 0 when the address text is edited.
             For SLP, an amount of 546 sat should be left in the amount_e field.
             """
             #self.amount_edit.setAmount(total if outputs else None)
