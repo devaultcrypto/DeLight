@@ -231,12 +231,16 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.fetch_alias()
 
     def update_token_type_combo(self):
-        tok_dict = self.wallet.token_types
-
         self.token_type_combo.clear()
         self.token_type_combo.addItem('None', None)
-        for token_id,i in tok_dict.items():
-            self.token_type_combo.addItem(i['name'], token_id)
+
+        try:
+            token_types = self.wallet.token_types
+        except AttributeError:
+            pass
+        else:
+            for token_id,i in token_types.items():
+                self.token_type_combo.addItem(i['name'], token_id)
 
     def on_history(self, b):
         self.new_fx_history_signal.emit()
@@ -402,9 +406,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.wallet.enable_slp()
             self.slp_history_list.update()
             self.token_list.update()
-            self.update_token_type_combo()
         else:
             self.wallet.disable_slp()
+        self.update_token_type_combo()
 
         self.tabs.show()
         self.init_geometry()
@@ -3246,18 +3250,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.config.set_key('enable_slp', x)
 
             wallet = self.wallet
-            wallet.enable_slp() if x else wallet.disable_slp()
 
             self.slp_amount_e.setHidden(not x)
             self.token_type_combo.setHidden(not x)
             self.slp_amount_label.setHidden(not x)
             self.slp_token_type_label.setHidden(not x)
+
             if x:
                 self.toggle_tab(self.slp_mgt_tab,1)
                 self.toggle_tab(self.slp_history_tab,1)
                 opret_cb.setChecked(False)
                 self.config.set_key('enable_opreturn',False)
-                self.update_token_type_combo()
             else:
                 self.toggle_tab(self.slp_mgt_tab,2)
                 self.toggle_tab(self.slp_history_tab,2)
@@ -3265,6 +3268,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.slp_amount_e.setText("")
                 self.token_type_combo.setCurrentIndex(0)
                 self.toggle_cashaddr(self.config.get('addr_format') - 1)
+
+            wallet.enable_slp() if x else wallet.disable_slp()
+
+            self.update_token_type_combo()
+
             self.update_tabs()
 
         enable_slp = bool(self.config.get('enable_slp'))
