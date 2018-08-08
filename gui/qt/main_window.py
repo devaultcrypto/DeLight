@@ -800,7 +800,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 else:
                     bal = format_satoshis(self.wallet.get_slp_token_balance(token_id)[0],
                                             decimal_point=d['decimals'],)
-                    text += "Token Balance (valid): %s; "%(bal,)
+                    text += "Token Balance: %s; "%(bal,)
                 c, u, x = self.wallet.get_balance()
                 text +=  _("BCH Balance" ) + ": %s "%(self.format_amount_and_units(c))
                 if u:
@@ -3009,11 +3009,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def setAddrFormatText(self, format):
         if format == 0:
-            self.addr_format_label.setText("Address Mode: Legacy")
+            self.addr_format_label.setText("Addresses: Legacy")
         elif format == 1:
-            self.addr_format_label.setText("Address Mode: cashAddr")
+            self.addr_format_label.setText("Addresses: cashAddr")
         else: 
-            self.addr_format_label.setText("Address Mode: SLP")
+            self.addr_format_label.setText("Addresses: SLP")
 
     def settings_dialog(self):
         self.need_restart = False
