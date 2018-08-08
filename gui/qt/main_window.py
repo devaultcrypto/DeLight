@@ -2151,9 +2151,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                              .format(" + ".join(token_ids))):
             return
 
-        for tid,i in self.wallet.token_types.items():
-            if tid in token_ids:
-                del self.wallet.token_types[tid]
+        for tid in token_ids:
+            self.wallet.token_types.pop(tid)
         self.token_list.update()
         self.slp_history_list.update()
         # RUN ADDITIONAL UPDATES ON WALLET
