@@ -239,7 +239,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         except AttributeError:
             pass
         else:
-            for token_id,i in token_types.items():
+            sorted_items = sorted(token_types.items(), key=lambda x:x[1]['name'])
+            for token_id,i in sorted_items:
                 self.token_type_combo.addItem(i['name'], token_id)
 
     def on_history(self, b):
