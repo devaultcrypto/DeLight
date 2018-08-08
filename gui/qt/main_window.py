@@ -585,7 +585,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tools_menu = menubar.addMenu(_("&Tools"))
 
         # Settings / Preferences are all reserved keywords in OSX using this as work around
-        tools_menu.addAction(_("Electron Cash preferences") if sys.platform == 'darwin' else _("Preferences"), self.settings_dialog)
+        tools_menu.addAction(_("Electron Cash Preferences") if sys.platform == 'darwin' else _("Preferences"), self.settings_dialog)
         tools_menu.addAction(_("&Network"), lambda: self.gui_object.show_network_dialog(self))
         tools_menu.addAction(_("Optional &Features"), self.internal_plugins_dialog)
         tools_menu.addAction(_("Installed &Plugins"), self.external_plugins_dialog)
@@ -3270,13 +3270,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.slp_token_type_label.setHidden(not x)
 
             if x:
-                self.toggle_tab(self.slp_mgt_tab,1)
-                self.toggle_tab(self.slp_history_tab,1)
+                self.toggle_tab(self.slp_mgt_tab, 1)
+                self.toggle_tab(self.slp_history_tab, 1)
                 opret_cb.setChecked(False)
                 self.config.set_key('enable_opreturn',False)
+                self.toggle_cashaddr(2, True)
             else:
-                self.toggle_tab(self.slp_mgt_tab,2)
-                self.toggle_tab(self.slp_history_tab,2)
+                self.toggle_tab(self.slp_mgt_tab, 2)
+                self.toggle_tab(self.slp_history_tab, 2)
                 self.slp_amount_e.setAmount(0)
                 self.slp_amount_e.setText("")
                 self.token_type_combo.setCurrentIndex(0)
