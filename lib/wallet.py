@@ -283,26 +283,36 @@ class Abstract_Wallet(PrintError):
 
             ### SLP stuff
             if self._enable_slp:
-                self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
-                self.storage.put('slpv1_validity', self.slpv1_validity)
+                self.store_slp()
 
             if write:
                 self.storage.write()
 
     def enable_slp(self):
-        self._enable_slp = True
+        if self._enable_slp:
+            return # ignore
 
         self._slp_txo = self.to_Address_dict(self.storage.get('slp_txo', {}))
         self.slpv1_validity = self.storage.get('slpv1_validity', {})
+        self.token_types = self.storage.get('token_types', {})
 
-    def disable_slp(self):
-        self._enable_slp = False
+        self._enable_slp = True
 
+    def store_slp(self):
         self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
         self.storage.put('slpv1_validity', self.slpv1_validity)
+        self.storage.put('token_types', self.token_types)
+
+    def disable_slp(self):
+        if not self._enable_slp:
+            return # ignore
+        self.store_slp()
 
         del self._slp_txo
         del self.slpv1_validity
+        del self.token_types
+
+        self._enable_slp = False
 
     def clear_history(self):
         with self.transaction_lock:

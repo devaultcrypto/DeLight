@@ -74,7 +74,7 @@ class HistoryList(MyTreeWidget):
         h = self.wallet.get_history(self.get_domain())
         slp_history =self.wallet.get_slp_history()
 
-        tok_dict = {d['hash']:d for d in self.parent.slp_token_list}
+        tok_dict = self.wallet.token_types
 
         item = self.currentItem()
         current_tx = item.data(0, Qt.UserRole) if item else None
@@ -190,10 +190,7 @@ class HistoryList(MyTreeWidget):
 
         menu = QMenu()
 
-        for d in self.parent.slp_token_list:
-            if d['hash'] == token_id:
-                break
-        else:
+        if not self.wallet.token_types.get(token_id):
             menu.addAction(_("Add new token type"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = token_id))
 
         menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))

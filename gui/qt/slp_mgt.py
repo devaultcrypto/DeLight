@@ -53,7 +53,15 @@ class SlpMgt(MyTreeWidget):
         return item.text(1) != "openalias"
 
     def on_edited(self, item, column, prior):
-        self.parent.add_token_type(item.text(0), item.text(1), int(item.text(2)), allow_overwrite=True)
+        token_id = item.text(0)
+        d = self.parent.wallet.token_types[token_id]
+
+        if self.parent.add_token_type(d['class'], token_id, item.text(1), d['decimals'], allow_overwrite=True):
+            # successfully changed
+            pass
+        else:
+            # revert back to original
+            item.setText(1,d['name'])
 
     def create_menu(self, position):
         menu = QMenu()
@@ -75,7 +83,7 @@ class SlpMgt(MyTreeWidget):
         menu.exec_(self.viewport().mapToGlobal(position))
 
 
-    def get_balance_from_hash_id(self,slpTokenId):
+    def get_balance_from_token_id(self,slpTokenId):
         # implement by looking at UTXO for this token!
         # for now return dummy value.
         bal,dummy1,dummy2=self.parent.wallet.get_slp_token_balance(slpTokenId)
@@ -84,20 +92,18 @@ class SlpMgt(MyTreeWidget):
 
     def on_update(self):
         self.clear()
-        for i in self.parent.slp_token_list:
-            hash_id=i["hash"]
-            name=i["name"]
-            if 'dec_prec' in i: # rename field
-                i["decimals"] = i.pop("dec_prec")
+
+        for token_id, i in self.parent.wallet.token_types.items():
+            name     = i["name"]
             decimals = i["decimals"]
-            calculated_balance= self.get_balance_from_hash_id(hash_id)
+            calculated_balance= self.get_balance_from_token_id(token_id)
             balancestr = format_satoshis(calculated_balance, decimal_point=decimals, num_zeros=decimals)
             balancestr += ' '*(9-decimals)
 
-            item = QTreeWidgetItem([str(hash_id),str(name),str(decimals),balancestr])
+            item = QTreeWidgetItem([str(token_id),str(name),str(decimals),balancestr])
             item.setFont(0, QFont(MONOSPACE_FONT))
             #item.setTextAlignment(2, Qt.AlignRight)
             item.setTextAlignment(3, Qt.AlignRight)
             item.setFont(3, QFont(MONOSPACE_FONT))
-            item.setData(0, Qt.UserRole, hash_id)
+            item.setData(0, Qt.UserRole, token_id)
             self.addTopLevelItem(item)

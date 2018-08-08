@@ -135,9 +135,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.tx_notifications = []
         self.tl_windows = []
         self.tx_external_keypairs = {}
-        self.slp_token_list = self.config.get('slp_tokens', [])
-        self.slp_token_gui_hash_list = []
-        self.slp_token_gui_list = []
         Address.show_cashaddr(config.get('addr_format', 0))
 
         self.create_status_bar()
@@ -230,26 +227,16 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.fee_slider.update()
         self.load_wallet(wallet)
 
-        #Get SLP Token list from Config file and update associated GUI lists
-        if self.config.get('enable_slp'):
-            self.slp_token_list_update()
-
         self.connect_slots(gui_object.timer)
         self.fetch_alias()
 
-    def slp_token_list_update(self):
-        self.slp_token_list = self.config.get('slp_tokens', [])
-        self.slp_token_gui_list=["NONE"]
-        self.slp_token_gui_hash_list=["0"]
-        if self.slp_token_list:
-            for i in self.slp_token_list:
-                singlename=i["name"]
-                self.slp_token_gui_list.append(singlename)
-                singlehash=i["hash"]
-                self.slp_token_gui_hash_list.append(singlehash)
-        self.slp_token_type_combo.clear()
-        self.slp_token_type_combo.addItems([i for i in self.slp_token_gui_list])
-        ## end SLP token from config section
+    def update_token_type_combo(self):
+        tok_dict = self.wallet.token_types
+
+        self.token_type_combo.clear()
+        self.token_type_combo.addItem('None', None)
+        for token_id,i in tok_dict.items():
+            self.token_type_combo.addItem(i['name'], token_id)
 
     def on_history(self, b):
         self.new_fx_history_signal.emit()
@@ -395,12 +382,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def load_wallet(self, wallet):
         wallet.thread = TaskThread(self, self.on_error)
         self.wallet = wallet
-        if self.config.get('enable_slp'):
-            self.wallet.enable_slp()
-            self.slp_history_list.update()
-            self.slp_token_list_tab.update()
-        else:
-            self.wallet.disable_slp()
         self.update_recently_visited(wallet.storage.path)
         # address used to create a dummy transaction and estimate transaction fee
         self.history_list.update()
@@ -416,6 +397,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.update_console()
         self.clear_receive_tab()
         self.request_list.update()
+
+        if self.config.get('enable_slp'):
+            self.wallet.enable_slp()
+            self.slp_history_list.update()
+            self.token_list.update()
+            self.update_token_type_combo()
+        else:
+            self.wallet.disable_slp()
+
         self.tabs.show()
         self.init_geometry()
         if self.config.get('hide_gui') and self.gui_object.tray.isVisible():
@@ -798,13 +788,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             else:
                 text = ""
                 token_id = self.wallet.send_slpTokenId
-                if token_id is not None:
-                    for d in self.slp_token_list:
-                        if d['hash'] == token_id:
-                            bal = format_satoshis(self.wallet.get_slp_token_balance(token_id)[0],
-                                                  decimal_point=d['decimals'],)
-                            text += "Token Balance (valid): %s; "%(bal,)
-                            break
+                try:
+                    d = self.wallet.token_types[token_id]
+                except (AttributeError, KeyError):
+                    pass
+                else:
+                    bal = format_satoshis(self.wallet.get_slp_token_balance(token_id)[0],
+                                            decimal_point=d['decimals'],)
+                    text += "Token Balance (valid): %s; "%(bal,)
                 c, u, x = self.wallet.get_balance()
                 text +=  _("BCH Balance" ) + ": %s "%(self.format_amount_and_units(c))
                 if u:
@@ -846,7 +837,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.update_completions()
         if self.config.get('enable_slp'):
             self.slp_history_list.update()
-            self.slp_token_list_tab.update()
+            self.token_list.update()
 
     def create_history_tab(self):
         from .history_list import HistoryList
@@ -1122,29 +1113,26 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
 
     def on_slptok(self):
-        tok_index=self.slp_token_type_combo.currentIndex()
+        token_id = self.token_type_combo.currentData()
+        self.wallet.send_slpTokenId = token_id
         self.payto_e.check_text()
-        if not tok_index or tok_index==0:
+        if token_id is None:
             self.amount_e.setAmount(0)
             self.amount_e.setText("")
             self.max_button.setEnabled(True)
             self.amount_e.setFrozen(False)
+
+            self.slp_amount_e.setHidden(True)
+            self.slp_amount_label.setHidden(True)
         else:
             self.max_button.setEnabled(False)
             self.is_max = False
             self.amount_e.setAmount(546)
             self.amount_e.setFrozen(True)
-        slp_index = self.slp_token_type_combo.currentIndex()
-        if slp_index == 0:
-            self.wallet.send_slpTokenId = None
-            self.slp_amount_e.setHidden(True)
-            self.slp_amount_label.setHidden(True)
-        else:
-            self.wallet.send_slpTokenId = self.slp_token_gui_hash_list[slp_index]
+
             self.slp_amount_e.setHidden(False)
             self.slp_amount_label.setHidden(False)
-            tok_dict = {d['hash']:d for d in self.slp_token_list}
-            tok = tok_dict[self.wallet.send_slpTokenId]
+            tok = self.wallet.token_types[self.wallet.send_slpTokenId]
             self.slp_amount_e.set_token(tok['name'],tok['decimals'])
         self.update_status()
 
@@ -1160,9 +1148,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         self.slp_amount_e = SLPAmountEdit('tokens', 0)
 
-        self.slp_token_type_combo = QComboBox()
-        self.slp_token_type_combo.setFixedWidth(200)
-        self.slp_token_type_combo.currentIndexChanged.connect(self.on_slptok)
+        self.token_type_combo = QComboBox()
+        self.token_type_combo.setFixedWidth(200)
+        self.token_type_combo.currentIndexChanged.connect(self.on_slptok)
         self.payto_e = PayToEdit(self)
         self.payto_e.parent=self
 
@@ -1280,14 +1268,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
               + _('Keyboard shortcut: type "!" to send all your coins.')
         self.slp_token_type_label = HelpLabel(_('Token Type'), msg)
         grid.addWidget(self.slp_token_type_label, 7, 0)
-        grid.addWidget(self.slp_token_type_combo, 7, 1)
+        grid.addWidget(self.token_type_combo, 7, 1)
 
 
         if not self.config.get('enable_slp'):
             self.slp_amount_label.setHidden(True)
             self.slp_token_type_label.setHidden(True)
-            self.slp_token_type_combo.setCurrentIndex(0)
-            self.slp_token_type_combo.setHidden(True)
+            #self.token_type_combo.setCurrentIndex(0)
+            self.token_type_combo.setHidden(True)
             self.slp_amount_e.setAmount(0)
             self.slp_amount_e.setText("")
             self.slp_amount_e.setHidden(True)
@@ -1670,7 +1658,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def do_send(self, preview = False):
         if run_hook('abort_send', self):
             return
-        if self.config.get('enable_slp') and self.slp_token_type_combo.currentIndex() != 0:
+        if self.config.get('enable_slp') and self.token_type_combo.currentData():
             if self.slp_amount_e.get_amount() == 0 or self.slp_amount_e.get_amount() is None:
                 self.show_message(_("No SLP token amount provided."))
                 return
@@ -1828,7 +1816,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         in order to keep the amount field locked and Max button disabled
         when the payto field is edited when a token is selected.
         '''
-        if self.slp_token_type_combo.currentIndex() == 0:
+        if self.token_type_combo.currentData():
             self.amount_e.setFrozen(b)
             self.max_button.setEnabled(not b)
 
@@ -1916,7 +1904,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         the else-statement below which provides modified "do_clear" behavior
         after a payment is sent
         """
-        if self.slp_token_type_combo.currentIndex() == 0:
+        if self.token_type_combo.currentData() is None:
             self.is_max = False
             self.not_enough_funds = False
             self.not_enough_funds_slp = False
@@ -2041,7 +2029,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def create_slp_mgt_tab(self):
         from .slp_mgt import SlpMgt
-        self.slp_token_list_tab = l = SlpMgt(self)
+        self.token_list = l = SlpMgt(self)
         return self.create_list_tab(l)
 
     def create_contacts_tab(self):
@@ -2102,22 +2090,22 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.update_completions()
         return True
 
-    def add_token_type(self, token_id, token_name, decimals_divisibility, *, error_callback=None, show_errors=True, allow_overwrite=False):
+    def add_token_type(self, token_class, token_id, token_name, decimals_divisibility, *, error_callback=None, show_errors=True, allow_overwrite=False):
         if error_callback is None:
             error_callback = self.show_error
 
         token_name = token_name.strip()
 
         # Check for duplication error
-        for d in self.slp_token_list:
-            if d['hash'] == token_id and not allow_overwrite:
-                if show_errors:
-                    error_callback(_('Token with this hash id exists already'))
-                return False
-            if d['name'] == token_name and not d['hash'] == token_id:
+        d = self.wallet.token_types.get(token_id)
+        if not (d is None or allow_overwrite):
+            if show_errors:
+                error_callback(_('Token with this hash id exists already'))
+            return False
+        for tid, d in self.wallet.token_types.items():
+            if d['name'] == token_name and tid != token_id:
                 if show_errors:
                     error_callback(_('Token with this name exists already'))
-                self.slp_token_list_tab.update()  # Displays original unchanged value
                 return False
 
         #Hash id validation
@@ -2126,29 +2114,21 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if gothex is None or len(token_id) is not 64:
             if show_errors:
                 error_callback(_('Invalid Hash_Id'))
-            self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
 
         #token name validation
         if len(token_name) < 1 or len(token_name)> 20:
             if show_errors:
                 error_callback(_('Token name should be 1-20 characters'))
-            self.slp_token_list_tab.update()  # Displays original unchanged value
             return False
 
 
-        new_entry=dict({'hash':token_id,'name':token_name,'decimals':decimals_divisibility})
+        new_entry=dict({'class':token_class,'name':token_name,'decimals':decimals_divisibility})
 
-        # remove old entries (should only happen with allow_overwrite)
-        for d in list(self.slp_token_list):
-            if d['hash'] == token_id:
-                self.slp_token_list.remove(d)
+        self.wallet.token_types[token_id] = new_entry
 
-        self.slp_token_list.append(new_entry)
-        self.config.set_key('slp_tokens', self.slp_token_list)
-
-        self.slp_token_list_tab.update()
-        self.slp_token_list_update()
+        self.token_list.update()
+        self.update_token_type_combo()
         self.slp_history_list.update()
         return True
 
@@ -2162,16 +2142,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.contact_list.update()
         self.update_completions()
 
-    def delete_slp_token(self, labels):
+    def delete_slp_token(self, token_ids):
         if not self.question(_("Remove {} from your list of tokens?")
-                             .format(" + ".join(labels))):
+                             .format(" + ".join(token_ids))):
             return
-        for i in self.slp_token_list:
-            if i["hash"] in labels:
-                myInd=self.slp_token_list.index(i)
-                self.slp_token_list.pop(myInd)
-        self.config.set_key('slp_tokens', self.slp_token_list)
-        self.slp_token_list_tab.update()
+
+        for tid,i in self.wallet.token_types.items():
+            if tid in token_ids:
+                del self.wallet.token_types[tid]
+        self.token_list.update()
         self.slp_history_list.update()
         # RUN ADDITIONAL UPDATES ON WALLET
 
@@ -3265,28 +3244,28 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         def on_slptok_pref(x):
             x = bool(x)
             self.config.set_key('enable_slp', x)
+
+            wallet = self.wallet
+            wallet.enable_slp() if x else wallet.disable_slp()
+
+            self.slp_amount_e.setHidden(not x)
+            self.token_type_combo.setHidden(not x)
+            self.slp_amount_label.setHidden(not x)
+            self.slp_token_type_label.setHidden(not x)
             if x:
                 self.toggle_tab(self.slp_mgt_tab,1)
                 self.toggle_tab(self.slp_history_tab,1)
                 opret_cb.setChecked(False)
                 self.config.set_key('enable_opreturn',False)
+                self.update_token_type_combo()
             else:
                 self.toggle_tab(self.slp_mgt_tab,2)
                 self.toggle_tab(self.slp_history_tab,2)
-                self.slp_token_type_combo.setCurrentIndex(0)
                 self.slp_amount_e.setAmount(0)
                 self.slp_amount_e.setText("")
+                self.token_type_combo.setCurrentIndex(0)
                 self.toggle_cashaddr(self.config.get('addr_format') - 1)
-            self.slp_amount_e.setHidden(not x)
-            self.slp_token_type_combo.setHidden(not x)
-            self.slp_amount_label.setHidden(not x)
-            self.slp_token_type_label.setHidden(not x)
-            try:
-                wallet = self.wallet
-            except AttributeError: # can happen before load_wallet()
-                pass
-            else:
-                wallet.enable_slp() if x else wallet.disable_slp()
+            self.update_tabs()
 
         enable_slp = bool(self.config.get('enable_slp'))
         slp_cb = QCheckBox(_('Enable SLP tokens'))
