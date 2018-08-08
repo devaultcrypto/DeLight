@@ -821,6 +821,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         self.tray.setToolTip("%s (%s)" % (text, self.wallet.basename()))
         self.balance_label.setText(text)
+        addr_format = self.config.get('addr_format', 0)
+        self.setAddrFormatText(addr_format)
         self.status_button.setIcon( icon )
 
 
@@ -2244,6 +2246,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.balance_label = QLabel("")
         sb.addWidget(self.balance_label)
 
+        self.addr_format_label = QLabel("")
+        sb.addPermanentWidget(self.addr_format_label)
+
         self.search_box = QLineEdit()
         self.search_box.textChanged.connect(self.do_search)
         self.search_box.hide()
@@ -2983,9 +2988,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.toggle_cashaddr(self.config.get('addr_format', 0))
 
     def toggle_cashaddr_settings(self,state):
-        self.toggle_cashaddr(state,True)
+        self.toggle_cashaddr(state, True)
 
-    def toggle_cashaddr(self, format,specified = False):
+    def toggle_cashaddr(self, format, specified = False):
         #Gui toggle should just increment, if "specified" is True it is being set from preferences, so leave the value as is.
         if specified==False:
             if self.config.get('enable_slp'):
@@ -2997,8 +3002,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 format=0
         self.config.set_key('addr_format', format)
         Address.show_cashaddr(format)
+        self.setAddrFormatText(format)
         for window in self.gui_object.windows:
             window.cashaddr_toggled_signal.emit()
+
+    def setAddrFormatText(self, format):
+        if format == 0:
+            self.addr_format_label.setText("Address Mode: Legacy")
+        elif format == 1:
+            self.addr_format_label.setText("Address Mode: cashAddr")
+        else: 
+            self.addr_format_label.setText("Address Mode: SLP")
 
     def settings_dialog(self):
         self.need_restart = False
