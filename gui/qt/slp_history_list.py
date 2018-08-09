@@ -175,7 +175,10 @@ class HistoryList(MyTreeWidget):
         item.setText(3, deltastr)
 
     def update_item_netupdate(self, tx_hash, height, conf, timestamp):
-        status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
+        wallet = getattr(self,'wallet', None)
+        if not wallet:
+            return
+        status, status_str = wallet.get_tx_status(tx_hash, height, conf, timestamp)
         for itx_hash,item in self.allitems:
             if itx_hash == tx_hash:
                 item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))

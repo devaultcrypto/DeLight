@@ -263,6 +263,9 @@ class Abstract_Wallet(PrintError):
                 self.print_error("removing unreferenced tx", tx_hash)
                 self.transactions.pop(tx_hash)
 
+        self.slpv1_validity = self.storage.get('slpv1_validity', {})
+        self.token_types = self.storage.get('token_types', {})
+
     @profiler
     def save_transactions(self, write=False):
         with self.transaction_lock:
@@ -283,6 +286,8 @@ class Abstract_Wallet(PrintError):
 
             ### SLP stuff
             self.store_slp()
+            self.storage.put('slpv1_validity', self.slpv1_validity)
+            self.storage.put('token_types', self.token_types)
 
             if write:
                 self.storage.write()
@@ -293,8 +298,6 @@ class Abstract_Wallet(PrintError):
                 return # ignore
             self._enable_slp = True
 
-            self.slpv1_validity = self.storage.get('slpv1_validity', {})
-            self.token_types = self.storage.get('token_types', {})
             ok = self.storage.get('had_slp_enabled', False)
 
             if ok == True:
@@ -319,8 +322,6 @@ class Abstract_Wallet(PrintError):
                     self.slp_check_validation(tx_hash, tx)
 
     def store_slp(self):
-        self.storage.put('slpv1_validity', self.slpv1_validity)
-        self.storage.put('token_types', self.token_types)
         if self._enable_slp:
             self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
             self.storage.put('tx_tokinfo', self.tx_tokinfo)
@@ -338,8 +339,6 @@ class Abstract_Wallet(PrintError):
             self.store_slp()
 
             del self._slp_txo
-            del self.slpv1_validity
-            del self.token_types
             del self.tx_tokinfo
 
 
