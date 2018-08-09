@@ -649,20 +649,39 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             num_txns = len(self.tx_notifications)
             if num_txns >= 3:
                 total_amount = 0
+                tokens_included = set()
                 for tx in self.tx_notifications:
                     is_relevant, is_mine, v, fee = self.wallet.get_wallet_delta(tx)
                     if v > 0:
                         total_amount += v
-                self.notify(_("{} new transactions received: Total amount received in the new transactions {}")
-                            .format(num_txns, self.format_amount_and_units(total_amount)))
+                    if self.config.get('enable_slp'):
+                        try:
+                            tti = self.wallet.tx_tokinfo[tx.txid()]
+                            tokens_included.add(self.wallet.token_types.get(tti['token_id'],{}).get('name','unknown'))
+                        except KeyError:
+                            pass
+                if tokens_included:
+                    tokstring = _('. Tokens included: ') + ', '.join(sorted(tokens_included))
+                else:
+                    tokstring = ''
+                self.notify(_("{} new transactions received: Total amount received in the new transactions {}{}")
+                            .format(num_txns, self.format_amount_and_units(total_amount),tokstring))
                 self.tx_notifications = []
             else:
                 for tx in self.tx_notifications:
                     if tx:
                         self.tx_notifications.remove(tx)
                         is_relevant, is_mine, v, fee = self.wallet.get_wallet_delta(tx)
+                        if self.config.get('enable_slp'):
+                            try:
+                                tti = self.wallet.tx_tokinfo[tx.txid()]
+                                tokstring = _(". Token included: ") + self.wallet.token_types.get(tti['token_id'],{}).get('name','unknown')
+                            except KeyError:
+                                tokstring = ""
+                        else:
+                            tokstring = ""
                         if v > 0:
-                            self.notify(_("New transaction received: {}").format(self.format_amount_and_units(v)))
+                            self.notify(_("New transaction received: {}{}").format(self.format_amount_and_units(v),tokstring))
 
     def notify(self, message):
         if self.tray:
