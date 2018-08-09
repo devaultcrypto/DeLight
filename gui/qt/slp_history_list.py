@@ -165,6 +165,7 @@ class HistoryList(MyTreeWidget):
 
         if unktoken:
             item.setForeground(3, QBrush(QColor("#888888")))
+            item.setForeground(4, QBrush(QColor("#888888")))
         elif delta < 0:
             item.setForeground(3, QBrush(QColor("#BC1E1E")))
 
