@@ -140,7 +140,7 @@ class HistoryList(MyTreeWidget):
 
             # right-pad with spaces so the decimal points line up
             d1,d2 = deltastr.rsplit('.',1)
-            deltastr += " "*(9-len(d2))
+            deltastr += "\u2014"*(9-len(d2))
 
         if unktoken and validity in (None,0,1):
             # If a token is not in our list of known token_ids, warn the user.
