@@ -49,7 +49,10 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         self.network = main_window.network
         self.app = main_window.app
 
-        self.setWindowTitle(_("New Token type"))
+        if self.provided_token_name:
+            self.setWindowTitle(_("SLP Token Details"))
+        else:
+            self.setWindowTitle(_("Add SLP Token"))
 
         vbox = QVBoxLayout()
         self.setLayout(vbox)
@@ -173,11 +176,11 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         try:
             slpMsg = SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
         except SlpUnsupportedSlpTokenType as e:
-            return self.fail_genesis_info(_("Unsupported SLP token type - %r.")%(e.args[0],))
+            return self.fail_genesis_info(_("Unsupported SLP token version/type - %r.")%(e.args[0],))
         except SlpInvalidOutputMessage as e:
-            return self.fail_genesis_info(_("Not valid SLP message - %r.")%(e.args,))
+            return self.fail_genesis_info(_("This transaction does not contain a valid SLP message.\nReason: %r.")%(e.args,))
         if slpMsg.transaction_type != 'INIT':
-            return self.fail_genesis_info(_("This SLP tx is not a genesis tx - %r.")%(e.args,))
+            return self.fail_genesis_info(_("This SLP transaction is not a genesis."))
 
 
         f_fieldnames = QTextCharFormat()

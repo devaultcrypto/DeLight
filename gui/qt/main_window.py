@@ -2097,6 +2097,16 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.update_completions()
         return True
 
+    def delete_contacts(self, labels):
+        if not self.question(_("Remove {} from your list of contacts?")
+                             .format(" + ".join(labels))):
+            return
+        for label in labels:
+            self.contacts.pop(label)
+        self.history_list.update()
+        self.contact_list.update()
+        self.update_completions()
+
     def add_token_type(self, token_class, token_id, token_name, decimals_divisibility, *, error_callback=None, show_errors=True, allow_overwrite=False):
         if error_callback is None:
             error_callback = self.show_error
@@ -2139,16 +2149,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.slp_history_list.update()
         return True
 
-    def delete_contacts(self, labels):
-        if not self.question(_("Remove {} from your list of contacts?")
-                             .format(" + ".join(labels))):
-            return
-        for label in labels:
-            self.contacts.pop(label)
-        self.history_list.update()
-        self.contact_list.update()
-        self.update_completions()
-
     def delete_slp_token(self, token_ids):
         if not self.question(_("Remove {} from your list of tokens?")
                              .format(" + ".join(token_ids))):
@@ -2156,9 +2156,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         for tid in token_ids:
             self.wallet.token_types.pop(tid)
+
         self.token_list.update()
+        self.update_token_type_combo()
         self.slp_history_list.update()
-        # RUN ADDITIONAL UPDATES ON WALLET
 
     def show_invoice(self, key):
         pr = self.invoices.get(key)
@@ -3012,7 +3013,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.addr_format_label.setText("Addresses: Legacy")
         elif format == 1:
             self.addr_format_label.setText("Addresses: cashAddr")
-        else: 
+        else:
             self.addr_format_label.setText("Addresses: SLP")
 
     def settings_dialog(self):

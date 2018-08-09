@@ -101,7 +101,9 @@ class SlpMgt(MyTreeWidget):
             balancestr += ' '*(9-decimals)
 
             item = QTreeWidgetItem([str(token_id),str(name),str(decimals),balancestr])
-            item.setFont(0, QFont(MONOSPACE_FONT))
+            squishyfont = QFont(MONOSPACE_FONT)
+            squishyfont.setStretch(85)
+            item.setFont(0, squishyfont)
             #item.setTextAlignment(2, Qt.AlignRight)
             item.setTextAlignment(3, Qt.AlignRight)
             item.setFont(3, QFont(MONOSPACE_FONT))
