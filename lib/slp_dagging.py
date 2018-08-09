@@ -138,6 +138,9 @@ class ValidatorGeneric:
 # Validation jobbing mechanics (downloading txes, building graph
 ########
 
+def emptygetter(i):
+    raise KeyError
+
 class ValidationJob:
     """
     Manages a job whose actions are held in mainloop().
@@ -153,7 +156,8 @@ class ValidationJob:
     stopping = False
     running = False
 
-    def __init__(self, graph, txids, network, txcachegetter=None,
+    def __init__(self, graph, txids, network,
+                 txcachegetter=None, validitycachegetter=None,
                  download_limit=None, depth_limit=None):
         """
         graph should be a TokenGraph instance with the appropriate validator.
@@ -164,8 +168,12 @@ class ValidationJob:
         transactions can't be found in the cache.
 
         txcachegetter (optional) called as txcachegetter(txid_hex), and should
-        return KeyError when a tx is not found in cache. A good value here
+        raise KeyError when a tx is not found in cache. A good value here
         would be wallet.transactions.__getitem__ .
+
+        validitycachegetter (optional) called as validitycachegetter(txid_hex),
+        and likewise should raise KeyError, otherwise return a validity value
+        that will be passed to load_tx.
 
         download_limit is enforced by stopping search when the `downloads`
         attribute exceeds this limit. (may exceed it by several, since
@@ -176,10 +184,8 @@ class ValidationJob:
         self.graph = graph
         self.txids = tuple(txids)
         self.network = network
-        if txcachegetter is None:
-            def txcachegetter(txid):
-                raise KeyError
-        self.txcachegetter = txcachegetter
+        self.txcachegetter = txcachegetter if txcachegetter else emptygetter
+        self.validitycachegetter = validitycachegetter if validitycachegetter else emptygetter
         self.download_limit = download_limit
         if depth_limit is None:
             self.depth_limit = INF_DEPTH - 1
@@ -291,12 +297,12 @@ class ValidationJob:
     @property
     def nodes(self,):
         # get target nodes
-        return [self.graph.get_node(t) for t in self.txids]
+        return {t:self.graph.get_node(t) for t in self.txids}
 
     def mainloop(self,):
         """ Breadth-first search """
 
-        nodes = self.nodes
+        nodes = self.nodes.values()
 
         self.graph.root.set_parents(nodes)
         self.graph.run_sched()
@@ -306,7 +312,11 @@ class ValidationJob:
             txid = tx.txid()
             node = self.graph.get_node(txid)
             try:
-                node.load_tx(tx)
+                val = self.validitycachegetter(txid)
+            except KeyError:
+                val = None
+            try:
+                node.load_tx(tx, cached_validity=val)
             except DoubleLoadException:
                 pass
 
@@ -799,7 +809,7 @@ class Node:
 
         if cached_validity is not None:
             self.graph.debug("%.10s... cached judgement: %s",
-                             self.txid, self.graph.validator.validity_states.get(ret[1],ret[1]))
+                             self.txid, self.graph.validator.validity_states.get(cached_validity,cached_validity))
             return self._inactivate_self(True, cached_validity)
 
         # at this point we have exhausted options for inactivation.

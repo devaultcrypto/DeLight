@@ -18,7 +18,7 @@ from .bitcoin import TYPE_SCRIPT
 ### Uncomment one of the following options:
 
 # Have a shared thread for validating all SLP token_ids sequentially
-shared_jobmgr = ValidationJobManager(threadname="ValidationJobs_SLP0x01")
+shared_jobmgr = ValidationJobManager(threadname="Validation_SLP1")
 
 ## Each token_id gets its own thread (thread spam?)
 #shared_jobmgr = None
@@ -33,14 +33,14 @@ def get_graph(token_id_hex):
         try:
             return graph_db[token_id_hex]
         except KeyError:
-            val = Validator_SLP_0x01(token_id_hex)
+            val = Validator_SLP1(token_id_hex)
 
             graph = TokenGraph(val)
 
             if shared_jobmgr:
                 jobmgr = shared_jobmgr
             else:
-                jobmgr = ValidationJobManager(threadname="ValidationJobs_token_id_%.10s"%(token_id_hex,))
+                jobmgr = ValidationJobManager(threadname="Validation_SLP1_token_id_%.10s"%(token_id_hex,))
 
             graph_db[token_id_hex] = (graph, jobmgr)
 
@@ -81,7 +81,15 @@ def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, 
 
     job = ValidationJob(graph, [tx.txid()], network,
                         txcachegetter=wallet.transactions.__getitem__,
+                        validitycachegetter=wallet.slpv1_validity.__getitem__,
                         **kwargs)
+    def save_validity_callback(job):
+        for t,n in job.nodes.items():
+            val = n.validity
+            if val != 0:
+                wallet.slpv1_validity[t] = val
+    job.add_callback(save_validity_callback)
+
     if debug == 2:
         # enable printing whole graph state for every step.
         job.debugging_graph_state = True
@@ -91,7 +99,7 @@ def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, 
     return job
 
 
-class Validator_SLP_0x01:
+class Validator_SLP1:
     prevalidation = True # indicate we want to check validation when some inputs still active.
 
     validity_states = {

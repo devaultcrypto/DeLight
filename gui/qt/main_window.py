@@ -361,7 +361,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.console.showMessage(args[0])
         elif event == 'verified':
             self.history_list.update_item(*args)
-#            self.slp_history_list.update_item(*args)  # Disable this since it's a too-complicated determining process.
+            self.slp_history_list.update_item_netupdate(*args)
         elif event == 'fee':
             pass
         else:
@@ -2132,7 +2132,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         new_entry=dict({'class':token_class,'name':token_name,'decimals':decimals_divisibility})
 
-        self.wallet.token_types[token_id] = new_entry
+        self.wallet.add_token_type(token_id, new_entry)
 
         self.token_list.update()
         self.update_token_type_combo()
