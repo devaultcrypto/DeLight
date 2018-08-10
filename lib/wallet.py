@@ -62,7 +62,7 @@ from .paymentrequest import PR_PAID, PR_UNPAID, PR_UNKNOWN, PR_EXPIRED
 from .paymentrequest import InvoiceStore
 from .contacts import Contacts
 
-from .slp import SlpMessage, SlpParsingError
+from .slp import SlpMessage, SlpParsingError, SlpNoMintingBatonFound
 from . import slp_validator_0x01
 
 TX_STATUS = [
@@ -668,6 +668,19 @@ class Abstract_Wallet(PrintError):
             for txi, v in l:
                 sent[txi] = height
         return received, sent
+
+    def get_slp_token_baton(self, slpTokenId):
+        # look for our minting baton
+        for addr in self._slp_txo:
+            for slp_txo in self._slp_txo[addr]:
+                if slp_txo['qty'] == 'MINT_BATON' and slp_txo['token_id'] == slpTokenId:
+                    try:
+                        coins = self.get_utxos(domain = None, exclude_frozen = False, mature = False, confirmed_only = False, get_all = True)
+                        baton_utxo = [ utxo for utxo in coins if utxo['prevout_hash'] == slp_txo['txid'] and utxo['prevout_n'] == slp_txo['idx'] ][0]
+                    except IndexError:
+                        continue
+                    return baton_utxo
+        raise SlpNoMintingBatonFound()
 
     # This method is updated for SLP to prevent tokens from being spent
     # in normal txn or txns with token_id other than the one specified

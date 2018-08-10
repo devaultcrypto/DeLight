@@ -37,6 +37,9 @@ from .util import *
 
 from electroncash.util import format_satoshis
 from .slp_add_token_dialog import SlpAddTokenDialog
+from .slp_add_token_mint_dialog import SlpAddTokenMintDialog
+
+from electroncash.slp import SlpNoMintingBatonFound
 
 class SlpMgt(MyTreeWidget):
     filter_columns = [0, 1,2]  # Key, Value
@@ -77,7 +80,12 @@ class SlpMgt(MyTreeWidget):
             column_data = '\n'.join([item.text(column) for item in selected])
             menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
             menu.addAction(_("Delete"), lambda: self.parent.delete_slp_token(keys))
-        menu.addAction(_("Add a new token type"), lambda: SlpAddTokenDialog(self.parent,))
+        if len(selected) == 1:
+            try:
+                self.parent.wallet.get_slp_token_baton(keys[0])
+                menu.addAction(_("Mint this token"), lambda: SlpAddTokenMintDialog(self.parent, keys[0]))
+            except SlpNoMintingBatonFound:
+                pass
 
         run_hook('create_contact_menu', menu, selected)
         menu.exec_(self.viewport().mapToGlobal(position))

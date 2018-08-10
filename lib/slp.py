@@ -75,6 +75,9 @@ class SlpTokenIdMissing(SlpSerializingError):
 class OPReturnTooLarge(SlpSerializingError):
     pass
 
+# Other exceptions
+class SlpNoMintingBatonFound(Exception):
+    pass
 
 # This class represents a parsed op_return message that can be used by validator to look at SLP messages
 class SlpMessage:
@@ -197,10 +200,7 @@ class SlpMessage:
         raise SlpInvalidOutputMessage
 
 
-# This class has sole responsibility for creating NEW SLP token transactions
-# Since there is currently only one token type, this implementation is
-# currently void of any Token Type selection logic, which will be required
-# if more than 1 token types are ever desired for Electron Cash.
+
 class SlpTokenTransactionFactory():
     def __init__(self, token_version: int, token_id_hex: str = None):
         if issubclass(type(token_version), Enum):
@@ -324,6 +324,48 @@ class SlpTokenTransactionFactory():
             raise OPReturnTooLarge(_("OP_RETURN message too large, cannot be larger than 223 bytes"))
         return (TYPE_SCRIPT, scriptBuffer, 0)
 
+    # Type 2 Token MINT Message
+    def buildMintOpReturnOutput_V1(self, baton_vout: int, token_mint_quantity: int) -> tuple:
+        if self.token_id_hex == None:
+            raise SlpTokenIdMissing
+        script = []
+        # OP_RETURN
+        script.extend([0x6a])
+        # lokad
+        lokad = bytes.fromhex(self.lokad_id)
+        script.extend(self.getPushDataOpcode(lokad))
+        script.extend(lokad)
+        # token version
+        tokenType = int_2_bytes_bigendian(self.token_version)
+        script.extend(self.getPushDataOpcode(tokenType))
+        script.extend(tokenType)
+        # transaction type
+        transType = b'MINT'
+        script.extend(self.getPushDataOpcode(transType))
+        script.extend(transType)
+        # token id
+        tokenId = bytes.fromhex(self.token_id_hex)
+        script.extend(self.getPushDataOpcode(tokenId))
+        script.extend(tokenId)
+        # baton vout
+        if baton_vout is not None:
+            if baton_vout < 2:
+                raise SlpSerializingError()
+            baton_vout = int_2_bytes_bigendian(baton_vout, 1)
+            script.extend(self.getPushDataOpcode(baton_vout))
+            script.extend(baton_vout)
+        else:
+            script.extend([0x4c, 0x00])
+        # init quantity
+        qty = int_2_bytes_bigendian(token_mint_quantity, 8)
+        script.extend(self.getPushDataOpcode(qty))
+        script.extend(qty)
+
+        scriptBuffer = ScriptOutput(bytes(script))
+        if len(scriptBuffer.script) > 223:
+            raise OPReturnTooLarge(_("OP_RETURN message too large, cannot be larger than 223 bytes"))
+        return (TYPE_SCRIPT, scriptBuffer, 0)
+
     @staticmethod
     def encodeStringToHex(stringData: str, encoding = 'utf-8', allow_None = False):
         if not allow_None and (stringData is None or stringData == ''):
@@ -353,20 +395,3 @@ class SlpTokenTransactionFactory():
             return [ 0x4c, length ]
         else:
             raise SlpSerializingError()
-
-    # def buildMintOpReturnOutput(self, additional_token_quantity):
-    #     script = "OP_RETURN " + self.lokad_id + " " + self.token_version + " MINT"
-    #     script = script + " " + self.token_id + " " + additional_token_quantity
-    #     scriptBuffer = ScriptOutput.from_string(script)
-    #     if len(scriptBuffer.script) > 223:
-    #         raise OPReturnTooLarge(_("OP_RETURN message too large, needs to be under 220 bytes"))
-    #     return (TYPE_SCRIPT, scriptBuffer, 0)
-
-    # def buildCommitmentOpReturnOutput(self, for_bitcoin_block_height, for_bitcoin_block_hash, token_txn_set_commitment, txn_set_data_url):
-    #     script = "OP_RETURN " + self.lokad_id + " " + self.token_version + " COMM"
-    #     script = script + " " + self.token_id + " " + for_bitcoin_block_height + " " + for_bitcoin_block_height
-    #     script = script + " " + token_txn_set_commitment + " " + txn_set_data_url
-    #     scriptBuffer = ScriptOutput.from_string(script)
-    #     if len(scriptBuffer.script) > 223:
-    #         raise OPReturnTooLarge(_("OP_RETURN message too large, needs to be under 220 bytes"))
-    #     return (TYPE_SCRIPT, scriptBuffer, 0)
