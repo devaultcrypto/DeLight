@@ -34,6 +34,7 @@ import stat
 from .i18n import _
 
 import queue
+from locale import localeconv
 
 def inv_dict(d):
     return {v: k for k, v in d.items()}
@@ -379,7 +380,7 @@ def user_dir(prefer_local=False):
         return os.path.join(os.environ["HOME"], ".electron-cash" )
     elif "APPDATA" in os.environ or "LOCALAPPDATA" in os.environ:
         app_dir = os.environ.get("APPDATA")
-        localapp_dir = os.environ.get("LOCALAPPDATA")         
+        localapp_dir = os.environ.get("LOCALAPPDATA")
         # Prefer APPDATA, but may get LOCALAPPDATA if present and req'd.
         if localapp_dir is not None and prefer_local or app_dir is None:
             app_dir = localapp_dir
@@ -406,7 +407,6 @@ def format_satoshis_plain(x, decimal_point = 8):
 
 
 def format_satoshis(x, num_zeros=0, decimal_point=8, precision=None, is_diff=False, whitespaces=False):
-    from locale import localeconv
     if x is None:
         return 'unknown'
     if precision is None:
@@ -427,6 +427,54 @@ def format_satoshis(x, num_zeros=0, decimal_point=8, precision=None, is_diff=Fal
 
 def format_fee_satoshis(fee, num_zeros=0):
     return format_satoshis(fee, num_zeros, 0, precision=1)
+
+def format_satoshis_nofloat(x, num_zeros=0, decimal_point=8, precision=None, is_diff=False, whitespaces=False):
+    """ Format the quantity x/10**decimal_point, for integer x.
+
+    Does not use any floating point representation internally, so no rounding ever occurs when precision is None.
+
+    Don't pass values other than nonnegative integers for decimal_point or num_zeros or precision.
+    Undefined things will occur.
+
+    `whitespaces` may be passed as an integer or True (the latter defaulting to 15, as in format_satoshis).
+    """
+    if x is None:
+        return 'unknown'
+    if precision is not None:
+        x = round(int(x), precision - decimal_point)
+    else:
+        x = int(x)
+
+    xstr = str(abs(x))
+
+    if decimal_point > 0:
+        integer_part = xstr[:-decimal_point]
+        fract_part   = xstr[-decimal_point:]
+
+        fract_part = '0'*(decimal_point - len(fract_part)) + fract_part  # add leading zeros
+        fract_part = fract_part.rstrip('0')  # snip off trailing zeros
+    else:
+        integer_part = xstr
+        fract_part = ''
+    if not integer_part:
+        integer_part = '0'
+
+    fract_part += "0" * (num_zeros - len(fract_part)) # restore desired minimum number of fractional figures
+
+    dp = localeconv()['decimal_point']
+    result = integer_part + dp + fract_part
+    if x < 0: # put the sign on
+        result = '-' + result
+    elif is_diff:
+        result = '+' + result
+
+    if whitespaces is True:
+        whitespaces = 15
+    if whitespaces:
+        result += " " * (decimal_point - len(fract_part))
+        result = " " * (whitespaces - len(result)) + result
+
+    return result
 
 def timestamp_to_datetime(timestamp):
     try:
