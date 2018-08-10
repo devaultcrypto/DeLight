@@ -42,7 +42,6 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
         vbox.addWidget(QLabel(_('Token Name:')))
         self.token_name_e = ButtonsLineEdit()
-        self.token_name_e.addCopyButton(self.app)
         self.token_name_e.setFixedWidth(200)
         vbox.addWidget(self.token_name_e)
 
@@ -106,7 +105,7 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         try:
             init_mint_qty = int(self.token_qty_e.text())
         except Exception as e:
-            self.main_window.show_message(_("Must have initial token quantity entered."))
+            self.show_message(_("Must have initial token quantity entered."))
             return
 
         outputs = []
@@ -114,12 +113,15 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         slp_op_return_msg = msgFactory.buildInitOpReturnOutput_V1(ticker, token_name, token_document_url, token_document_hash, decimals, mint_baton_vout, init_mint_qty)
         outputs.append(slp_op_return_msg)
 
-        addr = self.parse_address(self.token_pay_to_e.text())
-        outputs.append((TYPE_ADDRESS, addr, 546))
-
-        if self.token_baton_to_e.text() != '':
-            addr = self.parse_address(self.token_baton_to_e.text())
+        try:
+            addr = self.parse_address(self.token_pay_to_e.text())
             outputs.append((TYPE_ADDRESS, addr, 546))
+            if self.token_baton_to_e.text() != '':
+                addr = self.parse_address(self.token_baton_to_e.text())
+                outputs.append((TYPE_ADDRESS, addr, 546))
+        except:
+            self.show_message(_("Must have address in simpleledger format."))
+            return
 
         coins = self.main_window.get_coins()
         fee = None
@@ -127,17 +129,14 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         try:
             tx = self.main_window.wallet.make_unsigned_transaction(coins, outputs, self.main_window.config, fee, None)
         except NotEnoughFunds:
-            self.main_window.show_message(_("Insufficient funds"))
-            return
-        except NotEnoughFundsSlp:
-            self.main_window.show_message(_("Insufficient valid token funds"))
+            self.show_message(_("Insufficient funds"))
             return
         except ExcessiveFee:
-            self.main_window.show_message(_("Your fee is too high.  Max is 50 sat/byte."))
+            self.show_message(_("Your fee is too high.  Max is 50 sat/byte."))
             return
         except BaseException as e:
             traceback.print_exc(file=sys.stdout)
-            self.main_window.show_message(str(e))
+            self.show_message(str(e))
             return
 
         # confirmation dialog

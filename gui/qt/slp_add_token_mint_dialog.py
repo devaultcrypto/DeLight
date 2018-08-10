@@ -98,46 +98,50 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         try:
             init_mint_qty = int(self.token_qty_e.text())
         except Exception as e:
-            self.main_window.show_message(_("Must have initial token quantity entered."))
+            self.show_message(_("Must have initial token quantity entered."))
             return
 
         outputs = []
         msgFactory = SlpTokenTransactionFactory(1, self.token_id_e.text())
         slp_op_return_msg = msgFactory.buildMintOpReturnOutput_V1(mint_baton_vout, init_mint_qty)
         outputs.append(slp_op_return_msg)
-
-        addr = self.parse_address(self.token_pay_to_e.text())
-        outputs.append((TYPE_ADDRESS, addr, 546))
-
-        if self.token_baton_to_e.text() != '':
-            addr = self.parse_address(self.token_baton_to_e.text())
+        
+        try:
+            addr = self.parse_address(self.token_pay_to_e.text())
             outputs.append((TYPE_ADDRESS, addr, 546))
+            if self.token_baton_to_e.text() != '':
+                addr = self.parse_address(self.token_baton_to_e.text())
+                outputs.append((TYPE_ADDRESS, addr, 546))
+        except:
+            self.show_message(_("Must have address in simpleledger format."))
+            return
 
         coins = self.main_window.get_coins()
         fee = None
         try:
             baton_input = self.main_window.wallet.get_slp_token_baton(self.token_id_e.text())
         except SlpNoMintingBatonFound as e:
-            self.main_window.show_message(_("No baton exists for this token."))
+            self.show_message(_("No baton exists for this token."))
+            return
 
         try:
             tx = self.main_window.wallet.make_unsigned_transaction(coins, outputs, self.main_window.config, fee, None)
         except NotEnoughFunds:
-            self.main_window.show_message(_("Insufficient funds"))
+            self.show_message(_("Insufficient funds"))
             return
         except ExcessiveFee:
-            self.main_window.show_message(_("Your fee is too high.  Max is 50 sat/byte."))
+            self.show_message(_("Your fee is too high.  Max is 50 sat/byte."))
             return
         except BaseException as e:
             traceback.print_exc(file=sys.stdout)
-            self.main_window.show_message(str(e))
+            self.show_message(str(e))
             return
 
         # Find & Add baton to tx inputs
         try:
             baton_utxo = self.main_window.wallet.get_slp_token_baton(self.token_id_e.text())
         except SlpNoMintingBatonFound:
-            self.main_window.show_message(_("There is no minting baton found for this token."))
+            self.show_message(_("There is no minting baton found for this token."))
             return
 
         tx.add_inputs([baton_utxo])
