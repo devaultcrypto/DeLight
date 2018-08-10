@@ -568,7 +568,7 @@ class Commands:
             print("(returned job is still running in background)")
             return job
 
-        n = job.nodes.values()[0]
+        n = next(iter(job.nodes.values()))
         validity_name = job.graph.validator.validity_states[n.validity]
         return validity_name
 
