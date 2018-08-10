@@ -37,6 +37,7 @@ from .util import *
 
 from electroncash.util import format_satoshis
 from .slp_add_token_dialog import SlpAddTokenDialog
+from .slp_add_token_init_dialog import SlpAddTokenInitDialog
 from .slp_add_token_mint_dialog import SlpAddTokenMintDialog
 
 from electroncash.slp import SlpNoMintingBatonFound
@@ -80,6 +81,9 @@ class SlpMgt(MyTreeWidget):
             column_data = '\n'.join([item.text(column) for item in selected])
             menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
             menu.addAction(_("Delete"), lambda: self.parent.delete_slp_token(keys))
+        menu.addAction(_("Add existing token"), lambda: SlpAddTokenDialog(self.parent,))
+
+        menu.addAction(_("Create a new token"), lambda: SlpAddTokenInitDialog(self.parent,))
         if len(selected) == 1:
             try:
                 self.parent.wallet.get_slp_token_baton(keys[0])
@@ -96,7 +100,6 @@ class SlpMgt(MyTreeWidget):
         # for now return dummy value.
         bal,dummy1,dummy2=self.parent.wallet.get_slp_token_balance(slpTokenId)
         return bal
-
 
     def on_update(self):
         self.clear()
