@@ -104,16 +104,22 @@ class SlpMessage:
         except OpreturnError as e:
             raise SlpInvalidOutputMessage('Bad OP_RETURN', *e.args) from e
 
-        if len(chunks) < 3:
-            raise SlpInvalidOutputMessage('Too short')
+        if len(chunks) == 0:
+            raise SlpInvalidOutputMessage('Empty OP_RETURN')
 
         if chunks[0] != SlpMessage.lokad_id:
             raise SlpInvalidOutputMessage('Not SLP')
+
+        if len(chunks) == 1:
+            raise SlpInvalidOutputMessage('Missing token_type')
 
         # check if the token version is supported
         slpMsg.token_type = SlpMessage.parseChunkToInt(chunks[1], 1, 2, True)
         if slpMsg.token_type != 1:
             raise SlpUnsupportedSlpTokenType(slpMsg.token_type)
+
+        if len(chunks) == 2:
+            raise SlpInvalidOutputMessage('Missing SLP command')
 
         # (the following logic is all for version 1)
         try:

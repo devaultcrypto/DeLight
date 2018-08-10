@@ -62,7 +62,7 @@ from .paymentrequest import PR_PAID, PR_UNPAID, PR_UNKNOWN, PR_EXPIRED
 from .paymentrequest import InvoiceStore
 from .contacts import Contacts
 
-from .slp import SlpMessage, SlpParsingError, SlpNoMintingBatonFound
+from .slp import SlpMessage, SlpParsingError, SlpUnsupportedSlpTokenType, SlpNoMintingBatonFound
 from . import slp_validator_0x01
 
 TX_STATUS = [
@@ -300,16 +300,18 @@ class Abstract_Wallet(PrintError):
 
             ok = self.storage.get('had_slp_enabled', False)
 
-            self._slp_txo = defaultdict(dict)
-            if ok == '1': # 1 for new slp_txo version
-                self._slp_txo.update(self.to_Address_dict(self.storage.get('slp_txo')))
+            if ok == 2: #  2 for new slp_txo version
+                self._slp_txo = defaultdict(lambda: defaultdict(dict))
+                for addr, addrdict in self.to_Address_dict(self.storage.get('slp_txo')).items():
+                    for txid, txdict in addrdict.items():
+                        # need to do this iteration since json stores int keys as decimal strings.
+                        self._slp_txo[addr][txid] = {int(idx):d for idx,d in txdict.items()}
                 self.tx_tokinfo = self.storage.get('tx_tokinfo')
                 for tx_hash, tti in self.tx_tokinfo.items():
                     # Fire up validation on unvalidated txes
                     tx = self.transactions[tx_hash]
                     self.slp_check_validation(tx_hash, tx)
             else:
-                self.tx_tokinfo = {}
                 self.rebuild_slp()
 
     def add_token_type(self, token_id, entry):
@@ -325,7 +327,7 @@ class Abstract_Wallet(PrintError):
         if self._enable_slp:
             self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
             self.storage.put('tx_tokinfo', self.tx_tokinfo)
-            self.storage.put('had_slp_enabled', '1')
+            self.storage.put('had_slp_enabled', 2)
         else:
             self.storage.put('slp_txo', {})
             self.storage.put('tx_tokinfo', {})
@@ -671,10 +673,10 @@ class Abstract_Wallet(PrintError):
 
     def get_slp_token_baton(self, slpTokenId):
         # look for our minting baton
-        for addr, txdict in self._slp_txo.items():
-            for txid, slp_txo_list in txdict.items():
-                for idx, slp_txo in enumerate(slp_txo_list):
-                    if slp_txo.get('qty',None) == 'MINT_BATON' and slp_txo['token_id'] == slpTokenId:
+        for addr, addrdict in self._slp_txo.items():
+            for txid, txdict in addrdict.items():
+                for idx, txo in txdict.items():
+                    if txo['qty'] == 'MINT_BATON' and txo['token_id'] == slpTokenId:
                         try:
                             coins = self.get_utxos(domain = None, exclude_frozen = False, mature = False, confirmed_only = False, get_all = True)
                             baton_utxo = [ utxo for utxo in coins if utxo['prevout_hash'] == txid and utxo['prevout_n'] == idx ][0]
@@ -694,10 +696,10 @@ class Abstract_Wallet(PrintError):
         ### SLP stuff
         # removes token that are either unrelated, or unvalidated
         if self._enable_slp and not get_all:
-            txdict = self._slp_txo.get(address,{})
-            for txid, slp_txo_list in txdict.items():
-                for idx, txo in enumerate(slp_txo_list):
-                    if not isinstance(txo.get('qty',None), int) or slpTokenId is None or txo['token_id'] != slpTokenId or self.tx_tokinfo[txid]['validity'] != 1:
+            addrdict = self._slp_txo.get(address,{})
+            for txid, txdict in addrdict.items():
+                for idx, txo in txdict.items():
+                    if not isinstance(txo['qty'], int) or slpTokenId is None or txo['token_id'] != slpTokenId or self.tx_tokinfo[txid]['validity'] != 1:
                         coins.pop(txid + ":" + str(idx), None)
         out = {}
         for txo, v in coins.items():
@@ -748,10 +750,10 @@ class Abstract_Wallet(PrintError):
         valid_token_bal = 0
         unvalidated_token_bal = 0
         invalid_token_bal = 0
-        for addr, txdict in self._slp_txo.items():
+        for addr, addrdict in self._slp_txo.items():
             _, spent = self.get_addr_io(addr)
-            for txid, slp_txo_list in txdict.items():
-                for idx, txo in enumerate(slp_txo_list):
+            for txid, txdict in addrdict.items():
+                for idx, txo in txdict.items():
                     if not isinstance(txo.get('qty',None), int): # Ignore baton / non-inputs
                         continue
                     # ignore spent txos
@@ -858,81 +860,79 @@ class Abstract_Wallet(PrintError):
                 self.handleSlpTransaction(tx_hash, tx)
 
     def handleSlpTransaction(self, tx_hash, tx):
+        txouts = tx.outputs()
+
         try:
-            slpMsg = SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
+            slpMsg = SlpMessage.parseSlpOutputScript(txouts[0][1])
+        except SlpUnsupportedSlpTokenType as e:
+            token_type = 'SLP%d'%(e.args[0],)
+            for i, (_type, addr, _) in enumerate(txouts):
+                if _type is TYPE_ADDRESS and self.is_mine(addr):
+                    self._slp_txo[addr][tx_hash][i] = {
+                            'type': token_type,
+                            'qty': None,
+                            'token_id': None,
+                            }
+            return
         except (SlpParsingError, IndexError):
             return
 
         if slpMsg.transaction_type == "TRAN":
             token_id_hex = slpMsg.op_return_fields['token_id_hex']
             # truncate outputs list
-            amounts = slpMsg.op_return_fields['token_output'][:len(tx.outputs())]
+            amounts = slpMsg.op_return_fields['token_output'][:len(txouts)]
             for i, qty in enumerate(amounts):
-                _type, addr, _ = tx.outputs()[i]
+                _type, addr, _ = txouts[i]
                 if _type is TYPE_ADDRESS and qty > 0 and self.is_mine(addr):
-                    try:
-                        txo = self._slp_txo[addr][tx_hash]
-                    except KeyError:
-                        txo = self._slp_txo[addr][tx_hash] = [dict() for o in tx.outputs()]
-                    txo[i] = {
+                    self._slp_txo[addr][tx_hash][i] = {
+                            'type': 'SLP1',
                             'token_id': token_id_hex,
                             'qty': qty,
-                            'type': 'TRAN',
                             }
         elif slpMsg.transaction_type == "INIT":
             token_id_hex = tx_hash
-            _type, addr, _ = tx.outputs()[1]
-            if _type is TYPE_ADDRESS:
-                try:
-                    txo = self._slp_txo[addr][tx_hash]
-                except KeyError:
-                    txo = self._slp_txo[addr][tx_hash] = [dict() for o in tx.outputs()]
-                if slpMsg.op_return_fields['initial_token_mint_quantity'] > 0 and self.is_mine(addr):
-                    txo[1] = {
-                            'token_id': token_id_hex,
-                            'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
-                            'type': 'INIT',
-                        }
-                if slpMsg.op_return_fields['mint_baton_vout'] is not None:
-                    i = slpMsg.op_return_fields['mint_baton_vout']
-                    _type, addr, _ = tx.outputs()[i]
-                    try:
-                        txo = self._slp_txo[addr][tx_hash]
-                    except KeyError:
-                        txo = self._slp_txo[addr][tx_hash] = [dict() for o in tx.outputs()]
-                    if _type is TYPE_ADDRESS:
-                        txo[i] = {
+            try:
+                _type, addr, _ = txouts[1]
+                if _type is TYPE_ADDRESS:
+                    if slpMsg.op_return_fields['initial_token_mint_quantity'] > 0 and self.is_mine(addr):
+                        self._slp_txo[addr][tx_hash][1] = {
+                                'type': 'SLP1',
                                 'token_id': token_id_hex,
-                                'qty': 'MINT_BATON',
-                                'type': 'INIT',
+                                'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
                             }
+                    if slpMsg.op_return_fields['mint_baton_vout'] is not None:
+                        i = slpMsg.op_return_fields['mint_baton_vout']
+                        _type, addr, _ = txouts[i]
+                        if _type is TYPE_ADDRESS:
+                            self._slp_txo[addr][tx_hash][i] = {
+                                    'type': 'SLP1',
+                                    'token_id': token_id_hex,
+                                    'qty': 'MINT_BATON',
+                                }
+            except IndexError: # if too few outputs (compared to mint_baton_vout)
+                pass
         elif slpMsg.transaction_type == "MINT":
             token_id_hex = slpMsg.op_return_fields['token_id_hex']
-            _type, addr, _ = tx.outputs()[1]
-            if _type is TYPE_ADDRESS:
-                try:
-                    txo = self._slp_txo[addr][tx_hash]
-                except KeyError:
-                    txo = self._slp_txo[addr][tx_hash] = [dict() for o in tx.outputs()]
-                if slpMsg.op_return_fields['additional_token_quantity'] > 0 and self.is_mine(addr):
-                    txo[1] = {
-                            'token_id': token_id_hex,
-                            'qty': slpMsg.op_return_fields['additional_token_quantity'],
-                            'type': 'MINT',
-                        }
-                if slpMsg.op_return_fields['mint_baton_vout'] is not None:
-                    i = slpMsg.op_return_fields['mint_baton_vout']
-                    _type, addr, _ = tx.outputs()[i]
-                    if _type is TYPE_ADDRESS:
-                        try:
-                            txo = self._slp_txo[addr][tx_hash]
-                        except KeyError:
-                            txo = self._slp_txo[addr][tx_hash] = [dict() for o in tx.outputs()]
-                        txo[i] = {
+            try:
+                _type, addr, _ = txouts[1]
+                if _type is TYPE_ADDRESS:
+                    if slpMsg.op_return_fields['additional_token_quantity'] > 0 and self.is_mine(addr):
+                        self._slp_txo[addr][tx_hash][1] = {
+                                'type': 'SLP1',
                                 'token_id': token_id_hex,
-                                'qty': 'MINT_BATON',
-                                'type': 'MINT',
+                                'qty': slpMsg.op_return_fields['additional_token_quantity'],
                             }
+                    if slpMsg.op_return_fields['mint_baton_vout'] is not None:
+                        i = slpMsg.op_return_fields['mint_baton_vout']
+                        _type, addr, _ = txouts[i]
+                        if _type is TYPE_ADDRESS:
+                            self._slp_txo[addr][tx_hash][i] = {
+                                    'type': 'SLP1',
+                                    'token_id': token_id_hex,
+                                    'qty': 'MINT_BATON',
+                                }
+            except IndexError: # if too few outputs (compared to mint_baton_vout)
+                pass
         elif slpMsg.transaction_type == "COMM":
             # ignore COMMs, they aren't producing any tokens.
             return
@@ -940,7 +940,7 @@ class Abstract_Wallet(PrintError):
             raise RuntimeError(slpMsg.transaction_type)
 
         # Always add entry to tx_tokinfo
-        tti = { 'class':'SLP%d'%(slpMsg.token_type,),
+        tti = { 'type':'SLP%d'%(slpMsg.token_type,),
                 'transaction_type':slpMsg.transaction_type,
                 'token_id': token_id_hex,
                 'validity': 0,
@@ -951,7 +951,7 @@ class Abstract_Wallet(PrintError):
 
     def slp_check_validation(self, tx_hash, tx):
         tti = self.tx_tokinfo[tx_hash]
-        if tti['validity'] == 0 and tti['token_id'] in self.token_types and tti['class'] == 'SLP1':
+        if tti['validity'] == 0 and tti['token_id'] in self.token_types and tti['type'] == 'SLP1':
             def callback(job):
                 (txid,node), = job.nodes.items()
                 val = node.validity
@@ -967,7 +967,7 @@ class Abstract_Wallet(PrintError):
     def rebuild_slp(self,):
         """Wipe away old SLP transaction data and rerun on the entire tx set."""
         with self.transaction_lock:
-            self._slp_txo = defaultdict(dict)
+            self._slp_txo = defaultdict(lambda: defaultdict(dict))
             self.tx_tokinfo = {}
             for txid, tx in self.transactions.items():
                 self.handleSlpTransaction(txid, tx)
@@ -1040,7 +1040,7 @@ class Abstract_Wallet(PrintError):
 
         return history
 
-    def get_slp_histories(self, domain=None, validities_considered=(None,0,1)):
+    def get_slp_histories(self, domain=None, validities_considered=(0,1)):
         # Based on get_history.
         # We return a dict of histories, one history per token_id.
 
@@ -1052,15 +1052,17 @@ class Abstract_Wallet(PrintError):
         token_tx_deltas = defaultdict(lambda: defaultdict(int)) # defaultdict of defaultdicts of ints :)
         for addr in domain:
             h = self.get_address_history(addr)
+            addrslptxo = self._slp_txo[addr]
+
             for tx_hash, height in h:
                 if tx_hash in self.pruned_txo.values():
                     continue
-
                 tti = self.tx_tokinfo.get(tx_hash)
                 if tti and tti['validity'] in validities_considered:
-                    slp_txo_list = self._slp_txo.get(addr,{}).get(tx_hash,())
-                    for d in slp_txo_list:
-                        if isinstance(d.get('qty',None),int):
+                    txdict = addrslptxo.get(tx_hash,{})
+
+                    for idx,d in txdict.items():
+                        if isinstance(d['qty'],int):
                             token_tx_deltas[d['token_id']][tx_hash] += d['qty']  # received!
 
                 # scan over all txi's, trying to find if they were tokens, which tokens, and how much
@@ -1072,11 +1074,7 @@ class Abstract_Wallet(PrintError):
                         continue
                     prevout = int(prevout_str)
 
-                    slp_txo_list = self._slp_txo[addr].get(prevtxid,())
-                    try:
-                        d = slp_txo_list[prevout]
-                    except IndexError:
-                        continue
+                    d = addrslptxo.get(prevtxid,{}).get(prevout,{})
                     if isinstance(d.get('qty',None),int):
                         token_tx_deltas[d['token_id']][tx_hash] -= d['qty']  # received!
 
