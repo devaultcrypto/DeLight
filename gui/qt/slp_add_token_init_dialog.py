@@ -63,7 +63,6 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         msg = _('The simpleledger formatted bitcoin address for the genesis receiver of all genesis tokens.')
         vbox.addWidget(HelpLabel(_('Token Receiver Address:'), msg))
         self.token_pay_to_e = ButtonsLineEdit()
-        self.token_pay_to_e.addCopyButton(self.app)
         self.token_pay_to_e.setFixedWidth(400)
         vbox.addWidget(self.token_pay_to_e)
 
