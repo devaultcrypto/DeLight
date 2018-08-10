@@ -232,7 +232,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def update_token_type_combo(self):
         self.token_type_combo.clear()
-        self.token_type_combo.addItem('None', None)
+        self.token_type_combo.addItem(QIcon(':icons/tab_coins.png'), 'None', None)
 
         try:
             token_types = self.wallet.token_types
@@ -241,7 +241,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         else:
             sorted_items = sorted(token_types.items(), key=lambda x:x[1]['name'])
             for token_id,i in sorted_items:
-                self.token_type_combo.addItem(i['name'], token_id)
+                self.token_type_combo.addItem(QIcon(':icons/tab_slp_icon.png'),i['name'], token_id)
 
     def on_history(self, b):
         self.new_fx_history_signal.emit()
