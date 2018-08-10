@@ -30,6 +30,8 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         # We want to be a top-level window
         QDialog.__init__(self, parent=main_window)
 
+        #self.init_grid = grid = QGridLayout()
+        
         self.main_window = main_window
         self.wallet = main_window.wallet
         self.network = main_window.network
@@ -39,32 +41,44 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
         vbox = QVBoxLayout()
         self.setLayout(vbox)
-
-        vbox.addWidget(QLabel(_('Token Name:')))
+        
+        msg = _('An optional name string embedded in the token genesis transaction.')
+        vbox.addWidget(HelpLabel(_('Token Name (optional):'), msg))
         self.token_name_e = ButtonsLineEdit()
         self.token_name_e.setFixedWidth(200)
         vbox.addWidget(self.token_name_e)
 
-        vbox.addWidget(QLabel(_('Token Ticker:')))
+        msg = _('An optional ticker symbol embedded into the token genesis transaction.')
+        vbox.addWidget(HelpLabel(_('Token Ticker (optional):'), msg))
         self.token_ticker_e = ButtonsLineEdit()
         self.token_ticker_e.setFixedWidth(75)
         vbox.addWidget(self.token_ticker_e)
 
-        vbox.addWidget(QLabel(_('Intial Token Quantity:')))
+        msg = _('The number of tokens created during token genesis transaction, send to the receiver address provided below.')
+        vbox.addWidget(HelpLabel(_('Intial Token Quantity:'), msg))
         self.token_qty_e = ButtonsLineEdit()
         self.token_qty_e.setFixedWidth(75)
         vbox.addWidget(self.token_qty_e)
 
-        vbox.addWidget(QLabel(_('Token Receiver Address:')))
+        msg = _('The simpleledger formatted bitcoin address for the genesis receiver of all genesis tokens.')
+        vbox.addWidget(HelpLabel(_('Token Receiver Address:'), msg))
         self.token_pay_to_e = ButtonsLineEdit()
         self.token_pay_to_e.addCopyButton(self.app)
         self.token_pay_to_e.setFixedWidth(400)
         vbox.addWidget(self.token_pay_to_e)
 
-        vbox.addWidget(QLabel(_('Mint Baton Address:')))
+        self.token_fixed_supply_cb = cb = QCheckBox(_('Fixed Supply'))
+        self.token_fixed_supply_cb.setChecked(True)
+        vbox.addWidget(self.token_fixed_supply_cb)
+        cb.clicked.connect(self.show_mint_baton_address)
+
+        msg = _('The simpleledger formatted bitcoin address for the genesis baton receiver.')
+        self.token_baton_label = HelpLabel(_('Address for Baton:'), msg)
+        self.token_baton_label.setHidden(True)      
+        vbox.addWidget(self.token_baton_label)
         self.token_baton_to_e = ButtonsLineEdit()
-        self.token_baton_to_e.addCopyButton(self.app)
         self.token_baton_to_e.setFixedWidth(400)
+        self.token_baton_to_e.setHidden(True)
         vbox.addWidget(self.token_baton_to_e)
 
         hbox = QHBoxLayout()
@@ -90,6 +104,10 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
         self.token_name_e.setFocus()
 
+    def show_mint_baton_address(self):
+        self.token_baton_to_e.setHidden(self.token_fixed_supply_cb.isChecked())
+        self.token_baton_label.setHidden(self.token_fixed_supply_cb.isChecked()) 
+
     def parse_address(self, address):
         if "simpleledger" not in address:
             address="simpleledger:"+address
@@ -104,19 +122,32 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
         try:
             init_mint_qty = int(self.token_qty_e.text())
+            if init_mint_qty > (2 << 64) - 1:
+                raise Exception()
+        except ValueError:
+            self.show_message(_("Invalid token quantity entered."))
+            return 
         except Exception as e:
-            self.show_message(_("Must have initial token quantity entered."))
+            self.show_message(_("Token output quantity is too large."))
             return
 
         outputs = []
-        msgFactory = SlpTokenTransactionFactory(1)
-        slp_op_return_msg = msgFactory.buildInitOpReturnOutput_V1(ticker, token_name, token_document_url, token_document_hash, decimals, mint_baton_vout, init_mint_qty)
-        outputs.append(slp_op_return_msg)
+        try:
+            msgFactory = SlpTokenTransactionFactory(1)
+            slp_op_return_msg = msgFactory.buildInitOpReturnOutput_V1(ticker, token_name, token_document_url, token_document_hash, decimals, mint_baton_vout, init_mint_qty)
+            outputs.append(slp_op_return_msg)
+        except OPReturnTooLarge:
+            self.show_message(_("Optional string text causiing OP_RETURN greater than 223 bytes."))
+            return
+        except Exception as e: 
+            traceback.print_exc(file=sys.stdout)
+            self.show_message(str(e))
+            return
 
         try:
             addr = self.parse_address(self.token_pay_to_e.text())
             outputs.append((TYPE_ADDRESS, addr, 546))
-            if self.token_baton_to_e.text() != '':
+            if self.token_baton_to_e.text() != '' and not self.token_fixed_supply_cb.isChecked():
                 addr = self.parse_address(self.token_baton_to_e.text())
                 outputs.append((TYPE_ADDRESS, addr, 546))
         except:
@@ -141,13 +172,6 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
         # confirmation dialog
         msg = []
-
-        x_fee = run_hook('get_tx_extra_fee', self.main_window.wallet, tx)
-        if x_fee:
-            x_fee_address, x_fee_amount = x_fee
-            msg.append( _("Additional fees") + ": " + self.main_window.format_amount_and_units(x_fee_amount) )
-
-        confirm_rate = 2 * self.main_window.config.max_fee_rate()
 
         if self.main_window.wallet.has_password():
             msg.append("")
