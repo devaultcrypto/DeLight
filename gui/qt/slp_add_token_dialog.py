@@ -17,7 +17,7 @@ from electroncash.plugins import run_hook
 from electroncash.util import bfh
 from .util import *
 
-from electroncash.util import format_satoshis
+from electroncash.util import format_satoshis_nofloat
 from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage
 
@@ -235,7 +235,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         cursor.insertText(_('Decimals:') + ' ' + str(self.newtoken_decimals))
         cursor.insertBlock()
 
-        numtokens = format_satoshis(slpMsg.op_return_fields['initial_token_mint_quantity'],
+        numtokens = format_satoshis_nofloat(slpMsg.op_return_fields['initial_token_mint_quantity'],
                                     num_zeros=self.newtoken_decimals,
                                     decimal_point=self.newtoken_decimals,)
         mbv = slpMsg.op_return_fields['mint_baton_vout']

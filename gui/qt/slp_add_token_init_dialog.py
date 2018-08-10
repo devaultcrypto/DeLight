@@ -17,7 +17,7 @@ from electroncash.plugins import run_hook
 from electroncash.util import bfh
 from .util import *
 
-from electroncash.util import format_satoshis
+from electroncash.util import format_satoshis_nofloat
 from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, SlpTokenTransactionFactory
 
@@ -31,7 +31,7 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         QDialog.__init__(self, parent=main_window)
 
         #self.init_grid = grid = QGridLayout()
-        
+
         self.main_window = main_window
         self.wallet = main_window.wallet
         self.network = main_window.network
@@ -41,7 +41,7 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
         vbox = QVBoxLayout()
         self.setLayout(vbox)
-        
+
         msg = _('An optional name string embedded in the token genesis transaction.')
         vbox.addWidget(HelpLabel(_('Token Name (optional):'), msg))
         self.token_name_e = ButtonsLineEdit()
@@ -73,7 +73,7 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
         msg = _('The simpleledger formatted bitcoin address for the genesis baton receiver.')
         self.token_baton_label = HelpLabel(_('Address for Baton:'), msg)
-        self.token_baton_label.setHidden(True)      
+        self.token_baton_label.setHidden(True)
         vbox.addWidget(self.token_baton_label)
         self.token_baton_to_e = ButtonsLineEdit()
         self.token_baton_to_e.setFixedWidth(400)
@@ -105,7 +105,7 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
     def show_mint_baton_address(self):
         self.token_baton_to_e.setHidden(self.token_fixed_supply_cb.isChecked())
-        self.token_baton_label.setHidden(self.token_fixed_supply_cb.isChecked()) 
+        self.token_baton_label.setHidden(self.token_fixed_supply_cb.isChecked())
 
     def parse_address(self, address):
         if "simpleledger" not in address:
@@ -125,7 +125,7 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
                 raise Exception()
         except ValueError:
             self.show_message(_("Invalid token quantity entered."))
-            return 
+            return
         except Exception as e:
             self.show_message(_("Token output quantity is too large."))
             return
@@ -138,7 +138,7 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         except OPReturnTooLarge:
             self.show_message(_("Optional string text causiing OP_RETURN greater than 223 bytes."))
             return
-        except Exception as e: 
+        except Exception as e:
             traceback.print_exc(file=sys.stdout)
             self.show_message(str(e))
             return

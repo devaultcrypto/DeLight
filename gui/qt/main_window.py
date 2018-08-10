@@ -71,6 +71,7 @@ from .util import *
 
 import electroncash.slp as slp
 from .amountedit import SLPAmountEdit
+from electroncash.util import format_satoshis_nofloat
 
 class StatusBarButton(QPushButton):
     def __init__(self, icon, tooltip, func):
@@ -817,8 +818,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 except (AttributeError, KeyError):
                     pass
                 else:
-                    bal = format_satoshis(self.wallet.get_slp_token_balance(token_id)[0],
-                                            decimal_point=d['decimals'],)
+                    bal = format_satoshis_nofloat(self.wallet.get_slp_token_balance(token_id)[0],
+                                                  decimal_point=d['decimals'],)
                     text += "Token Balance: %s; "%(bal,)
                 c, u, x = self.wallet.get_balance()
                 text +=  _("BCH Balance" ) + ": %s "%(self.format_amount_and_units(c))

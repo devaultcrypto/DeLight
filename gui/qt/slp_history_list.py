@@ -30,7 +30,7 @@ from .util import *
 import electroncash.web as web
 from electroncash.i18n import _
 from electroncash.util import timestamp_to_datetime, profiler
-from electroncash.util import format_satoshis
+from electroncash.util import format_satoshis_nofloat
 
 from .slp_add_token_dialog import SlpAddTokenDialog
 
@@ -136,7 +136,7 @@ class HistoryList(MyTreeWidget):
         else:
             unktoken = False
             tokenname=tinfo['name']
-            deltastr = format_satoshis(delta, is_diff=True, decimal_point=tinfo['decimals'],)
+            deltastr = format_satoshis_nofloat(delta, is_diff=True, decimal_point=tinfo['decimals'],)
 
             # right-pad with spaces so the decimal points line up
             d1,d2 = deltastr.rsplit('.',1)

@@ -16,7 +16,7 @@ from electroncash.plugins import run_hook
 from electroncash.util import bfh
 from .util import *
 
-from electroncash.util import format_satoshis
+from electroncash.util import format_satoshis_nofloat
 from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpNoMintingBatonFound, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, SlpTokenTransactionFactory
 
@@ -97,12 +97,12 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
     def show_mint_baton_address(self):
         self.token_baton_to_e.setHidden(self.token_fixed_supply_cb.isChecked())
-        self.token_baton_label.setHidden(self.token_fixed_supply_cb.isChecked()) 
+        self.token_baton_label.setHidden(self.token_fixed_supply_cb.isChecked())
 
     def parse_address(self, address):
         if "simpleledger" not in address:
             address="simpleledger:"+address
-        return Address.from_string(address)        
+        return Address.from_string(address)
 
     def mint_token(self):
         mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
@@ -112,7 +112,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
                 raise Exception()
         except ValueError:
             self.show_message(_("Invalid token quantity entered."))
-            return 
+            return
         except Exception as e:
             self.show_message(_("Token output quantity is too large."))
             return
@@ -126,11 +126,11 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         except OPReturnTooLarge:
             self.show_message(_("Optional string text causiing OP_RETURN greater than 223 bytes."))
             return
-        except Exception as e: 
+        except Exception as e:
             traceback.print_exc(file=sys.stdout)
             self.show_message(str(e))
             return
-        
+
         try:
             addr = self.parse_address(self.token_pay_to_e.text())
             outputs.append((TYPE_ADDRESS, addr, 546))
@@ -174,7 +174,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
             self.main_window.wallet.add_input_info(txin)
 
         # TODO: adjust change amount (based on amount added from baton)
-        
+
         msg = []
 
         if self.main_window.wallet.has_password():

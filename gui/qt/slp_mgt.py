@@ -35,7 +35,7 @@ from PyQt5.QtWidgets import (
     QAbstractItemView, QFileDialog, QMenu, QTreeWidgetItem)
 from .util import *
 
-from electroncash.util import format_satoshis
+from electroncash.util import format_satoshis_nofloat
 from .slp_add_token_dialog import SlpAddTokenDialog
 from .slp_add_token_init_dialog import SlpAddTokenInitDialog
 from .slp_add_token_mint_dialog import SlpAddTokenMintDialog
@@ -108,7 +108,7 @@ class SlpMgt(MyTreeWidget):
             name     = i["name"]
             decimals = i["decimals"]
             calculated_balance= self.get_balance_from_token_id(token_id)
-            balancestr = format_satoshis(calculated_balance, decimal_point=decimals, num_zeros=decimals)
+            balancestr = format_satoshis_nofloat(calculated_balance, decimal_point=decimals, num_zeros=decimals)
             balancestr += ' '*(9-decimals)
 
             item = QTreeWidgetItem([str(token_id),str(name),str(decimals),balancestr])
