@@ -21,6 +21,8 @@ from electroncash.util import format_satoshis_nofloat
 from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, SlpTokenTransactionFactory
 
+from .amountedit import SLPAmountEdit
+
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
 class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
@@ -55,10 +57,19 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         vbox.addWidget(self.token_ticker_e)
 
         msg = _('The number of tokens created during token genesis transaction, send to the receiver address provided below.')
-        vbox.addWidget(HelpLabel(_('Intial Token Quantity:'), msg))
-        self.token_qty_e = ButtonsLineEdit()
-        self.token_qty_e.setFixedWidth(75)
+        vbox.addWidget(HelpLabel(_('Token Quantity:'), msg))
+        self.token_qty_e = SLPAmountEdit('tokens', 0)        
+        self.token_qty_e.setFixedWidth(125)
         vbox.addWidget(self.token_qty_e)
+
+        msg = _('The number of decimal places for the token unit of account.')
+        vbox.addWidget(HelpLabel(_('Decimal Places:'), msg))
+        self.token_ds_e = QDoubleSpinBox() 
+        self.token_ds_e.setRange(0, 9)
+        self.token_ds_e.setDecimals(0)
+        self.token_ds_e.setFixedWidth(50)
+        self.token_ds_e.valueChanged.connect(self.ds_changed)
+        vbox.addWidget(self.token_ds_e)
 
         msg = _('The simpleledger formatted bitcoin address for the genesis receiver of all genesis tokens.')
         vbox.addWidget(HelpLabel(_('Token Receiver Address:'), msg))
@@ -103,6 +114,9 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
         self.token_name_e.setFocus()
 
+    def ds_changed(self):
+        self.token_qty_e.token_decimals = int(self.token_ds_e.value())
+
     def show_mint_baton_address(self):
         self.token_baton_to_e.setHidden(self.token_fixed_supply_cb.isChecked())
         self.token_baton_label.setHidden(self.token_fixed_supply_cb.isChecked())
@@ -120,8 +134,9 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         decimals = 0
         mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
         try:
-            init_mint_qty = int(self.token_qty_e.text())
-            if init_mint_qty > (2 << 64) - 1:
+            init_mint_qty = float(self.token_qty_e.text())
+            print(str(float(((2 ** 64)-1) / (10 ** int(self.token_ds_e.value())))))
+            if init_mint_qty > float(((2 ** 64)-1) / (10 ** int(self.token_ds_e.value()))):
                 raise Exception()
         except ValueError:
             self.show_message(_("Invalid token quantity entered."))
