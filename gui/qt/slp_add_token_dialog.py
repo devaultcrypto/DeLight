@@ -159,6 +159,8 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
 #        self.token_info_e.setHidden(False)
         self.get_info_button.setDisabled(True)
 
+        self.view_tx_button.setDisabled(True)
+
         try:
             tx = self.wallet.transactions[txid]
         except KeyError:
@@ -172,10 +174,13 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
             self.handle_genesis_tx(tx)
 
     def handle_genesis_tx(self, tx):
+        self.newtoken_genesis_tx      = tx
+        self.view_tx_button.setDisabled(False)
+
         txid = tx.txid()
         token_id = self.token_id_e.text()
         if txid != token_id:
-            raise RuntimeError('mismatched token ID')
+            return self.fail_genesis_info(_('Received wrong transaction!'))
         self.newtoken_token_id = token_id
 
         try:
@@ -255,11 +260,9 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
 
         #cursor.insertBlock()
 
-        self.newtoken_genesis_tx      = tx
         self.newtoken_genesis_message = slpMsg
 
         self.add_button.setDisabled(False)
-        self.view_tx_button.setDisabled(False)
 
     def fail_genesis_info(self, message):
         self.token_info_e.setText(message)
