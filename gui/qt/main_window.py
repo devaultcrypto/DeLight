@@ -1150,6 +1150,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.amount_e.setFrozen(False)
 
             self.slp_amount_e.setHidden(True)
+            self.slp_max_button.setHidden(True)
             self.slp_amount_label.setHidden(True)
         else:
             self.max_button.setEnabled(False)
@@ -1158,6 +1159,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.amount_e.setFrozen(True)
 
             self.slp_amount_e.setHidden(False)
+            self.slp_max_button.setHidden(False)
             self.slp_amount_label.setHidden(False)
             tok = self.wallet.token_types[self.wallet.send_slpTokenId]
             self.slp_amount_e.set_token(tok['name'],tok['decimals'])
@@ -1288,6 +1290,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(self.slp_amount_label, 6, 0)
         grid.addWidget(self.slp_amount_e, 6, 1)
 
+        self.slp_max_button = EnterButton(_("Max"), self.slp_spend_max)
+        self.slp_max_button.setFixedWidth(140)
+        grid.addWidget(self.slp_max_button, 6, 2)
 
         msg = _('Amount to be sent.') + '\n\n' \
               + _('The amount will be displayed in red if you do not have enough funds in your wallet.') + ' ' \
@@ -1306,6 +1311,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.slp_amount_e.setAmount(0)
             self.slp_amount_e.setText("")
             self.slp_amount_e.setHidden(True)
+            self.slp_max_button.setHidden(True)
 
         grid.addWidget(self.fee_e_label, 8, 0)
         grid.addWidget(self.fee_slider, 8, 1)
@@ -1416,6 +1422,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.is_max = True
         self.do_update_fee()
 
+    def slp_spend_max(self):
+        self.slp_amount_e.setAmount(self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0])
+
     def update_fee(self):
         self.require_fee_update = True
 
@@ -1479,6 +1488,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     pass
                 elif self.config.get('enable_slp'):
                     amt = self.slp_amount_e.get_amount()
+                    if self.slp_amount_e.text() == '!':
+                        self.slp_amount_e.setAmount(self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0])
                     token_outputs = [ amt ]
                     token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0] - amt
                     if token_change > 0:
@@ -3287,6 +3298,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             wallet = self.wallet
 
             self.slp_amount_e.setHidden(not x)
+            self.slp_max_button.setHidden(not x)
             self.token_type_combo.setHidden(not x)
             self.slp_amount_label.setHidden(not x)
             self.slp_token_type_label.setHidden(not x)
