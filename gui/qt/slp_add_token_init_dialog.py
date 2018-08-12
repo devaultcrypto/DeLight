@@ -134,9 +134,8 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         decimals = 0
         mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
         try:
-            init_mint_qty = float(self.token_qty_e.text())
-            print(str(float(((2 ** 64)-1) / (10 ** int(self.token_ds_e.value())))))
-            if init_mint_qty > float(((2 ** 64)-1) / (10 ** int(self.token_ds_e.value()))):
+            init_mint_qty = float(self.token_qty_e.text()) * (10 ** int(self.token_ds_e.value()))
+            if init_mint_qty > float(((2 ** 64) - 1) / (10 ** int(self.token_ds_e.value()))):
                 raise Exception()
         except ValueError:
             self.show_message(_("Invalid token quantity entered."))
