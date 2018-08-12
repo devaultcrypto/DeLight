@@ -75,6 +75,11 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         b.clicked.connect(self.download_info)
         hbox.addWidget(self.get_info_button)
 
+        self.view_tx_button = b = QPushButton(_("View Tx"))
+        b.clicked.connect(self.view_tx)
+        hbox.addWidget(self.view_tx_button)
+        self.view_tx_button.setDisabled(True)
+
         hbox.addStretch(1)
 
         self.token_info_e = QTextEdit()
@@ -254,12 +259,16 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         self.newtoken_genesis_message = slpMsg
 
         self.add_button.setDisabled(False)
+        self.view_tx_button.setDisabled(False)
 
     def fail_genesis_info(self, message):
         self.token_info_e.setText(message)
         self.add_button.setDisabled(True)
         self.token_id_e.setReadOnly(False)
         self.get_info_button.setDisabled(False)
+
+    def view_tx(self,):
+        self.main_window.show_transaction(self.newtoken_genesis_tx)
 
     def add_token(self):
         # Make sure to throw an error dialog if name exists, hash exists, ...

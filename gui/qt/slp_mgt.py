@@ -67,12 +67,20 @@ class SlpMgt(MyTreeWidget):
             # revert back to original
             item.setText(1,d['name'])
 
+    def on_doubleclick(self, item, column):
+        if self.permit_edit(item, column):
+            self.editItem(item, column)
+        else:
+            token_id = item.data(0, Qt.UserRole)
+            SlpAddTokenDialog(self.parent, token_id_hex = token_id, token_name=item.text(1) )
+
     def create_menu(self, position):
         menu = QMenu()
         selected = self.selectedItems()
         current = self.currentItem()
         if current:
-            menu.addAction(_("Details"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = current.text(0), token_name=current.text(1) ))
+            token_id = current.data(0, Qt.UserRole)
+            menu.addAction(_("Details"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = token_id, token_name=current.text(1) ))
         if selected:
             names = [item.text(0) for item in selected]
             keys = [item.text(0) for item in selected]
