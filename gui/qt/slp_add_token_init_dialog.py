@@ -32,12 +32,13 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         # We want to be a top-level window
         QDialog.__init__(self, parent=main_window)
 
-        #self.init_grid = grid = QGridLayout()
-
         self.main_window = main_window
         self.wallet = main_window.wallet
         self.network = main_window.network
         self.app = main_window.app
+
+        # IMPORTANT: set to None to guard tokens when Send tab may have a token selected
+        self.wallet.send_slpTokenId = None
 
         self.setWindowTitle(_("Create a New Token"))
 

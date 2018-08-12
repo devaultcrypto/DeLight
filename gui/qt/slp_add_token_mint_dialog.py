@@ -33,6 +33,9 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.network = main_window.network
         self.app = main_window.app
 
+        # IMPORTANT: set to None to guard tokens when Send tab may have a token selected
+        self.wallet.send_slpTokenId = None
+
         self.setWindowTitle(_("Mint Additional Tokens"))
 
         vbox = QVBoxLayout()
