@@ -269,7 +269,7 @@ class SlpTokenTransactionFactory():
         else:
             script.extend([0x4c, 0x00])
         # decimals
-        if decimals > 8 or decimals < 0:
+        if decimals > 9 or decimals < 0:
             raise SlpSerializingError()
         decimals = int_2_bytes_bigendian(decimals, 1)
         script.extend(self.getPushDataOpcode(decimals))
