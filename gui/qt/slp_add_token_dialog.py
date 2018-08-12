@@ -4,6 +4,7 @@ import datetime
 from functools import partial
 import json
 import threading
+import html
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -20,6 +21,7 @@ from .util import *
 from electroncash.util import format_satoshis_nofloat
 from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage
+
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
@@ -82,8 +84,9 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
 
         hbox.addStretch(1)
 
-        self.token_info_e = QTextEdit()
-        self.token_info_e.setReadOnly(True)
+        self.token_info_e = QTextBrowser()
+#        self.token_info_e.setReadOnly(True)
+        self.token_info_e.setOpenExternalLinks(True)
         self.token_info_e.setFixedWidth(550)
         self.token_info_e.setMinimumHeight(100)
         vbox.addWidget(self.token_info_e)
@@ -201,15 +204,15 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         cursor = self.token_info_e.textCursor()
 
         fields = [
-            ('ticker', _('ticker'), 'utf8'),
-            ('token_name', _('name'), 'utf8'),
-            ('token_doc_url', _('doc url'), 'ascii'),
-            ('token_doc_hash', _('doc hash'), 'hex'),
+            ('ticker', _('ticker'), 'utf8', None),
+            ('token_name', _('name'), 'utf8', None),
+            ('token_doc_url', _('doc url'), 'ascii', 'html'),
+            ('token_doc_hash', _('doc hash'), 'hex', None),
                  ]
 
         cursor.insertText(_('Issuer-declared strings in genesis:'))
         cursor.insertBlock()
-        for k,n,e in fields:
+        for k,n,e,f in fields:
             data = slpMsg.op_return_fields[k]
             if e == 'hex':
                 friendlystring = None
@@ -232,13 +235,20 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
 
             if len(data) == 0:
                 showstr = '(empty)'
+                f=None
             elif friendlystring is None:
                 showstr = data.hex()
+                f=None
             else:
                 showstr = repr(friendlystring)
 
             cursor.insertText(' '*(10 - len(n)) + n + ': ', f_fieldnames)
-            cursor.insertText(showstr, f_normal)
+            if f == 'html':
+                enc_url  = html.escape(friendlystring)
+                enc_text = html.escape(showstr)
+                cursor.insertHtml('<a href="%s" title="%s">%s</a>'%(enc_url, enc_url, enc_text))
+            else:
+                cursor.insertText(showstr, f_normal)
             cursor.insertBlock()
 
         self.newtoken_decimals = slpMsg.op_return_fields['decimals']
