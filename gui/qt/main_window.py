@@ -2178,6 +2178,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.token_list.update()
         self.update_token_type_combo()
         self.slp_history_list.update()
+        self.wallet.save_transactions(True)
         return True
 
     def delete_slp_token(self, token_ids):
@@ -2191,6 +2192,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.token_list.update()
         self.update_token_type_combo()
         self.slp_history_list.update()
+        self.wallet.save_transactions(True)
 
     def show_invoice(self, key):
         pr = self.invoices.get(key)
