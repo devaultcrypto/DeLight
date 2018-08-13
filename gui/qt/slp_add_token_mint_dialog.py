@@ -16,7 +16,7 @@ from electroncash.plugins import run_hook
 from electroncash.util import bfh
 from .util import *
 
-from electroncash.util import format_satoshis_nofloat
+from electroncash.util import format_satoshis_nofloat, format_satoshis_plain_nofloat
 from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpNoMintingBatonFound, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, SlpTokenTransactionFactory
 
@@ -59,60 +59,72 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         vbox = QVBoxLayout()
         self.setLayout(vbox)
 
+        grid = QGridLayout()
+        grid.setColumnStretch(1, 1)
+        vbox.addLayout(grid)
+        row = 0
+
         msg = _('Unique identifier for the token.')
-        vbox.addWidget(HelpLabel(_('Token ID:'), msg))
-        self.token_id_e = ButtonsLineEdit()
-        self.token_id_e.setFixedWidth(550)
+        grid.addWidget(HelpLabel(_('Token ID:'), msg), row, 0)
+
+        self.token_id_e = QLineEdit()
+        self.token_id_e.setFixedWidth(475)
         self.token_id_e.setText(token_id_hex)
         self.token_id_e.setDisabled(True)
-        vbox.addWidget(self.token_id_e)
+        grid.addWidget(self.token_id_e, row, 1)
+        row += 1
 
         self.view_tx_button = b = QPushButton(_("View Genesis Tx"))
         b.clicked.connect(self.view_tx)
-        vbox.addWidget(self.view_tx_button)
+        grid.addWidget(self.view_tx_button, row, 1)
         self.view_tx_button.setDisabled(True)
+        row += 1
 
         msg = _('The number of existing tokens for this token.')
-        vbox.addWidget(HelpLabel(_('Existing Token Quantity:'), msg))
+        grid.addWidget(HelpLabel(_('Existing Token Quantity:'), msg), row, 0)
         self.token_ex_qty = SLPAmountEdit('tokens', 0)
-        self.token_ex_qty.setFixedWidth(125)
+        self.token_ex_qty.setFixedWidth(200)
         self.token_ex_qty.setDisabled(True)
-        vbox.addWidget(self.token_ex_qty)
+        grid.addWidget(self.token_ex_qty, row, 1)
+        row += 1
 
         msg = _('The number of decimal places used in the token quantity.')
-        vbox.addWidget(HelpLabel(_('Decimals:'), msg))
+        grid.addWidget(HelpLabel(_('Decimals:'), msg), row, 0)
         self.token_dec = QDoubleSpinBox()
         self.token_dec.setRange(0, 9)
         self.token_dec.setDecimals(0)
         self.token_dec.setFixedWidth(50)
         self.token_dec.setDisabled(True)
-        vbox.addWidget(self.token_dec)
+        grid.addWidget(self.token_dec, row, 1)
+        row += 1
 
         msg = _('The number of tokens created during token minting transaction, send to the receiver address provided below.')
-        vbox.addWidget(HelpLabel(_('Additional Token Quantity:'), msg))
+        grid.addWidget(HelpLabel(_('Additional Token Quantity:'), msg), row, 0)
         self.token_qty_e = SLPAmountEdit('tokens', 0)
-        self.token_qty_e.setFixedWidth(125)
-        vbox.addWidget(self.token_qty_e)
+        self.token_qty_e.setFixedWidth(200)
+        grid.addWidget(self.token_qty_e, row, 1)
+        row += 1
 
         msg = _('The simpleledger formatted bitcoin address for the genesis receiver of all genesis tokens.')
-        vbox.addWidget(HelpLabel(_('Token Receiver Address:'), msg))
+        grid.addWidget(HelpLabel(_('Token Receiver Address:'), msg), row, 0)
         self.token_pay_to_e = ButtonsLineEdit()
-        self.token_pay_to_e.setFixedWidth(400)
-        vbox.addWidget(self.token_pay_to_e)
-
-        self.token_fixed_supply_cb = cb = QCheckBox(_('Fixed Supply'))
-        self.token_fixed_supply_cb.setChecked(True)
-        vbox.addWidget(self.token_fixed_supply_cb)
-        cb.clicked.connect(self.show_mint_baton_address)
+        self.token_pay_to_e.setFixedWidth(475)
+        grid.addWidget(self.token_pay_to_e, row, 1)
+        row += 1
 
         msg = _('The simpleledger formatted bitcoin address for the genesis baton receiver.')
         self.token_baton_label = HelpLabel(_('Mint Baton Address:'), msg)
-        self.token_baton_label.setHidden(True)
-        vbox.addWidget(self.token_baton_label)
+        grid.addWidget(self.token_baton_label, row, 0)
         self.token_baton_to_e = ButtonsLineEdit()
-        self.token_baton_to_e.setFixedWidth(400)
-        self.token_baton_to_e.setHidden(True)
-        vbox.addWidget(self.token_baton_to_e)
+        self.token_baton_to_e.setFixedWidth(475)
+        grid.addWidget(self.token_baton_to_e, row, 1)
+        row += 1
+
+        self.token_fixed_supply_cb = cb = QCheckBox(_('Permanently end issuance'))
+        self.token_fixed_supply_cb.setChecked(False)
+        grid.addWidget(self.token_fixed_supply_cb, row, 0)
+        cb.clicked.connect(self.show_mint_baton_address)
+        row += 1
 
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
@@ -126,7 +138,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
         hbox.addStretch(1)
 
-        self.mint_button = b = QPushButton(_("MINT")) #if self.provided_token_name is None else _("Change"))
+        self.mint_button = b = QPushButton(_("Create Additional Tokens"))
         b.clicked.connect(self.mint_token)
         self.mint_button.setAutoDefault(True)
         self.mint_button.setDefault(True)
@@ -175,7 +187,6 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.token_ex_qty.setAmount(slpMsg.op_return_fields['initial_token_mint_quantity'] / (10 ** slpMsg.op_return_fields['decimals']))
         self.token_ex_qty.token_decimals = slpMsg.op_return_fields['decimals']
 
-
     def view_tx(self,):
         self.main_window.show_transaction(self.genesis_tx)
 
@@ -189,18 +200,18 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         return Address.from_string(address)
 
     def mint_token(self):
+        decimals = int(self.token_dec.value())
         mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
-        try:
-            init_mint_qty = int(float(self.token_qty_e.text()) * (10 ** int(self.token_dec.value())))
-            if init_mint_qty > (2 ** 64) - 1:
-                self.show_message(_("Token output quantity is too large."))
-                return
-        except ValueError:
+        init_mint_qty = self.token_qty_e.get_amount()
+        if init_mint_qty is None: 
             self.show_message(_("Invalid token quantity entered."))
             return
-
+        if init_mint_qty > (2 ** 64) - 1:
+            maxqty = format_satoshis_plain_nofloat((2 ** 64) - 1, decimals)
+            self.show_message(_("Token output quantity is too large. Maximum %s.")%(maxqty,))
+            return
+            
         outputs = []
-
         try:
             msgFactory = SlpTokenTransactionFactory(1, self.token_id_e.text())
             slp_op_return_msg = msgFactory.buildMintOpReturnOutput_V1(mint_baton_vout, init_mint_qty)
@@ -230,6 +241,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
         coins = self.main_window.get_coins()
         fee = None
+
         try:
             baton_input = self.main_window.wallet.get_slp_token_baton(self.token_id_e.text())
         except SlpNoMintingBatonFound as e:
