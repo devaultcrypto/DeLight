@@ -135,14 +135,12 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         decimals = int(self.token_ds_e.value())
         mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
         try:
-            init_mint_qty = float(self.token_qty_e.text()) * (10 ** int(self.token_ds_e.value()))
-            if init_mint_qty > float(((2 ** 64) - 1)):
-                raise Exception()
+            init_mint_qty = int(float(self.token_qty_e.text()) * (10 ** int(self.token_ds_e.value())))
+            if init_mint_qty > (2 ** 64) - 1:
+                self.show_message(_("Token output quantity is too large."))
+                return
         except ValueError:
             self.show_message(_("Invalid token quantity entered."))
-            return
-        except Exception as e:
-            self.show_message(_("Token output quantity is too large."))
             return
 
         outputs = []
@@ -161,12 +159,17 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         try:
             addr = self.parse_address(self.token_pay_to_e.text())
             outputs.append((TYPE_ADDRESS, addr, 546))
-            if self.token_baton_to_e.text() != '' and not self.token_fixed_supply_cb.isChecked():
+        except:
+            self.show_message(_("Must have Receiver Address in simpleledger format."))
+            return
+
+        if not self.token_fixed_supply_cb.isChecked():
+            try:
                 addr = self.parse_address(self.token_baton_to_e.text())
                 outputs.append((TYPE_ADDRESS, addr, 546))
-        except:
-            self.show_message(_("Must have address in simpleledger format."))
-            return
+            except:
+                self.show_message(_("Must have Baton Address in simpleledger format."))
+                return
 
         coins = self.main_window.get_coins()
         fee = None

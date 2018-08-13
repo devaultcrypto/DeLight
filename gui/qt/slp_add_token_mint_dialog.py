@@ -20,9 +20,25 @@ from electroncash.util import format_satoshis_nofloat
 from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpNoMintingBatonFound, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, SlpTokenTransactionFactory
 
+from .amountedit import SLPAmountEdit
+
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
 class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
+
+    got_network_response_sig = pyqtSignal()
+
+    @pyqtSlot()
+    def got_network_response_slot(self):
+        self.download_finished = True
+
+        resp = self.json_response
+        if resp.get('error'):
+            return self.fail_genesis_info("Download error!\n%r"%(resp['error'].get('message')))
+        raw = resp.get('result')
+
+        tx = Transaction(raw)
+        self.populate_genesis_data(tx)
 
     def __init__(self, main_window, token_id_hex):
         # We want to be a top-level window
@@ -35,6 +51,8 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
         # IMPORTANT: set to None to guard tokens when Send tab may have a token selected
         self.wallet.send_slpTokenId = None
+
+        self.genesis_tx = None
 
         self.setWindowTitle(_("Mint Additional Tokens"))
 
@@ -49,10 +67,31 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.token_id_e.setDisabled(True)
         vbox.addWidget(self.token_id_e)
 
+        self.view_tx_button = b = QPushButton(_("View Genesis Tx"))
+        b.clicked.connect(self.view_tx)
+        vbox.addWidget(self.view_tx_button)
+        self.view_tx_button.setDisabled(True)
+
+        msg = _('The number of existing tokens for this token.')
+        vbox.addWidget(HelpLabel(_('Existing Token Quantity:'), msg))
+        self.token_ex_qty = SLPAmountEdit('tokens', 0)
+        self.token_ex_qty.setFixedWidth(125)
+        self.token_ex_qty.setDisabled(True)
+        vbox.addWidget(self.token_ex_qty)
+
+        msg = _('The number of decimal places used in the token quantity.')
+        vbox.addWidget(HelpLabel(_('Decimals:'), msg))
+        self.token_dec = QDoubleSpinBox()
+        self.token_dec.setRange(0, 9)
+        self.token_dec.setDecimals(0)
+        self.token_dec.setFixedWidth(50)
+        self.token_dec.setDisabled(True)
+        vbox.addWidget(self.token_dec)
+
         msg = _('The number of tokens created during token minting transaction, send to the receiver address provided below.')
         vbox.addWidget(HelpLabel(_('Additional Token Quantity:'), msg))
-        self.token_qty_e = ButtonsLineEdit()
-        self.token_qty_e.setFixedWidth(75)
+        self.token_qty_e = SLPAmountEdit('tokens', 0)
+        self.token_qty_e.setFixedWidth(125)
         vbox.addWidget(self.token_qty_e)
 
         msg = _('The simpleledger formatted bitcoin address for the genesis receiver of all genesis tokens.')
@@ -95,8 +134,51 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
         dialogs.append(self)
         self.show()
-
         self.token_qty_e.setFocus()
+        self.got_network_response_sig.connect(self.got_network_response_slot, Qt.QueuedConnection)
+        self.download_info()
+
+    def download_info(self):
+        txid = self.token_id_e.text()
+        try:
+            #tx = self.wallet.transactions[txid]
+            raise KeyError()
+        except KeyError:
+            def callback(response):
+                self.json_response = response
+                self.got_network_response_sig.emit()
+
+            requests = [ ('blockchain.transaction.get', [txid]), ]
+            self.network.send(requests, callback)
+        else:
+            self.populate_genesis_data(tx)
+
+    def populate_genesis_data(self, tx):
+        self.genesis_tx = tx
+        self.view_tx_button.setDisabled(False)
+
+        txid = tx.txid()
+        token_id = self.token_id_e.text()
+        if txid != token_id:
+            return self.fail_genesis_info(_('Received wrong transaction!'))
+
+        try:
+            slpMsg = SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
+        except SlpUnsupportedSlpTokenType as e:
+            return self.fail_genesis_info(_("Unsupported SLP token version/type - %r.")%(e.args[0],))
+        except SlpInvalidOutputMessage as e:
+            return self.fail_genesis_info(_("This transaction does not contain a valid SLP message.\nReason: %r.")%(e.args,))
+        if slpMsg.transaction_type != 'INIT':
+            return self.fail_genesis_info(_("This SLP transaction is not a genesis."))
+
+        self.token_dec.setValue(slpMsg.op_return_fields['decimals'])
+        self.token_qty_e.token_decimals = slpMsg.op_return_fields['decimals']
+        self.token_ex_qty.setAmount(slpMsg.op_return_fields['initial_token_mint_quantity'] / (10 ** slpMsg.op_return_fields['decimals']))
+        self.token_ex_qty.token_decimals = slpMsg.op_return_fields['decimals']
+
+
+    def view_tx(self,):
+        self.main_window.show_transaction(self.genesis_tx)
 
     def show_mint_baton_address(self):
         self.token_baton_to_e.setHidden(self.token_fixed_supply_cb.isChecked())
@@ -110,14 +192,12 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
     def mint_token(self):
         mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
         try:
-            init_mint_qty = int(self.token_qty_e.text())
-            if init_mint_qty > (2 << 64) - 1:
-                raise Exception()
+            init_mint_qty = int(float(self.token_qty_e.text()) * (10 ** int(self.token_dec.value())))
+            if init_mint_qty > (2 ** 64) - 1:
+                self.show_message(_("Token output quantity is too large."))
+                return
         except ValueError:
             self.show_message(_("Invalid token quantity entered."))
-            return
-        except Exception as e:
-            self.show_message(_("Token output quantity is too large."))
             return
 
         outputs = []
@@ -137,12 +217,17 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         try:
             addr = self.parse_address(self.token_pay_to_e.text())
             outputs.append((TYPE_ADDRESS, addr, 546))
-            if self.token_baton_to_e.text() != '':
+        except:
+            self.show_message(_("Must have Receiver Address in simpleledger format."))
+            return
+        
+        if not self.token_fixed_supply_cb.isChecked():
+            try:
                 addr = self.parse_address(self.token_baton_to_e.text())
                 outputs.append((TYPE_ADDRESS, addr, 546))
-        except:
-            self.show_message(_("Must have address in simpleledger format."))
-            return
+            except:
+                self.show_message(_("Must have Baton Address in simpleledger format."))
+                return
 
         coins = self.main_window.get_coins()
         fee = None
@@ -210,3 +295,6 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
     def update(self):
         return
+
+    def fail_genesis_info(self, message):
+        self.view_tx_button.setDisabled(False)
