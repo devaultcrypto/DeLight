@@ -141,8 +141,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
     def download_info(self):
         txid = self.token_id_e.text()
         try:
-            #tx = self.wallet.transactions[txid]
-            raise KeyError()
+            tx = self.wallet.transactions[txid]
         except KeyError:
             def callback(response):
                 self.json_response = response
