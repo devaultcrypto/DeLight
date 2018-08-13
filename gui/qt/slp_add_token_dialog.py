@@ -61,6 +61,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
 
         vbox.addWidget(QLabel(_('Token ID:')))
 
+
         self.token_id_e = ButtonsLineEdit()
         if token_id_hex is not None:
             self.token_id_e.addCopyButton(self.app)
@@ -75,12 +76,20 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
 
         self.get_info_button = b = QPushButton(_("Download"))
         b.clicked.connect(self.download_info)
-        hbox.addWidget(self.get_info_button)
+        hbox.addWidget(b)
+
+        self.load_tx_menu_button = b = QPushButton(_("Load..."))
+        menu = QMenu()
+        menu.addAction(_("&From file"), self.do_process_from_file)
+        menu.addAction(_("&From text"), self.do_process_from_text)
+        menu.addAction(_("&From QR code"), self.read_tx_from_qrcode)
+        b.setMenu(menu)
+        hbox.addWidget(b)
 
         self.view_tx_button = b = QPushButton(_("View Tx"))
         b.clicked.connect(self.view_tx)
-        hbox.addWidget(self.view_tx_button)
-        self.view_tx_button.setDisabled(True)
+        b.setDisabled(True)
+        hbox.addWidget(b)
 
         hbox.addStretch(1)
 
@@ -161,7 +170,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         self.token_info_e.setText("Downloading...")
 #        self.token_info_e.setHidden(False)
         self.get_info_button.setDisabled(True)
-
+        self.load_tx_menu_button.setDisabled(True)
         self.view_tx_button.setDisabled(True)
 
         try:
@@ -177,14 +186,19 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
             self.handle_genesis_tx(tx)
 
     def handle_genesis_tx(self, tx):
+        self.token_id_e.setReadOnly(True)
+        self.get_info_button.setDisabled(True)
+        self.load_tx_menu_button.setDisabled(True)
+
         self.newtoken_genesis_tx      = tx
         self.view_tx_button.setDisabled(False)
 
         txid = tx.txid()
-        token_id = self.token_id_e.text()
-        if txid != token_id:
-            return self.fail_genesis_info(_('Received wrong transaction!'))
-        self.newtoken_token_id = token_id
+        token_id = self.token_id_e.text().strip()
+        if token_id and txid != token_id:
+            return self.fail_genesis_info(_('TXID does not match token ID!'))
+        self.newtoken_token_id = txid
+        self.token_id_e.setText(self.newtoken_token_id)
 
         try:
             slpMsg = SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
@@ -193,7 +207,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         except SlpInvalidOutputMessage as e:
             return self.fail_genesis_info(_("This transaction does not contain a valid SLP message.\nReason: %r.")%(e.args,))
         if slpMsg.transaction_type != 'INIT':
-            return self.fail_genesis_info(_("This SLP transaction is not a genesis."))
+            return self.fail_genesis_info(_("This is an SLP transaction, however it is not a genesis transaction."))
 
 
         f_fieldnames = QTextCharFormat()
@@ -279,6 +293,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         self.add_button.setDisabled(True)
         self.token_id_e.setReadOnly(False)
         self.get_info_button.setDisabled(False)
+        self.load_tx_menu_button.setDisabled(False)
 
     def view_tx(self,):
         self.main_window.show_transaction(self.newtoken_genesis_tx)
@@ -298,3 +313,79 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
 
     def update(self):
         return
+
+
+
+    ### Ripped and modified from main_window.py --- load transaction manually!
+
+    def user_loaded_transaction(self, tx):
+        self.handle_genesis_tx(tx)
+
+    def tx_from_text(self, txt):
+        from electroncash.transaction import tx_from_str
+        try:
+            txt_tx = tx_from_str(txt)
+            tx = Transaction(txt_tx)
+            tx.deserialize()
+            return tx
+        except:
+            import traceback
+            traceback.print_exc(file=sys.stdout)
+            self.show_critical(_("Electron Cash was unable to parse your transaction"))
+            return
+
+    def read_tx_from_qrcode(self):
+        from electroncash import qrscanner
+        try:
+            data = qrscanner.scan_barcode(self.main_window.config.get_video_device())
+        except BaseException as e:
+            self.show_error(str(e))
+            return
+        if not data:
+            return
+        # if the user scanned a bitcoincash URI
+        if data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ':'):
+            self.show_error(_("This is not a transaction."))
+            return
+        # else if the user scanned an offline signed tx
+        data = bh2u(bitcoin.base_decode(data, length=None, base=43))
+        tx = self.tx_from_text(data)
+        if not tx:
+            return
+        self.user_loaded_transaction(tx)
+
+    def read_tx_from_file(self):
+        fileName, __ = QFileDialog.getOpenFileName(self,_("Select your transaction file"), '', "*.txn")
+        if not fileName:
+            return
+        try:
+            with open(fileName, "r") as f:
+                file_content = f.read()
+        except (ValueError, IOError, os.error) as reason:
+            self.show_critical(_("Electron Cash was unable to open your transaction file") + "\n" + str(reason), title=_("Unable to read file or no transaction found"))
+            return
+        file_content = file_content.strip()
+        tx = self.tx_from_text(file_content)
+        # Older saved transaction do not include this key.
+        return tx
+
+    def do_process_from_text(self):
+        from electroncash.transaction import SerializationError
+        text = text_dialog(self, _('Input raw transaction'), _("Transaction:"), _("Load transaction"))
+        if not text:
+            return
+        try:
+            tx = self.tx_from_text(text)
+            if tx:
+                self.user_loaded_transaction(tx)
+        except SerializationError as e:
+            self.show_critical(_("Electron Cash was unable to deserialize the transaction:") + "\n" + str(e))
+
+    def do_process_from_file(self):
+        from electroncash.transaction import SerializationError
+        try:
+            tx = self.read_tx_from_file()
+            if tx:
+                self.user_loaded_transaction(tx)
+        except SerializationError as e:
+            self.show_critical(_("Electron Cash was unable to deserialize the transaction:") + "\n" + str(e))
