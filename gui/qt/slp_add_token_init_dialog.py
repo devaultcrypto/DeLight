@@ -120,16 +120,22 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
         hbox.addStretch(1)
 
+        self.preview_button = EnterButton(_("Preview"), self.do_preview)
         self.init_button = b = QPushButton(_("Create New Token")) #if self.provided_token_name is None else _("Change"))
         b.clicked.connect(self.create_token)
         self.init_button.setAutoDefault(True)
         self.init_button.setDefault(True)
+        hbox.addWidget(self.preview_button)
         hbox.addWidget(self.init_button)
 
         dialogs.append(self)
         self.show()
 
         self.token_name_e.setFocus()
+
+
+    def do_preview(self):
+        self.create_token(preview = True)
 
     def upd_token(self,):
         self.token_qty_e.set_token(self.token_ticker_e.text(), int(self.token_ds_e.value()))
@@ -147,7 +153,7 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
             address="simpleledger:"+address
         return Address.from_string(address)
 
-    def create_token(self):
+    def create_token(self, preview=False):
         token_name = self.token_name_e.text() if self.token_name_e.text() != '' else None
         ticker = self.token_ticker_e.text() if self.token_ticker_e.text() != '' else None
         token_document_url = None
@@ -208,7 +214,10 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
             self.show_message(str(e))
             return
 
-        # confirmation dialog
+        if preview:
+            self.main_window.show_transaction(tx)
+            return
+
         msg = []
 
         if self.main_window.wallet.has_password():

@@ -26,20 +26,6 @@ dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
 class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
-    got_network_response_sig = pyqtSignal()
-
-    @pyqtSlot()
-    def got_network_response_slot(self):
-        self.download_finished = True
-
-        resp = self.json_response
-        if resp.get('error'):
-            return self.fail_genesis_info("Download error!\n%r"%(resp['error'].get('message')))
-        raw = resp.get('result')
-
-        tx = Transaction(raw)
-        self.populate_genesis_data(tx)
-
     def __init__(self, main_window, token_id_hex):
         # We want to be a top-level window
         QDialog.__init__(self, parent=main_window)
@@ -74,24 +60,12 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         grid.addWidget(self.token_id_e, row, 1)
         row += 1
 
-        self.view_tx_button = b = QPushButton(_("View Genesis Tx"))
-        b.clicked.connect(self.view_tx)
-        grid.addWidget(self.view_tx_button, row, 1)
-        self.view_tx_button.setDisabled(True)
-        row += 1
-
-        msg = _('The number of existing tokens for this token.')
-        grid.addWidget(HelpLabel(_('Existing Token Quantity:'), msg), row, 0)
-        self.token_ex_qty = SLPAmountEdit('tokens', 0)
-        self.token_ex_qty.setFixedWidth(200)
-        self.token_ex_qty.setDisabled(True)
-        grid.addWidget(self.token_ex_qty, row, 1)
-        row += 1
-
         msg = _('The number of decimal places used in the token quantity.')
         grid.addWidget(HelpLabel(_('Decimals:'), msg), row, 0)
         self.token_dec = QDoubleSpinBox()
+        decimals = self.main_window.wallet.token_types.get(token_id_hex)['decimals']
         self.token_dec.setRange(0, 9)
+        self.token_dec.setValue(decimals)
         self.token_dec.setDecimals(0)
         self.token_dec.setFixedWidth(50)
         self.token_dec.setDisabled(True)
@@ -138,31 +112,17 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
         hbox.addStretch(1)
 
+        self.preview_button = EnterButton(_("Preview"), self.do_preview)
         self.mint_button = b = QPushButton(_("Create Additional Tokens"))
         b.clicked.connect(self.mint_token)
         self.mint_button.setAutoDefault(True)
         self.mint_button.setDefault(True)
+        hbox.addWidget(self.preview_button)
         hbox.addWidget(self.mint_button)
 
         dialogs.append(self)
         self.show()
         self.token_qty_e.setFocus()
-        self.got_network_response_sig.connect(self.got_network_response_slot, Qt.QueuedConnection)
-        self.download_info()
-
-    def download_info(self):
-        txid = self.token_id_e.text()
-        try:
-            tx = self.wallet.transactions[txid]
-        except KeyError:
-            def callback(response):
-                self.json_response = response
-                self.got_network_response_sig.emit()
-
-            requests = [ ('blockchain.transaction.get', [txid]), ]
-            self.network.send(requests, callback)
-        else:
-            self.populate_genesis_data(tx)
 
     def populate_genesis_data(self, tx):
         self.genesis_tx = tx
@@ -187,6 +147,9 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.token_ex_qty.setAmount(slpMsg.op_return_fields['initial_token_mint_quantity'] / (10 ** slpMsg.op_return_fields['decimals']))
         self.token_ex_qty.token_decimals = slpMsg.op_return_fields['decimals']
 
+    def do_preview(self):
+        self.mint_token(preview = True)
+
     def view_tx(self,):
         self.main_window.show_transaction(self.genesis_tx)
 
@@ -199,7 +162,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
             address="simpleledger:"+address
         return Address.from_string(address)
 
-    def mint_token(self):
+    def mint_token(self, preview=False):
         decimals = int(self.token_dec.value())
         mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
         init_mint_qty = self.token_qty_e.get_amount()
@@ -273,6 +236,10 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
             self.main_window.wallet.add_input_info(txin)
 
         # TODO: adjust change amount (based on amount added from baton)
+
+        if preview:
+            self.main_window.show_transaction(tx)
+            return
 
         msg = []
 
