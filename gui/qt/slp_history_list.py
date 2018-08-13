@@ -212,7 +212,7 @@ class HistoryList(MyTreeWidget):
         menu = QMenu()
 
         if not self.wallet.token_types.get(token_id):
-            menu.addAction(_("Add new token type"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = token_id))
+            menu.addAction(_("Add this token"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = token_id))
 
         menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
         if column in self.editable_columns:

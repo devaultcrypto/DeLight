@@ -88,7 +88,7 @@ class SlpMgt(MyTreeWidget):
             column_title = self.headerItem().text(column)
             column_data = '\n'.join([item.text(column) for item in selected])
             menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
-            menu.addAction(_("Delete"), lambda: self.parent.delete_slp_token(keys))
+            menu.addAction(_("Remove this token"), lambda: self.parent.delete_slp_token(keys))
         menu.addAction(_("Add existing token"), lambda: SlpAddTokenDialog(self.parent,))
 
         menu.addAction(_("Create a new token"), lambda: SlpAddTokenInitDialog(self.parent,))
