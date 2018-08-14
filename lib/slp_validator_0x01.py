@@ -63,9 +63,9 @@ def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, 
     """
     slpMsg = SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
 
-    if slpMsg.transaction_type == 'INIT':
+    if slpMsg.transaction_type == 'GENESIS':
         token_id_hex = tx.txid()
-    elif slpMsg.transaction_type in ('MINT', 'TRAN'):
+    elif slpMsg.transaction_type in ('MINT', 'SEND'):
         token_id_hex = slpMsg.op_return_fields['token_id_hex']
     else:
         return None
@@ -149,7 +149,7 @@ class Validator_SLP1:
                 #print("DEBUG SLP: %.10s... invalid: %r"%(tx.txid(), e))
                 return ('prune', 2)
 
-        if slpMsg.transaction_type == 'TRAN':
+        if slpMsg.transaction_type == 'SEND':
             token_id_hex = slpMsg.op_return_fields['token_id_hex']
 
             # need to examine all inputs
@@ -162,12 +162,12 @@ class Validator_SLP1:
 
             # outputs straight from the token amounts
             outputs = slpMsg.op_return_fields['token_output']
-        elif slpMsg.transaction_type == 'INIT':
+        elif slpMsg.transaction_type == 'GENESIS':
             token_id_hex = tx.txid()
 
             vin_mask = (False,)*len(tx.inputs()) # don't need to examine any inputs.
 
-            myinfo = 'INIT'
+            myinfo = 'GENESIS'
 
             # place 'MINT' as baton signifier on the designated output
             mintvout = slpMsg.op_return_fields['mint_baton_vout']
@@ -190,7 +190,7 @@ class Validator_SLP1:
             else:
                 outputs = [None]*(mintvout) + ['MINT']
             outputs[1] = slpMsg.op_return_fields['additional_token_quantity']
-        elif slpMsg.transaction_type == 'COMM':
+        elif slpMsg.transaction_type == 'COMMIT':
             return ('prune', 0)
 
         if token_id_hex != self.token_id_hex:
@@ -207,7 +207,7 @@ class Validator_SLP1:
         if myinfo == 'MINT':
             # mints are only interested in the baton input
             return (out_n == 'MINT')
-        if myinfo == 'INIT':
+        if myinfo == 'GENESIS':
             # genesis shouldn't have any parents, so this should not happen.
             raise RuntimeError('Unexpected', out_n)
 
@@ -219,7 +219,7 @@ class Validator_SLP1:
 
 
     def validate(self, myinfo, inputs_info):
-        if myinfo == 'INIT':
+        if myinfo == 'GENESIS':
             if len(inputs_info) != 0:
                 raise RuntimeError('Unexpected', inputs_info)
             return (True, 1)   # genesis is always valid.

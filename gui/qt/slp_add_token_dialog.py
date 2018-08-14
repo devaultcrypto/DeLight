@@ -206,7 +206,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
             return self.fail_genesis_info(_("Unsupported SLP token version/type - %r.")%(e.args[0],))
         except SlpInvalidOutputMessage as e:
             return self.fail_genesis_info(_("This transaction does not contain a valid SLP message.\nReason: %r.")%(e.args,))
-        if slpMsg.transaction_type != 'INIT':
+        if slpMsg.transaction_type != 'GENESIS':
             return self.fail_genesis_info(_("This is an SLP transaction, however it is not a genesis transaction."))
 
 

@@ -81,7 +81,7 @@ class SlpNoMintingBatonFound(Exception):
 
 # This class represents a parsed op_return message that can be used by validator to look at SLP messages
 class SlpMessage:
-    lokad_id = b"\x00SLP"
+    lokad_id = b"SLP\x00"
 
     def __init__(self):
         self.token_type  = None
@@ -117,9 +117,11 @@ class SlpMessage:
         slpMsg.token_type = SlpMessage.parseChunkToInt(chunks[1], 1, 2, True)
         if slpMsg.token_type != 1:
             raise SlpUnsupportedSlpTokenType(slpMsg.token_type)
+        if len(chunks[1]) > 2:
+            raise SlpUnsupportedSlpTokenType(slpMsg.token_type)
 
         if len(chunks) == 2:
-            raise SlpInvalidOutputMessage('Missing SLP command')
+            raise SlpInvalidOutputMessage('Missing SLP transaction type')
 
         # (the following logic is all for version 1)
         try:
@@ -129,7 +131,7 @@ class SlpMessage:
             raise SlpInvalidOutputMessage('Bad transaction type', chunks[2])
 
         # switch statement to handle different on transaction type
-        if slpMsg.transaction_type == 'INIT':
+        if slpMsg.transaction_type == 'GENESIS':
             if len(chunks) != 10:
                 raise SlpInvalidOutputMessage('INIT with incorrect number of parameters')
             # keep ticker, token name, document url, document hash as bytes
@@ -156,7 +158,7 @@ class SlpMessage:
 
             # handle initial token quantity issuance
             slpMsg.op_return_fields['initial_token_mint_quantity'] = SlpMessage.parseChunkToInt(chunks[9], 8, 8, True)
-        elif slpMsg.transaction_type == 'TRAN':
+        elif slpMsg.transaction_type == 'SEND':
             if len(chunks) < 4:
                 raise SlpInvalidOutputMessage('TRAN with too few parameters')
             if len(chunks[3]) != 32:
@@ -185,8 +187,8 @@ class SlpMessage:
             if v is not None and v < 2:
                 raise SlpInvalidOutputMessage('Mint baton cannot be on vout=0 or 1')
             slpMsg.op_return_fields['additional_token_quantity'] = SlpMessage.parseChunkToInt(chunks[5], 8, 8, True)
-        elif slpMsg.transaction_type == 'COMM':
-            # We don't know how to handle this right now, just return slpMsg of 'COMM' type
+        elif slpMsg.transaction_type == 'COMMIT':
+            # We don't know how to handle this right now, just return slpMsg of 'COMMIT' type
             slpMsg.op_return_fields['info'] = 'slp.py not parsing yet \xaf\\_(\u30c4)_/\xaf'
         else:
             raise SlpInvalidOutputMessage('Bad transaction type', slpMsg.transaction_type)
@@ -233,7 +235,7 @@ class SlpTokenTransactionFactory():
         script.extend(self.getPushDataOpcode(tokenType))
         script.extend(tokenType)
         # transaction type
-        transType = b'INIT'
+        transType = b'GENESIS'
         script.extend(self.getPushDataOpcode(transType))
         script.extend(transType)
         # ticker (can be None)
@@ -309,7 +311,7 @@ class SlpTokenTransactionFactory():
         script.extend(self.getPushDataOpcode(tokenType))
         script.extend(tokenType)
         # transaction type
-        transType = b'TRAN'
+        transType = b'SEND'
         script.extend(self.getPushDataOpcode(transType))
         script.extend(transType)
         # token id

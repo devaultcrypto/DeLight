@@ -1615,7 +1615,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 if self.config.get('enable_slp'):
                     try:
                         slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
-                        if slpMsg.transaction_type == "TRAN" and not preview:
+                        if slpMsg.transaction_type == 'SEND' and not preview:
                             self.wallet.send_slpTokenId = slpMsg.op_return_fields['token_id_hex']
                     except:
                         pass

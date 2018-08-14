@@ -877,7 +877,7 @@ class Abstract_Wallet(PrintError):
         except (SlpParsingError, IndexError):
             return
 
-        if slpMsg.transaction_type == "TRAN":
+        if slpMsg.transaction_type == 'SEND':
             token_id_hex = slpMsg.op_return_fields['token_id_hex']
             # truncate outputs list
             amounts = slpMsg.op_return_fields['token_output'][:len(txouts)]
@@ -889,7 +889,7 @@ class Abstract_Wallet(PrintError):
                             'token_id': token_id_hex,
                             'qty': qty,
                             }
-        elif slpMsg.transaction_type == "INIT":
+        elif slpMsg.transaction_type == 'GENESIS':
             token_id_hex = tx_hash
             try:
                 _type, addr, _ = txouts[1]
@@ -933,7 +933,7 @@ class Abstract_Wallet(PrintError):
                                 }
             except IndexError: # if too few outputs (compared to mint_baton_vout)
                 pass
-        elif slpMsg.transaction_type == "COMM":
+        elif slpMsg.transaction_type == 'COMMIT':
             # ignore COMMs, they aren't producing any tokens.
             return
         else:
@@ -1246,7 +1246,7 @@ class Abstract_Wallet(PrintError):
         """ SLP: make sure SLP token spending is not greater than valid balance """
         if self._enable_slp and self.send_slpTokenId is not None:
             slpMsg = SlpMessage.parseSlpOutputScript(outputs[0][1])
-            if slpMsg.transaction_type == "TRAN":
+            if slpMsg.transaction_type == 'SEND':
                 total_token_out = sum(slpMsg.op_return_fields['token_output'])
                 valid_token_balance = self.get_slp_token_balance(slpMsg.op_return_fields['token_id_hex'])[0]
                 if total_token_out > valid_token_balance:
