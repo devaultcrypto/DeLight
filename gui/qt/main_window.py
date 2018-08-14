@@ -48,7 +48,7 @@ from electroncash.networks import NetworkConstants
 from electroncash.plugins import run_hook
 from electroncash.i18n import _
 from electroncash.util import (format_time, format_satoshis, PrintError,
-                           format_satoshis_plain, NotEnoughFunds, NotEnoughFundsSlp, ExcessiveFee,
+                           format_satoshis_plain, format_satoshis_plain_nofloat, NotEnoughFunds, NotEnoughFundsSlp, ExcessiveFee,
                            UserCancelled, bh2u, bfh, format_fee_satoshis)
 import electroncash.web as web
 from electroncash import Transaction
@@ -1393,6 +1393,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             else:
                 amt_color, fee_color = ColorScheme.BLUE, ColorScheme.BLUE
             opret_color = ColorScheme.DEFAULT
+
+            try:
+                if self.slp_amount_e.get_amount() > (2 ** 64) - 1:
+                    amt_color, fee_color = ColorScheme.RED, ColorScheme.RED
+                    maxqty = format_satoshis_plain_nofloat((2 ** 64) - 1, self.wallet.token_types.get(self.wallet.send_slpTokenId)['decimals'])
+                    text = _("Token output quantity is too large. Maximum %s.")%(maxqty,)
+            except TypeError:
+                pass
 
             self.statusBar().showMessage(text)
             self.slp_amount_e.setStyleSheet(amt_color.as_stylesheet())

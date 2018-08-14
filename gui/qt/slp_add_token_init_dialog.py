@@ -81,6 +81,7 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         grid.addWidget(HelpLabel(_('Token Quantity:'), msg), row, 0)
         self.token_qty_e = SLPAmountEdit('', 0)
         self.token_qty_e.setFixedWidth(200)
+        self.token_qty_e.textChanged.connect(self.check_token_qty)
         grid.addWidget(self.token_qty_e, row, 1)
         row += 1
 
@@ -132,7 +133,6 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         self.show()
 
         self.token_name_e.setFocus()
-
 
     def do_preview(self):
         self.create_token(preview = True)
@@ -250,3 +250,10 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
     def update(self):
         return
+
+    def check_token_qty(self):
+        try:
+            if self.token_qty_e.get_amount() > (10 ** 19):
+                self.show_warning(_('If you issue this much, users will may find it awkward to transfer large amounts as each transaction output may only take up to ~2 x 10^(19-decimals) tokens, thus requiring multiple outputs for very large amounts.'))
+        except:
+            pass

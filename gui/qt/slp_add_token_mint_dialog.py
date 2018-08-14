@@ -76,6 +76,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         grid.addWidget(HelpLabel(_('Additional Token Quantity:'), msg), row, 0)
         self.token_qty_e = SLPAmountEdit('tokens', 0)
         self.token_qty_e.setFixedWidth(200)
+        self.token_qty_e.textChanged.connect(self.check_token_qty)
         grid.addWidget(self.token_qty_e, row, 1)
         row += 1
 
@@ -146,7 +147,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.token_qty_e.token_decimals = slpMsg.op_return_fields['decimals']
         self.token_ex_qty.setAmount(slpMsg.op_return_fields['initial_token_mint_quantity'] / (10 ** slpMsg.op_return_fields['decimals']))
         self.token_ex_qty.token_decimals = slpMsg.op_return_fields['decimals']
-
+       
     def do_preview(self):
         self.mint_token(preview = True)
 
@@ -276,3 +277,11 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
     def fail_genesis_info(self, message):
         self.view_tx_button.setDisabled(False)
+
+    def check_token_qty(self):
+        try:
+            if self.token_qty_e.get_amount() > (10 ** 19):
+                self.show_warning(_('If you issue this much, users will may find it awkward to transfer large amounts as each transaction output may only take up to ~2 x 10^(19-decimals) tokens, thus requiring multiple outputs for very large amounts.'))
+        except:
+            pass
+     
