@@ -219,7 +219,7 @@ class SlpTokenTransactionFactory():
             raise SlpUnsupportedSlpTokenType
 
         self.token_id_hex = token_id_hex
-        self.lokad_id = "00504c53"
+        self.lokad_id = b"SLP\x00"
 
     # Type 1 Token INIT Message
     def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, decimals: int, baton_vout: int, initial_token_mint_quantity: int) -> tuple:
@@ -227,7 +227,7 @@ class SlpTokenTransactionFactory():
         # OP_RETURN
         script.extend([0x6a])
         # lokad id
-        lokad = bytes.fromhex(self.lokad_id)
+        lokad = self.lokad_id
         script.extend(self.getPushDataOpcode(lokad))
         script.extend(lokad)
         # token version/type
@@ -303,7 +303,7 @@ class SlpTokenTransactionFactory():
         # OP_RETURN
         script.extend([0x6a])
         # lokad
-        lokad = bytes.fromhex(self.lokad_id)
+        lokad = self.lokad_id
         script.extend(self.getPushDataOpcode(lokad))
         script.extend(lokad)
         # token version
@@ -340,7 +340,7 @@ class SlpTokenTransactionFactory():
         # OP_RETURN
         script.extend([0x6a])
         # lokad
-        lokad = bytes.fromhex(self.lokad_id)
+        lokad = self.lokad_id
         script.extend(self.getPushDataOpcode(lokad))
         script.extend(lokad)
         # token version
