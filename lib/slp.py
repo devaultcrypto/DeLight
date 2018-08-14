@@ -219,7 +219,7 @@ class SlpTokenTransactionFactory():
             raise SlpUnsupportedSlpTokenType
 
         self.token_id_hex = token_id_hex
-        self.lokad_id = "00534c50"
+        self.lokad_id = "00504c53"
 
     # Type 1 Token INIT Message
     def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, decimals: int, baton_vout: int, initial_token_mint_quantity: int) -> tuple:

@@ -12,9 +12,9 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
 
     def test_INIT_opreturn_building_and_parsing_to_a_new_SlpMessage(self):
         # first lets create a new incomming INIT transaction hexidecimal message from scratch...
-        lokad_id = "00534c50"               # 04 00534c50
+        lokad_id = "00504c53"               # 04 00534c50
         token_type = 1                      # 01 01
-        txn_type = "INIT"                   # 04 ______
+        txn_type = 'GENESIS'                   # 04 ______
         ticker = "TEST"                     # 04 ______ 
         name = "A Test Token"               # push(14) ______ 
         doc_url = "http://www.bitcoin.cash" # push(23) ______
@@ -88,7 +88,7 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
         asm = scriptOutput.to_asm()
         self.assertEqual(expected_asm, asm)
         slpMsg = SlpMessage.parseSlpOutputScript(scriptOutput)
-        self.assertEqual("00534c50", slpMsg.lokad_id)
+        self.assertEqual("00504c53", slpMsg.lokad_id)
         self.assertEqual(SlpTokenType.TYPE_1.value, slpMsg.token_type)
         self.assertEqual(SlpTransactionType.INIT.value, slpMsg.transaction_type)
         self.assertEqual("TEST", slpMsg.op_return_fields['ticker'])
@@ -100,9 +100,9 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
 
     def test_TRAN_opreturn_building_and_parsing_to_a_new_SlpMessage(self):
         # first lets create a new incomming INIT transaction hexidecimal message from scratch...
-        lokad_id = "00534c50"               # 04 00534c50
+        lokad_id = "00504c53"               # 04 00534c50
         token_type = 1                      # 01 01
-        txn_type = "TRAN"                   # 04 ______
+        txn_type = 'SEND'                   # 04 ______
         token_id = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         quantities = [1,1,1,1,1, 1,1,1,1,1, 1,1,1,1,1, 1,1,1,1]
         # manually formulate the message
@@ -129,7 +129,7 @@ class TestSlpTokenTransactionFactory(unittest.TestCase):
         asm = scriptOutput.to_asm()
         self.assertEqual(expected_asm, asm)
         slpMsg = SlpMessage.parseSlpOutputScript(scriptOutput)
-        self.assertEqual("00534c50", slpMsg.lokad_id)
+        self.assertEqual("00504c53", slpMsg.lokad_id)
         self.assertEqual(SlpTokenType.TYPE_1.value, slpMsg.token_type)
         self.assertEqual(SlpTransactionType.TRAN.value, slpMsg.transaction_type)
         self.assertEqual(token_id, slpMsg.op_return_fields['token_id_hex'])
