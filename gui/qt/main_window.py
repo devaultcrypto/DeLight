@@ -362,6 +362,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.console.showMessage(args[0])
         elif event == 'verified':
             self.history_list.update_item(*args)
+            self.token_list.update()
             self.slp_history_list.update_item_netupdate(*args)
         elif event == 'fee':
             pass
@@ -2044,7 +2045,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         w.setLayout(vbox)
 
         return w
-
+    
     def create_list_tab(self, l, list_header=None):
         w = QWidget()
         w.searchable_list = l
