@@ -75,7 +75,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
         msg = _('The number of tokens created during token minting transaction, send to the receiver address provided below.')
         grid.addWidget(HelpLabel(_('Additional Token Quantity:'), msg), row, 0)
-        self.token_qty_e = SLPAmountEdit('tokens', 0)
+        self.token_qty_e = SLPAmountEdit('tokens', int(decimals))
         self.token_qty_e.setFixedWidth(200)
         self.token_qty_e.textChanged.connect(self.check_token_qty)
         grid.addWidget(self.token_qty_e, row, 1)
@@ -125,29 +125,6 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         dialogs.append(self)
         self.show()
         self.token_qty_e.setFocus()
-
-    def populate_genesis_data(self, tx):
-        self.genesis_tx = tx
-        self.view_tx_button.setDisabled(False)
-
-        txid = tx.txid()
-        token_id = self.token_id_e.text()
-        if txid != token_id:
-            return self.fail_genesis_info(_('Received wrong transaction!'))
-
-        try:
-            slpMsg = SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
-        except SlpUnsupportedSlpTokenType as e:
-            return self.fail_genesis_info(_("Unsupported SLP token version/type - %r.")%(e.args[0],))
-        except SlpInvalidOutputMessage as e:
-            return self.fail_genesis_info(_("This transaction does not contain a valid SLP message.\nReason: %r.")%(e.args,))
-        if slpMsg.transaction_type != 'GENESIS':
-            return self.fail_genesis_info(_("This SLP transaction is not a genesis."))
-
-        self.token_dec.setValue(slpMsg.op_return_fields['decimals'])
-        self.token_qty_e.token_decimals = slpMsg.op_return_fields['decimals']
-        self.token_ex_qty.setAmount(slpMsg.op_return_fields['initial_token_mint_quantity'] / (10 ** slpMsg.op_return_fields['decimals']))
-        self.token_ex_qty.token_decimals = slpMsg.op_return_fields['decimals']
 
     def do_preview(self):
         self.mint_token(preview = True)
@@ -275,9 +252,6 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
     def update(self):
         return
-
-    def fail_genesis_info(self, message):
-        self.view_tx_button.setDisabled(False)
 
     def check_token_qty(self):
         try:
