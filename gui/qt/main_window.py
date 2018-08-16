@@ -1505,8 +1505,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                         token_outputs.append(token_change)
                         _type, addr = self.get_payto_or_dummy()
                         outputs.append((_type, addr, 546))
-                    msgFactory = slp.SlpTokenTransactionFactory(1, self.wallet.send_slpTokenId)
-                    slp_op_return_msg = msgFactory.buildTransferOpReturnOutput_V1(token_outputs)
+                    slp_op_return_msg = slp.buildSendOpReturnOutput_V1(self.wallet.send_slpTokenId, token_outputs)
                     outputs.insert(0, slp_op_return_msg)
                 tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False), outputs, self.config, fee)
                 self.not_enough_funds = False
@@ -1629,8 +1628,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0] - amt
                 if token_change > 0:
                     token_outputs.append(token_change)
-                msgFactory = slp.SlpTokenTransactionFactory(1, self.wallet.send_slpTokenId)
-                slp_op_return_msg = msgFactory.buildTransferOpReturnOutput_V1(token_outputs)
+                slp_op_return_msg = slp.buildSendOpReturnOutput_V1(self.wallet.send_slpTokenId, token_outputs)
                 outputs.append(slp_op_return_msg)
         except OPReturnTooLarge as e:
             self.show_error(str(e))

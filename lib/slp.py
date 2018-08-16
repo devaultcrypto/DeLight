@@ -4,6 +4,7 @@ from .bitcoin import TYPE_SCRIPT
 from .address import Script, ScriptError, OpCodes
 from enum import Enum
 
+lokad_id = b"SLP\x00"
 
 def int_2_bytes_bigendian(number: int, byte_length: int = None):
     number = int(number)
@@ -49,7 +50,6 @@ def parseOpreturnToChunks(script: bytes, *,  allow_op_0: bool, allow_op_number: 
     return chunks
 
 
-
 # Exceptions caused by malformed or unexpected data found in parsing.
 class SlpParsingError(Exception):
     pass
@@ -69,9 +69,6 @@ class SlpInvalidOutputMessage(SlpParsingError):
 class SlpSerializingError(Exception):
     pass
 
-class SlpTokenIdMissing(SlpSerializingError):
-    pass
-
 class OPReturnTooLarge(SlpSerializingError):
     pass
 
@@ -79,9 +76,10 @@ class OPReturnTooLarge(SlpSerializingError):
 class SlpNoMintingBatonFound(Exception):
     pass
 
+
 # This class represents a parsed op_return message that can be used by validator to look at SLP messages
 class SlpMessage:
-    lokad_id = b"SLP\x00"
+    lokad_id = lokad_id
 
     def __init__(self):
         self.token_type  = None
@@ -107,7 +105,7 @@ class SlpMessage:
         if len(chunks) == 0:
             raise SlpInvalidOutputMessage('Empty OP_RETURN')
 
-        if chunks[0] != SlpMessage.lokad_id:
+        if chunks[0] != lokad_id:
             raise SlpInvalidOutputMessage('Not SLP')
 
         if len(chunks) == 1:
@@ -117,11 +115,9 @@ class SlpMessage:
         slpMsg.token_type = SlpMessage.parseChunkToInt(chunks[1], 1, 2, True)
         if slpMsg.token_type != 1:
             raise SlpUnsupportedSlpTokenType(slpMsg.token_type)
-        if len(chunks[1]) > 2:
-            raise SlpUnsupportedSlpTokenType(slpMsg.token_type)
 
         if len(chunks) == 2:
-            raise SlpInvalidOutputMessage('Missing SLP transaction type')
+            raise SlpInvalidOutputMessage('Missing SLP command')
 
         # (the following logic is all for version 1)
         try:
@@ -133,7 +129,7 @@ class SlpMessage:
         # switch statement to handle different on transaction type
         if slpMsg.transaction_type == 'GENESIS':
             if len(chunks) != 10:
-                raise SlpInvalidOutputMessage('INIT with incorrect number of parameters')
+                raise SlpInvalidOutputMessage('GENESIS with incorrect number of parameters')
             # keep ticker, token name, document url, document hash as bytes
             # (their textual encoding is not relevant for SLP consensus)
             # but do enforce consensus length limits
@@ -160,7 +156,7 @@ class SlpMessage:
             slpMsg.op_return_fields['initial_token_mint_quantity'] = SlpMessage.parseChunkToInt(chunks[9], 8, 8, True)
         elif slpMsg.transaction_type == 'SEND':
             if len(chunks) < 4:
-                raise SlpInvalidOutputMessage('TRAN with too few parameters')
+                raise SlpInvalidOutputMessage('SEND with too few parameters')
             if len(chunks[3]) != 32:
                 raise SlpInvalidOutputMessage('token_id is wrong length')
             slpMsg.op_return_fields['token_id_hex'] = chunks[3].hex()
@@ -209,197 +205,168 @@ class SlpMessage:
 
 
 
-class SlpTokenTransactionFactory():
-    def __init__(self, token_version: int, token_id_hex: str = None):
-        if issubclass(type(token_version), Enum):
-            self.token_version = token_version.value
-        elif issubclass(type(token_version), int):
-            self.token_version = token_version
-        else:
-            raise SlpUnsupportedSlpTokenType
 
-        self.token_id_hex = token_id_hex
-        self.lokad_id = b"SLP\x00"
 
-    # Type 1 Token INIT Message
-    def buildInitOpReturnOutput_V1(self, ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, decimals: int, baton_vout: int, initial_token_mint_quantity: int) -> tuple:
-        script = []
-        # OP_RETURN
-        script.extend([0x6a])
-        # lokad id
-        lokad = self.lokad_id
-        script.extend(self.getPushDataOpcode(lokad))
-        script.extend(lokad)
-        # token version/type
-        tokenType = int_2_bytes_bigendian(self.token_version)
-        script.extend(self.getPushDataOpcode(tokenType))
-        script.extend(tokenType)
-        # transaction type
-        transType = b'GENESIS'
-        script.extend(self.getPushDataOpcode(transType))
-        script.extend(transType)
-        # ticker (can be None)
-        ticker = SlpTokenTransactionFactory.encodeStringToHex(ticker, 'utf-8', True)
-        if ticker is not None:
-            ticker = bytes.fromhex(ticker)
-            script.extend(self.getPushDataOpcode(ticker))
-            script.extend(ticker)
-        else:
-            script.extend([0x4c, 0x00])
-        # name (can be None)
-        name = SlpTokenTransactionFactory.encodeStringToHex(token_name, 'utf-8', True)
-        if name is not None:
-            name = bytes.fromhex(name)
-            script.extend(self.getPushDataOpcode(name))
-            script.extend(name)
-        else:
-            script.extend([0x4c, 0x00])
-        # doc_url (can be None)
-        doc_url = SlpTokenTransactionFactory.encodeStringToHex(token_document_url, 'ascii', True)
-        if doc_url is not None:
-            doc_url = bytes.fromhex(doc_url)
-            script.extend(self.getPushDataOpcode(doc_url))
-            script.extend(doc_url)
-        else:
-            script.extend([0x4c, 0x00])
-        # doc_hash (can be None)
-        doc_hash = SlpTokenTransactionFactory.encodeHexStringToHex(token_document_hash_hex, True)
-        if doc_hash is not None:
-            doc_hash = bytes.fromhex(doc_hash)
-            script.extend(self.getPushDataOpcode(doc_hash))
-            script.extend(doc_hash)
-        else:
-            script.extend([0x4c, 0x00])
-        # decimals
-        if decimals > 9 or decimals < 0:
+
+###
+# SLP message creation functions below.
+# Various exceptions can occur:
+#   SlpSerializingError / subclass if bad values.
+#   UnicodeDecodeError if strings are weird (in GENESIS only).
+###
+
+
+# utility for creation: use smallest push except not any of: op_0, op_1negate, op_1 to op_16
+def pushChunk(chunk: bytes) -> bytes: # allow_op_0 = False, allow_op_number = False
+    length = len(chunk)
+    if length == 0:
+        return b'\x4c\x00' + chunk
+    elif length < 76:
+        return bytes((length,)) + chunk
+    elif length < 256:
+        return bytes((0x4c,length,)) + chunk
+    elif length < 65536: # shouldn't happen but eh
+        return b'\x4d' + length.to_bytes(2, 'little') + chunk
+    elif length < 4294967296: # shouldn't happen but eh
+        return b'\x4e' + length.to_bytes(4, 'little') + chunk
+    else:
+        raise ValueError()
+
+# utility for creation
+def chunksToOpreturnOutput(chunks: [bytes]) -> tuple:
+    script = bytearray([0x6a,]) # start with OP_RETURN
+    for c in chunks:
+        script.extend(pushChunk(c))
+
+    if len(script) > 223:
+        raise OPReturnTooLarge('OP_RETURN message too large, cannot be larger than 223 bytes')
+
+    return (TYPE_SCRIPT, ScriptOutput(bytes(script)), 0)
+
+
+# Type 1 Token GENESIS Message
+def buildGenesisOpReturnOutput_V1(ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, decimals: int, baton_vout: int, initial_token_mint_quantity: int) -> tuple:
+    chunks = []
+    script = bytearray((0x6a,))  # OP_RETURN
+
+    # lokad id
+    chunks.append(lokad_id)
+
+    # token version/type
+    chunks.append(b'\x01')
+
+    # transaction type
+    chunks.append(b'GENESIS')
+
+    # ticker (can be None)
+    if ticker is None:
+        tickerb = b''
+    else:
+        tickerb = ticker.encode('utf-8')
+    if len(tickerb) > 8:
+        raise SlpSerializingError
+    chunks.append(tickerb)
+
+    # name (can be None)
+    if token_name is None:
+        chunks.append(b'')
+    else:
+        chunks.append(token_name.encode('utf-8'))
+
+    # doc_url (can be None)
+    if token_document_url is None:
+        chunks.append(b'')
+    else:
+        chunks.append(token_document_url.encode('ascii'))
+
+    # doc_hash (can be None)
+    if token_document_hash_hex is None:
+        chunks.append(b'')
+    else:
+        dochash = bytes.fromhex(token_document_hash_hex)
+        if len(dochash) not in (0,32):
+            raise SlpSerializingError
+        chunks.append(dochash)
+
+    # decimals
+    decimals = int(decimals)
+    if decimals > 9 or decimals < 0:
+        raise SlpSerializingError()
+    chunks.append(bytes((decimals,)))
+
+    # baton vout
+    if baton_vout is None:
+        chunks.append(b'')
+    else:
+        if baton_vout < 2:
             raise SlpSerializingError()
-        decimals = int_2_bytes_bigendian(decimals, 1)
-        script.extend(self.getPushDataOpcode(decimals))
-        script.extend(decimals)
-        # baton vout
-        if baton_vout is not None:
-            if baton_vout < 2:
-                raise SlpSerializingError()
-            baton_vout = int_2_bytes_bigendian(baton_vout, 1)
-            script.extend(self.getPushDataOpcode(baton_vout))
-            script.extend(baton_vout)
-        else:
-            script.extend([0x4c, 0x00])
-        # init quantity
-        qty = int_2_bytes_bigendian(initial_token_mint_quantity, 8)
-        script.extend(self.getPushDataOpcode(qty))
-        script.extend(qty)
+        chunks.append(bytes((baton_vout,)))
 
-        scriptBuffer = ScriptOutput(bytes(script))
-        if len(scriptBuffer.script) > 223:
-            raise OPReturnTooLarge(_("OP_RETURN message too large, cannot be larger than 223 bytes"))
-        return (TYPE_SCRIPT, scriptBuffer, 0)
+    # init quantity
+    qb = int(initial_token_mint_quantity).to_bytes(8,'big')
+    chunks.append(qb)
 
-    # Type 1 Token TRAN Message
-    def buildTransferOpReturnOutput_V1(self, output_qty_array: []) -> tuple:
-        if self.token_id_hex == None:
-            raise SlpTokenIdMissing
-        script = []
-        # OP_RETURN
-        script.extend([0x6a])
-        # lokad
-        lokad = self.lokad_id
-        script.extend(self.getPushDataOpcode(lokad))
-        script.extend(lokad)
-        # token version
-        tokenType = int_2_bytes_bigendian(self.token_version)
-        script.extend(self.getPushDataOpcode(tokenType))
-        script.extend(tokenType)
-        # transaction type
-        transType = b'SEND'
-        script.extend(self.getPushDataOpcode(transType))
-        script.extend(transType)
-        # token id
-        tokenId = bytes.fromhex(self.token_id_hex)
-        script.extend(self.getPushDataOpcode(tokenId))
-        script.extend(tokenId)
-        # output quantities
-        if len(output_qty_array) > 20:
-            raise Exception("Cannot have more than 20 SLP Token outputs.")
-        for qty in output_qty_array:
-            if qty < 0:
-                raise SlpSerializingError()
-            q = int_2_bytes_bigendian(qty, 8)
-            script.extend(self.getPushDataOpcode(q))
-            script.extend(q)
-        scriptBuffer = ScriptOutput(bytes(script))
-        if len(scriptBuffer.script) > 223:
-            raise OPReturnTooLarge(_("OP_RETURN message too large, cannot be larger than 223 bytes"))
-        return (TYPE_SCRIPT, scriptBuffer, 0)
+    return chunksToOpreturnOutput(chunks)
 
-    # Type 2 Token MINT Message
-    def buildMintOpReturnOutput_V1(self, baton_vout: int, token_mint_quantity: int) -> tuple:
-        if self.token_id_hex == None:
-            raise SlpTokenIdMissing
-        script = []
-        # OP_RETURN
-        script.extend([0x6a])
-        # lokad
-        lokad = self.lokad_id
-        script.extend(self.getPushDataOpcode(lokad))
-        script.extend(lokad)
-        # token version
-        tokenType = int_2_bytes_bigendian(self.token_version)
-        script.extend(self.getPushDataOpcode(tokenType))
-        script.extend(tokenType)
-        # transaction type
-        transType = b'MINT'
-        script.extend(self.getPushDataOpcode(transType))
-        script.extend(transType)
-        # token id
-        tokenId = bytes.fromhex(self.token_id_hex)
-        script.extend(self.getPushDataOpcode(tokenId))
-        script.extend(tokenId)
-        # baton vout
-        if baton_vout is not None:
-            if baton_vout < 2:
-                raise SlpSerializingError()
-            baton_vout = int_2_bytes_bigendian(baton_vout, 1)
-            script.extend(self.getPushDataOpcode(baton_vout))
-            script.extend(baton_vout)
-        else:
-            script.extend([0x4c, 0x00])
-        # init quantity
-        qty = int_2_bytes_bigendian(token_mint_quantity, 8)
-        script.extend(self.getPushDataOpcode(qty))
-        script.extend(qty)
 
-        scriptBuffer = ScriptOutput(bytes(script))
-        if len(scriptBuffer.script) > 223:
-            raise OPReturnTooLarge(_("OP_RETURN message too large, cannot be larger than 223 bytes"))
-        return (TYPE_SCRIPT, scriptBuffer, 0)
+# Type 1 Token MINT Message
+def buildMintOpReturnOutput_V1(token_id_hex: str, baton_vout: int, token_mint_quantity: int) -> tuple:
+    chunks = []
 
-    @staticmethod
-    def encodeStringToHex(stringData: str, encoding = 'utf-8', allow_None = False):
-        if not allow_None and (stringData is None or stringData == ''):
+    # lokad id
+    chunks.append(lokad_id)
+
+    # token version/type
+    chunks.append(b'\x01')
+
+    # transaction type
+    chunks.append(b'MINT')
+
+    # token id
+    tokenId = bytes.fromhex(token_id_hex)
+    if len(tokenId) != 32:
+        raise SlpSerializingError()
+    chunks.append(tokenId)
+
+    # baton vout
+    if baton_vout is None:
+        chunks.append(b'')
+    else:
+        if baton_vout < 2:
             raise SlpSerializingError()
-        if stringData is None or stringData == '':
-            return None
-        return stringData.encode(encoding).hex()
+        chunks.append(bytes((baton_vout,)))
 
-    @staticmethod
-    def encodeHexStringToHex(stringData: str, allow_None = False):
-        if not allow_None and (stringData is None or stringData == ''):
-            raise SlpSerializingError()
-        if stringData == '' or stringData is None:
-            return None
-        if len(stringData) % 2 != 0:
-            raise Exception("Hexadecimal string must be of an even length.")
-        return stringData
+    # init quantity
+    qb = int(token_mint_quantity).to_bytes(8,'big')
+    chunks.append(qb)
 
-    @staticmethod
-    def getPushDataOpcode(byteArray: [int]) -> [int]:
-        length = len(byteArray)
-        if length == 0:
-            return [0x4c, 0x00]
-        elif length < 76:
-            return [ length ]
-        elif length < 256:
-            return [ 0x4c, length ]
-        else:
-            raise SlpSerializingError()
+    return chunksToOpreturnOutput(chunks)
+
+
+# Type 1 Token SEND Message
+def buildSendOpReturnOutput_V1(token_id_hex: str, output_qty_array: [int]) -> tuple:
+    chunks = []
+
+    # lokad id
+    chunks.append(lokad_id)
+
+    # token version/type
+    chunks.append(b'\x01')
+
+    # transaction type
+    chunks.append(b'SEND')
+
+    # token id
+    tokenId = bytes.fromhex(token_id_hex)
+    if len(tokenId) != 32:
+        raise SlpSerializingError()
+    chunks.append(tokenId)
+
+    # output quantities
+    if len(output_qty_array) > 19:
+        raise Exception("Cannot have more than 19 SLP Token outputs.")
+    for qty in output_qty_array:
+        qb = int(qty).to_bytes(8,'big')
+        chunks.append(qb)
+
+    return chunksToOpreturnOutput(chunks)

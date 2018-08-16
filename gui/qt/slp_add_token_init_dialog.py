@@ -4,6 +4,7 @@ import datetime
 from functools import partial
 import json
 import threading
+import sys
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -19,7 +20,7 @@ from .util import *
 
 from electroncash.util import format_satoshis_nofloat, format_satoshis_plain_nofloat
 from electroncash.transaction import Transaction
-from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, SlpTokenTransactionFactory
+from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, buildGenesisOpReturnOutput_V1
 
 from .amountedit import SLPAmountEdit
 
@@ -172,8 +173,7 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
 
         outputs = []
         try:
-            msgFactory = SlpTokenTransactionFactory(1)
-            slp_op_return_msg = msgFactory.buildInitOpReturnOutput_V1(ticker, token_name, token_document_url, token_document_hash, decimals, mint_baton_vout, init_mint_qty)
+            slp_op_return_msg = buildGenesisOpReturnOutput_V1(ticker, token_name, token_document_url, token_document_hash, decimals, mint_baton_vout, init_mint_qty)
             outputs.append(slp_op_return_msg)
         except OPReturnTooLarge:
             self.show_message(_("Optional string text causiing OP_RETURN greater than 223 bytes."))

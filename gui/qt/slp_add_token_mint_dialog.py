@@ -3,6 +3,7 @@ import datetime
 from functools import partial
 import json
 import threading
+import sys
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -18,7 +19,7 @@ from .util import *
 
 from electroncash.util import format_satoshis_nofloat, format_satoshis_plain_nofloat
 from electroncash.transaction import Transaction
-from electroncash.slp import SlpMessage, SlpNoMintingBatonFound, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, SlpTokenTransactionFactory
+from electroncash.slp import SlpMessage, SlpNoMintingBatonFound, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, buildMintOpReturnOutput_V1
 
 from .amountedit import SLPAmountEdit
 
@@ -147,7 +148,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.token_qty_e.token_decimals = slpMsg.op_return_fields['decimals']
         self.token_ex_qty.setAmount(slpMsg.op_return_fields['initial_token_mint_quantity'] / (10 ** slpMsg.op_return_fields['decimals']))
         self.token_ex_qty.token_decimals = slpMsg.op_return_fields['decimals']
-       
+
     def do_preview(self):
         self.mint_token(preview = True)
 
@@ -167,18 +168,18 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         decimals = int(self.token_dec.value())
         mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
         init_mint_qty = self.token_qty_e.get_amount()
-        if init_mint_qty is None: 
+        if init_mint_qty is None:
             self.show_message(_("Invalid token quantity entered."))
             return
         if init_mint_qty > (2 ** 64) - 1:
             maxqty = format_satoshis_plain_nofloat((2 ** 64) - 1, decimals)
             self.show_message(_("Token output quantity is too large. Maximum %s.")%(maxqty,))
             return
-            
+
         outputs = []
         try:
-            msgFactory = SlpTokenTransactionFactory(1, self.token_id_e.text())
-            slp_op_return_msg = msgFactory.buildMintOpReturnOutput_V1(mint_baton_vout, init_mint_qty)
+            token_id_hex = self.token_id_e.text()
+            slp_op_return_msg = buildMintOpReturnOutput_V1(token_id_hex, mint_baton_vout, init_mint_qty)
             outputs.append(slp_op_return_msg)
         except OPReturnTooLarge:
             self.show_message(_("Optional string text causiing OP_RETURN greater than 223 bytes."))
@@ -194,7 +195,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         except:
             self.show_message(_("Must have Receiver Address in simpleledger format."))
             return
-        
+
         if not self.token_fixed_supply_cb.isChecked():
             try:
                 addr = self.parse_address(self.token_baton_to_e.text())
@@ -284,4 +285,3 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
                 self.show_warning(_('If you issue this much, users will may find it awkward to transfer large amounts as each transaction output may only take up to ~2 x 10^(19-decimals) tokens, thus requiring multiple outputs for very large amounts.'))
         except:
             pass
-     
