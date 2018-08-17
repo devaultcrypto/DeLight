@@ -26,7 +26,7 @@ from .amountedit import SLPAmountEdit
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
-class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
+class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
 
     def __init__(self, main_window):
         #self.provided_token_name = token_name
