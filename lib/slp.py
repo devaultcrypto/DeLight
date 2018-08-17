@@ -25,7 +25,7 @@ def parseOpreturnToChunks(script: bytes, *,  allow_op_0: bool, allow_op_number: 
     try:
         ops = Script.get_ops(script)
     except ScriptError as e:
-        raise OpreturnError from e
+        raise OpreturnError('Script error') from e
 
     if ops[0] != OpCodes.OP_RETURN:
         raise OpreturnError('No OP_RETURN')
@@ -34,12 +34,12 @@ def parseOpreturnToChunks(script: bytes, *,  allow_op_0: bool, allow_op_number: 
     for opitem in ops[1:]:
         op, data = opitem if isinstance(opitem, tuple) else (opitem, None)
         if op > OpCodes.OP_16:
-            raise OpreturnError('Non-push opcode', op)
+            raise OpreturnError('Non-push opcode')
         if op > OpCodes.OP_PUSHDATA4:
             if op == 80:
-                raise OpreturnError('Non-push opcode', op)
+                raise OpreturnError('Non-push opcode')
             if not allow_op_number:
-                raise OpreturnError('OP_1NEGATE to OP_16 not allowed', op)
+                raise OpreturnError('OP_1NEGATE to OP_16 not allowed')
             if op == OpCodes.OP_1NEGATE:
                 data = [0x81]
             else: # OP_1 - OP_16
@@ -124,7 +124,7 @@ class SlpMessage:
             slpMsg.transaction_type = chunks[2].decode('ascii')
         except UnicodeDecodeError:
             # This can occur if bytes > 127 present.
-            raise SlpInvalidOutputMessage('Bad transaction type', chunks[2])
+            raise SlpInvalidOutputMessage('Bad transaction type')
 
         # switch statement to handle different on transaction type
         if slpMsg.transaction_type == 'GENESIS':
@@ -187,7 +187,7 @@ class SlpMessage:
             # We don't know how to handle this right now, just return slpMsg of 'COMMIT' type
             slpMsg.op_return_fields['info'] = 'slp.py not parsing yet \xaf\\_(\u30c4)_/\xaf'
         else:
-            raise SlpInvalidOutputMessage('Bad transaction type', slpMsg.transaction_type)
+            raise SlpInvalidOutputMessage('Bad transaction type')
         return slpMsg
 
     @staticmethod
@@ -201,7 +201,7 @@ class SlpMessage:
             return int.from_bytes(intBytes, 'big', signed=False)
         if len(intBytes) == 0 and not raise_on_Null:
             return None
-        raise SlpInvalidOutputMessage
+        raise SlpInvalidOutputMessage('Field has wrong length')
 
 
 
