@@ -134,8 +134,6 @@ class SlpMessage:
             # (their textual encoding is not relevant for SLP consensus)
             # but do enforce consensus length limits
             slpMsg.op_return_fields['ticker'] = chunks[3]
-            if len(slpMsg.op_return_fields['ticker']) > 8:
-                raise SlpInvalidOutputMessage('Ticker too long')
             slpMsg.op_return_fields['token_name'] = chunks[4]
             slpMsg.op_return_fields['token_doc_url'] = chunks[5]
             slpMsg.op_return_fields['token_doc_hash'] = chunks[6]
@@ -263,8 +261,6 @@ def buildGenesisOpReturnOutput_V1(ticker: str, token_name: str, token_document_u
         tickerb = b''
     else:
         tickerb = ticker.encode('utf-8')
-    if len(tickerb) > 8:
-        raise SlpSerializingError
     chunks.append(tickerb)
 
     # name (can be None)
