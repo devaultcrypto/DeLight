@@ -54,17 +54,31 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
         msg = _('An optional name string embedded in the token genesis transaction.')
         grid.addWidget(HelpLabel(_('Token Name (optional):'), msg), row, 0)
         self.token_name_e = QLineEdit()
-        #self.token_name_e.setFixedWidth(200)
         grid.addWidget(self.token_name_e, row, 1)
         row += 1
 
         msg = _('An optional ticker symbol string embedded into the token genesis transaction.')
-        grid.addWidget(HelpLabel(_('Token Ticker (optional):'), msg), row, 0)
+        grid.addWidget(HelpLabel(_('Ticker Symbol (optional):'), msg), row, 0)
         self.token_ticker_e = QLineEdit()
-        self.token_ticker_e.setMaxLength(8)  # larger ticker lengths violate SLP spec
         self.token_ticker_e.setFixedWidth(110)
         self.token_ticker_e.textChanged.connect(self.upd_token)
         grid.addWidget(self.token_ticker_e, row, 1)
+        row += 1
+
+        msg = _('An optional URL string embedded into the token genesis transaction.')
+        grid.addWidget(HelpLabel(_('Document URL or contact email (optional):'), msg), row, 0)
+        self.token_url_e = QLineEdit()
+        self.token_url_e.setFixedWidth(450)
+        self.token_url_e.textChanged.connect(self.upd_token)
+        grid.addWidget(self.token_url_e, row, 1)
+        row += 1
+
+        msg = _('An optional hash hexidecimal bytes embedded into the token genesis transaction for hashing the document file contents at the URL provided above.')
+        grid.addWidget(HelpLabel(_('Document Hash (optional):'), msg), row, 0)
+        self.token_dochash_e = QLineEdit()
+        self.token_dochash_e.setFixedWidth(450)
+        self.token_dochash_e.textChanged.connect(self.upd_token)
+        grid.addWidget(self.token_dochash_e, row, 1)
         row += 1
 
         msg = _('Sets the number of decimals of divisibility for this token (embedded into genesis).') + '\n\n'\
@@ -157,8 +171,8 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
     def create_token(self, preview=False):
         token_name = self.token_name_e.text() if self.token_name_e.text() != '' else None
         ticker = self.token_ticker_e.text() if self.token_ticker_e.text() != '' else None
-        token_document_url = None
-        token_document_hash = None
+        token_document_url = self.token_url_e.text() if self.token_url_e.text() != '' else None
+        token_document_hash_hex = self.token_dochash_e.text() if self.token_dochash_e.text() != '' else None
         decimals = int(self.token_ds_e.value())
         mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
 
@@ -171,9 +185,20 @@ class SlpAddTokenInitDialog(QDialog, MessageBoxMixin):
             self.show_message(_("Token output quantity is too large. Maximum %s.")%(maxqty,))
             return
 
+        if token_document_hash_hex != None:
+            if len(token_document_hash_hex) != 64:
+                self.show_message(_("Token document hash must be a 32 byte hexidecimal string or left empty."))
+                return
+            elif len(token_document_hash_hex) == 64:
+                try:
+                    bytes.fromhex(token_document_hash_hex)
+                except:
+                    self.show_message(_("Token document hash must must be in a valid hexidecimal form."))
+                    return
+                    
         outputs = []
         try:
-            slp_op_return_msg = buildGenesisOpReturnOutput_V1(ticker, token_name, token_document_url, token_document_hash, decimals, mint_baton_vout, init_mint_qty)
+            slp_op_return_msg = buildGenesisOpReturnOutput_V1(ticker, token_name, token_document_url, token_document_hash_hex, decimals, mint_baton_vout, init_mint_qty)
             outputs.append(slp_op_return_msg)
         except OPReturnTooLarge:
             self.show_message(_("Optional string text causiing OP_RETURN greater than 223 bytes."))
