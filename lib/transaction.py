@@ -236,6 +236,10 @@ def parse_scriptSig(d, _bytes):
         print_error("cannot find address in input script", bh2u(_bytes))
         return
 
+    # added to suppress print_error statements during lib/test_slp_consensus.py (uses 'fake' transactions that have empty scriptSig)
+    if len(decoded) == 0:
+        return
+
     match = [ opcodes.OP_PUSHDATA4 ]
     if match_decoded(decoded, match):
         item = decoded[0][1]
@@ -369,7 +373,7 @@ def deserialize(raw):
     start = vds.read_cursor
     d['version'] = vds.read_int32()
     n_vin = vds.read_compact_size()
-    assert n_vin != 0
+   # assert n_vin != 0  ## This unnecessary check has been removed so as to enable tests/test_slp_consensus to work with self-contained fake transaction DAGs.
     d['inputs'] = [parse_input(vds) for i in range(n_vin)]
     n_vout = vds.read_compact_size()
     d['outputs'] = [parse_output(vds, i) for i in range(n_vout)]

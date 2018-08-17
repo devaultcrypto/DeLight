@@ -55,12 +55,8 @@ def kill_graph(token_id_hex):
     graph.reset()
 
 
-def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, **kwargs):
-    """
-    Basic validation job maker for a single transaction.
-
-    Returns job, or None if it was not a validatable type
-    """
+def setup_job(tx, reset=False):
+    """ Perform setup steps before validation for a given transaction. """
     slpMsg = SlpMessage.parseSlpOutputScript(tx.outputs()[0][1])
 
     if slpMsg.transaction_type == 'GENESIS':
@@ -77,6 +73,18 @@ def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, 
             pass
 
     graph, jobmgr = get_graph(token_id_hex)
+
+    return graph, jobmgr
+
+
+def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, **kwargs):
+    """
+    Basic validation job maker for a single transaction.
+
+    Returns job, or None if it was not a validatable type
+    """
+    graph, jobmgr = setup_job(tx, reset=reset)
+
     graph.debugging = bool(debug)
 
     job = ValidationJob(graph, [tx.txid()], network,

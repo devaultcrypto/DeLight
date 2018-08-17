@@ -1,10 +1,16 @@
 import unittest
 from pprint import pprint
+from queue import Queue, Empty
+
 
 from lib.address import ScriptOutput
 
+from lib.transaction import Transaction
+
 import json
+
 from lib import slp
+from lib import slp_validator_0x01
 
 import requests
 import os
@@ -12,6 +18,8 @@ import os
 scripttests_local = os.path.abspath('../slp-unit-test-data/script_tests.json')
 scripttests_url = 'https://simpleledger.cash/slp-unit-test-data/script_tests.json'
 
+txintests_local = os.path.abspath('../slp-unit-test-data/tx_input_tests.json')
+txintests_url = 'https://simpleledger.cash/slp-unit-test-data/tx_input_tests.json'
 
 errorcodes = {
     # no-error maps to None
@@ -54,18 +62,18 @@ errorcodes = {
     #SlpUnsupportedSlpTokenType : 255 below
     }
 
-class SLPParserTest(unittest.TestCase):
+class SLPConsensusTests(unittest.TestCase):
     def test_opreturns(self):
         try:
             with open(scripttests_local) as f:
-                opret_file = json.load(f)
+                testlist = json.load(f)
             print("Got script tests from %s; will not download."%(scripttests_local,))
         except IOError:
-            print("Couldn't get script tests from %s; downloading from %s."%(scripttests_local,scripttests_url))
-            opret_file = requests.get(scripttests_url).json()
+            print("Couldn't get script tests from %s; downloading from %s..."%(scripttests_local,scripttests_url))
+            testlist = requests.get(scripttests_url).json()
 
-        print("Starting %d tests on SLP's OP_RETURN parser"%len(opret_file))
-        for d in opret_file:
+        print("Starting %d tests on SLP's OP_RETURN parser"%len(testlist))
+        for d in testlist:
             description = d['msg']
             scripthex = d['script']
             code = d['code']
@@ -97,11 +105,67 @@ class SLPParserTest(unittest.TestCase):
 
         pass
 
-    #def test_even(self):
-        #"""
-        #Test that numbers between 0 and 5 are all even.
-        #"""
-        #for i in range(0, 6):
-            #with self.subTest(i=i):
-                #self.assertEqual(i % 2, 0)
+
+    def test_inputs(self):
+        try:
+            with open(txintests_local) as f:
+                testlist = json.load(f)
+            print("Got script tests from %s; will not download."%(txintests_local,))
+        except IOError:
+            print("Couldn't get script tests from %s; downloading from %s..."%(txintests_local,txintests_url))
+            testlist = requests.get(txintests_url).json()
+
+        print("Starting %d tests on SLP's input validation"%len(testlist))
+        for test in testlist:
+            description = test['description']
+
+            given_validity  = {}
+            #should_validity = {}
+            txes = {}
+            for d in test['when']:
+                tx = Transaction(d['tx'])
+                txid = tx.txid()
+                txes[txid] = tx
+                if d['valid'] is True:
+                    given_validity[txid] = 1
+                elif d['valid'] is False:
+                    given_validity[txid] = 2
+                else:
+                    raise ValueError(d['valid'])
+
+            for d in test['should']:
+                tx = Transaction(d['tx'])
+                txid = tx.txid()
+                txes[txid] = tx
+                d['txid'] = txid
+                #if d['valid'] is True:
+                    #should_validity[txid] = 1
+                #elif d['valid'] is False:
+                    #should_validity[txid] = 2
+                #else:
+                    #raise ValueError(d['valid'])
+
+            for i, d in enumerate(test['should']):
+                txid = d['txid']
+                with self.subTest(description=description, i=i):
+                    graph, jobmgr = slp_validator_0x01.setup_job(txes[txid], reset=True)
+                    job = slp_validator_0x01.ValidationJob(graph, [txid], None,
+                                        txcachegetter=txes.__getitem__,
+                                        validitycachegetter=given_validity.__getitem__,
+                                        )
+                    q = Queue()
+                    job.add_callback(q.put)
+                    jobmgr.add_job(job)
+                    try:
+                        q.get(timeout=3) # unlimited timeout
+                    except Empty:
+                        raise RuntimeError("Timeout during validation unit test")
+
+                    n = next(iter(job.nodes.values()))
+                    if d['valid'] is True:
+                        self.assertEqual(n.validity, 1)
+                    elif d['valid'] is False:
+                        self.assertIn(n.validity, (2,3))
+                    else:
+                        raise ValueError(d['valid'])
 
