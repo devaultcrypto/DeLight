@@ -137,25 +137,16 @@ class Validator_SLP1:
         try:
             slpMsg = SlpMessage.parseSlpOutputScript(txouts[0][1])
         except SlpUnsupportedSlpTokenType as e:
+            # for unknown types: pruning as unknown has similar effect as pruning
+            # invalid except it tells the validity cacher to not remember this
+            # tx as 'bad'
             return ('prune', 0)
         except SlpInvalidOutputMessage as e:
-#            print("DEBUG SLP: %.10s... invalid: %r"%(tx.txid(), e))
             return ('prune', 2)
 
         # Parse the SLP
         if slpMsg.token_type != 1:
-            return ('prune', 0) # not SLP 0x01
-
-        # Consensus rule 2: OP_RETURN output amount must be 0.
-        if txouts[0][2] != 0:
-            return ('prune', 2)
-
-        # Consensus rule 2: other outputs with OP_RETURN not allowed.
-        other_scripts = [o[1] for o in txouts[1:] if o[0] == TYPE_SCRIPT]
-        for sc in other_scripts:
-            if sc.to_script().startswith(b'\x6a'):
-                #print("DEBUG SLP: %.10s... invalid: %r"%(tx.txid(), e))
-                return ('prune', 2)
+            return ('prune', 0)
 
         if slpMsg.transaction_type == 'SEND':
             token_id_hex = slpMsg.op_return_fields['token_id_hex']
