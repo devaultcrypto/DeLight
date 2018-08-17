@@ -77,6 +77,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         msg = _('An optional hash hexidecimal bytes embedded into the token genesis transaction for hashing the document file contents at the URL provided above.')
         grid.addWidget(HelpLabel(_('Document Hash (optional):'), msg), row, 0)
         self.token_dochash_e = QLineEdit()
+        self.token_dochash_e.setInputMask("H")
         self.token_dochash_e.setFixedWidth(450)
         self.token_dochash_e.textChanged.connect(self.upd_token)
         grid.addWidget(self.token_dochash_e, row, 1)
@@ -190,12 +191,6 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
             if len(token_document_hash_hex) != 64:
                 self.show_message(_("Token document hash must be a 32 byte hexidecimal string or left empty."))
                 return
-            elif len(token_document_hash_hex) == 64:
-                try:
-                    bytes.fromhex(token_document_hash_hex)
-                except:
-                    self.show_message(_("Token document hash must must be in a valid hexidecimal form."))
-                    return
                     
         outputs = []
         try:
