@@ -7,7 +7,10 @@ import json
 from lib import slp
 
 import requests
+import os
 
+scripttests_local = os.path.abspath('../slp-unit-test-data/script_tests.json')
+scripttests_url = 'https://simpleledger.cash/slp-unit-test-data/script_tests.json'
 
 
 errorcodes = {
@@ -53,7 +56,13 @@ errorcodes = {
 
 class SLPParserTest(unittest.TestCase):
     def test_opreturns(self):
-        opret_file = requests.get('https://simpleledger.cash/slp-unit-test-data/script_tests.json').json()
+        try:
+            with open(scripttests_local) as f:
+                opret_file = json.load(f)
+            print("Got script tests from %s; will not download."%(scripttests_local,))
+        except IOError:
+            print("Couldn't get script tests from %s; downloading from %s."%(scripttests_local,scripttests_url))
+            opret_file = requests.get(scripttests_url).json()
 
         print("Starting %d tests on SLP's OP_RETURN parser"%len(opret_file))
         for d in opret_file:
