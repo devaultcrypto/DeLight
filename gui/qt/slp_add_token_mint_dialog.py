@@ -37,7 +37,8 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.app = main_window.app
 
         # IMPORTANT: set to None to guard tokens when Send tab may have a token selected
-        self.wallet.send_slpTokenId = None
+        self.pre_gui_token = self.main_window.token_type_combo.currentIndex()
+        self.main_window.token_type_combo.setCurrentIndex(0)
 
         self.genesis_tx = None
 
@@ -247,6 +248,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.close()
 
     def closeEvent(self, event):
+        self.main_window.token_type_combo.setCurrentIndex(self.pre_gui_token)
         event.accept()
         dialogs.remove(self)
 
