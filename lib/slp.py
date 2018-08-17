@@ -359,8 +359,10 @@ def buildSendOpReturnOutput_V1(token_id_hex: str, output_qty_array: [int]) -> tu
     chunks.append(tokenId)
 
     # output quantities
+    if len(output_qty_array) < 1:
+        raise SlpSerializingError("Cannot have less than 1 SLP Token output.")
     if len(output_qty_array) > 19:
-        raise Exception("Cannot have more than 19 SLP Token outputs.")
+        raise SlpSerializingError("Cannot have more than 19 SLP Token outputs.")
     for qty in output_qty_array:
         qb = int(qty).to_bytes(8,'big')
         chunks.append(qb)
