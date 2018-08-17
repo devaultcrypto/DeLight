@@ -77,7 +77,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         msg = _('An optional hash hexidecimal bytes embedded into the token genesis transaction for hashing the document file contents at the URL provided above.')
         grid.addWidget(HelpLabel(_('Document Hash (optional):'), msg), row, 0)
         self.token_dochash_e = QLineEdit()
-        self.token_dochash_e.setInputMask("H")
+        self.token_dochash_e.setInputMask("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
         self.token_dochash_e.setFixedWidth(450)
         self.token_dochash_e.textChanged.connect(self.upd_token)
         grid.addWidget(self.token_dochash_e, row, 1)
