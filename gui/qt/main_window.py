@@ -1289,7 +1289,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
               + _('The amount will be displayed in red if you do not have enough funds in your wallet.') + ' ' \
               + _('Note that if you have frozen some of your addresses, the available funds will be lower than your total balance.') + '\n\n' \
               + _('Keyboard shortcut: type "!" to send all your coins.')
-        self.slp_amount_label = HelpLabel(_('SLP Amount'), msg)
+        self.slp_amount_label = HelpLabel(_('Token amount'), msg)
         grid.addWidget(self.slp_amount_label, 6, 0)
         grid.addWidget(self.slp_amount_e, 6, 1)
 
