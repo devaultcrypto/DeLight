@@ -42,14 +42,14 @@ from .util import *
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
-def show_transaction(tx, parent, desc=None, prompt_if_unsaved=False):
-    d = TxDialog(tx, parent, desc, prompt_if_unsaved)
+def show_transaction(tx, parent, desc=None, prompt_if_unsaved=False, window_to_close_on_broadcast=None):
+    d = TxDialog(tx, parent, desc, prompt_if_unsaved, window_to_close_on_broadcast)
     dialogs.append(d)
     d.show()
 
 class TxDialog(QDialog, MessageBoxMixin):
 
-    def __init__(self, tx, parent, desc, prompt_if_unsaved):
+    def __init__(self, tx, parent, desc, prompt_if_unsaved, window_to_close_on_broadcast=None):
         '''Transactions in the wallet will show their description.
         Pass desc to give a description for txs not yet in the wallet.
         '''
@@ -63,6 +63,7 @@ class TxDialog(QDialog, MessageBoxMixin):
         self.main_window = parent
         self.wallet = parent.wallet
         self.prompt_if_unsaved = prompt_if_unsaved
+        self.window_to_close_on_broadcast = window_to_close_on_broadcast
         self.saved = False
         self.desc = desc
 
@@ -129,6 +130,8 @@ class TxDialog(QDialog, MessageBoxMixin):
         self.update()
 
     def do_broadcast(self):
+        if self.window_to_close_on_broadcast:
+            self.window_to_close_on_broadcast.close()
         self.main_window.push_top_level_window(self)
         try:
             self.main_window.broadcast_transaction(self.tx, self.desc)

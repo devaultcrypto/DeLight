@@ -23,6 +23,7 @@ from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, buildGenesisOpReturnOutput_V1
 
 from .amountedit import SLPAmountEdit
+from .transaction_dialog import show_transaction
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
@@ -236,7 +237,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
             return
 
         if preview:
-            self.main_window.show_transaction(tx)
+            show_transaction(tx, self.main_window, None, False, self)
             return
 
         msg = []
@@ -255,7 +256,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         def sign_done(success):
             if success:
                 if not tx.is_complete():
-                    self.main_window.show_transaction(tx)
+                    show_transaction(tx, self.main_window, None, False, self)
                     self.main_window.do_clear()
                 else:
                     self.main_window.broadcast_transaction(tx, tx_desc)

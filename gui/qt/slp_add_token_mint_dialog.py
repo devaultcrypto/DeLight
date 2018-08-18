@@ -22,6 +22,7 @@ from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpNoMintingBatonFound, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, buildMintOpReturnOutput_V1
 
 from .amountedit import SLPAmountEdit
+from .transaction_dialog import show_transaction
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
@@ -40,7 +41,6 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.pre_gui_token = self.main_window.token_type_combo.currentIndex()
         self.main_window.token_type_combo.setCurrentIndex(0)
 
-        self.genesis_tx = None
 
         self.setWindowTitle(_("Mint Additional Tokens"))
 
@@ -130,9 +130,6 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
     def do_preview(self):
         self.mint_token(preview = True)
 
-    def view_tx(self,):
-        self.main_window.show_transaction(self.genesis_tx)
-
     def show_mint_baton_address(self):
         self.token_baton_to_e.setHidden(self.token_fixed_supply_cb.isChecked())
         self.token_baton_label.setHidden(self.token_fixed_supply_cb.isChecked())
@@ -218,7 +215,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         # TODO: adjust change amount (based on amount added from baton)
 
         if preview:
-            self.main_window.show_transaction(tx)
+            show_transaction(tx, self.main_window, None, False, self)
             return
 
         msg = []
@@ -237,7 +234,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         def sign_done(success):
             if success:
                 if not tx.is_complete():
-                    self.main_window.show_transaction(tx)
+                    show_transaction(tx, self.main_window, None, False, self)
                     self.main_window.do_clear()
                 else:
                     self.main_window.broadcast_transaction(tx, tx_desc)
