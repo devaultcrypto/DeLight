@@ -1309,7 +1309,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if not self.config.get('enable_slp'):
             self.slp_amount_label.setHidden(True)
             self.slp_token_type_label.setHidden(True)
-            #self.token_type_combo.setCurrentIndex(0)
             self.token_type_combo.setHidden(True)
             self.slp_amount_e.setAmount(0)
             self.slp_amount_e.setText("")
