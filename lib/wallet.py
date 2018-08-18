@@ -265,6 +265,14 @@ class Abstract_Wallet(PrintError):
 
         self.slpv1_validity = self.storage.get('slpv1_validity', {})
         self.token_types = self.storage.get('token_types', {})
+        self.tx_tokinfo = self.storage.get('tx_tokinfo')
+
+        # load up slp_txo as defaultdict-of-defaultdict-of-dicts
+        self._slp_txo = defaultdict(lambda: defaultdict(dict))
+        for addr, addrdict in self.to_Address_dict(self.storage.get('slp_txo')).items():
+            for txid, txdict in addrdict.items():
+                # need to do this iteration since json stores int keys as decimal strings.
+                self._slp_txo[addr][txid] = {int(idx):d for idx,d in txdict.items()}
 
     @profiler
     def save_transactions(self, write=False):
@@ -285,14 +293,18 @@ class Abstract_Wallet(PrintError):
             self.storage.put('addr_history', history)
 
             ### SLP stuff
-            self.store_slp()
             self.storage.put('slpv1_validity', self.slpv1_validity)
             self.storage.put('token_types', self.token_types)
+            self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
+            self.storage.put('tx_tokinfo', self.tx_tokinfo)
 
             if write:
                 self.storage.write()
 
     def enable_slp(self):
+        # This gets called in two situations:
+        # - Upon wallet startup once GUI is loaded, it checks config to see if SLP should be enabled.
+        # - During wallet operation, SLP can be freely enabled/disabled by user.
         with self.transaction_lock:
             if self._enable_slp:
                 return # ignore
@@ -300,19 +312,10 @@ class Abstract_Wallet(PrintError):
 
             ok = self.storage.get('had_slp_enabled', False)
 
-            if ok == 2: #  2 for new slp_txo version
-                self._slp_txo = defaultdict(lambda: defaultdict(dict))
-                for addr, addrdict in self.to_Address_dict(self.storage.get('slp_txo')).items():
-                    for txid, txdict in addrdict.items():
-                        # need to do this iteration since json stores int keys as decimal strings.
-                        self._slp_txo[addr][txid] = {int(idx):d for idx,d in txdict.items()}
-                self.tx_tokinfo = self.storage.get('tx_tokinfo')
-                for tx_hash, tti in self.tx_tokinfo.items():
-                    # Fire up validation on unvalidated txes
-                    tx = self.transactions[tx_hash]
-                    self.slp_check_validation(tx_hash, tx)
-            else:
-                self.rebuild_slp()
+            for tx_hash, tti in self.tx_tokinfo.items():
+                # Fire up validation on unvalidated txes
+                tx = self.transactions[tx_hash]
+                self.slp_check_validation(tx_hash, tx)
 
     def add_token_type(self, token_id, entry):
         with self.transaction_lock:
@@ -323,25 +326,11 @@ class Abstract_Wallet(PrintError):
                     tx = self.transactions[tx_hash]
                     self.slp_check_validation(tx_hash, tx)
 
-    def store_slp(self):
-        if self._enable_slp:
-            self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
-            self.storage.put('tx_tokinfo', self.tx_tokinfo)
-            self.storage.put('had_slp_enabled', 2)
-        else:
-            self.storage.put('slp_txo', {})
-            self.storage.put('tx_tokinfo', {})
-            self.storage.put('had_slp_enabled', False)
-
     def disable_slp(self):
         with self.transaction_lock:
             if not self._enable_slp:
                 return # ignore
             self._enable_slp = False
-            self.store_slp()
-
-            del self._slp_txo
-            del self.tx_tokinfo
 
 
     def clear_history(self):
@@ -695,7 +684,7 @@ class Abstract_Wallet(PrintError):
 
         ### SLP stuff
         # removes token that are either unrelated, or unvalidated
-        if self._enable_slp and not get_all:
+        if not get_all:
             addrdict = self._slp_txo.get(address,{})
             for txid, txdict in addrdict.items():
                 for idx, txo in txdict.items():
@@ -856,8 +845,9 @@ class Abstract_Wallet(PrintError):
             self.transactions[tx_hash] = tx
 
             ### SLP: Handle incoming SLP transaction outputs here
-            if self._enable_slp:
-                self.handleSlpTransaction(tx_hash, tx)
+            #if self._enable_slp:
+            # Always handle and parse SLP
+            self.handleSlpTransaction(tx_hash, tx)
 
     def handleSlpTransaction(self, tx_hash, tx):
         txouts = tx.outputs()
@@ -947,7 +937,8 @@ class Abstract_Wallet(PrintError):
                 }
         self.tx_tokinfo[tx_hash] = tti
 
-        self.slp_check_validation(tx_hash, tx)
+        if self._enable_slp: # Only start up validation if SLP enabled
+            self.slp_check_validation(tx_hash, tx)
 
     def slp_check_validation(self, tx_hash, tx):
         tti = self.tx_tokinfo[tx_hash]
@@ -1243,7 +1234,7 @@ class Abstract_Wallet(PrintError):
         if not inputs:
             raise NotEnoughFunds()
 
-        """ SLP: make sure SLP token spending is not greater than valid balance """
+        # SLP: make sure SLP token spending is not greater than valid balance
         if self._enable_slp and self.send_slpTokenId is not None:
             slpMsg = SlpMessage.parseSlpOutputScript(outputs[0][1])
             if slpMsg.transaction_type == 'SEND':
