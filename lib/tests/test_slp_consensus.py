@@ -148,11 +148,17 @@ class SLPConsensusTests(unittest.TestCase):
             for i, d in enumerate(test['should']):
                 txid = d['txid']
                 with self.subTest(description=description, i=i):
-                    graph, jobmgr = slp_validator_0x01.setup_job(txes[txid], reset=True)
+                    try:
+                        graph, jobmgr = slp_validator_0x01.setup_job(txes[txid], reset=True)
+                    except slp.SlpInvalidOutputMessage: # If output 0 is not OP_RETURN
+                        self.assertEqual(d['valid'], False)
+                        continue
                     job = slp_validator_0x01.ValidationJob(graph, [txid], None,
                                         txcachegetter=txes.__getitem__,
                                         validitycachegetter=given_validity.__getitem__,
                                         )
+                    #if txid == '8a08b78ae434de0b1a26e56ae7e78bb11b20f8240eb3d97371fd46a609df7fc3':
+                        #graph.debugging = True
                     q = Queue()
                     job.add_callback(q.put)
                     jobmgr.add_job(job)
