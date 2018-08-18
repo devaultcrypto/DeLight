@@ -265,14 +265,18 @@ class Abstract_Wallet(PrintError):
 
         self.slpv1_validity = self.storage.get('slpv1_validity', {})
         self.token_types = self.storage.get('token_types', {})
-        self.tx_tokinfo = self.storage.get('tx_tokinfo')
+        self.tx_tokinfo = self.storage.get('tx_tokinfo', {})
 
         # load up slp_txo as defaultdict-of-defaultdict-of-dicts
         self._slp_txo = defaultdict(lambda: defaultdict(dict))
-        for addr, addrdict in self.to_Address_dict(self.storage.get('slp_txo')).items():
+        for addr, addrdict in self.to_Address_dict(self.storage.get('slp_txo',{})).items():
             for txid, txdict in addrdict.items():
                 # need to do this iteration since json stores int keys as decimal strings.
                 self._slp_txo[addr][txid] = {int(idx):d for idx,d in txdict.items()}
+
+        ok = self.storage.get('slp_data_version', False)
+        if ok != '3':
+            self.rebuild_slp()
 
     @profiler
     def save_transactions(self, write=False):
@@ -298,6 +302,8 @@ class Abstract_Wallet(PrintError):
             self.storage.put('slp_txo', self.from_Address_dict(self._slp_txo))
             self.storage.put('tx_tokinfo', self.tx_tokinfo)
 
+            self.storage.put('slp_data_version', 3)
+
             if write:
                 self.storage.write()
 
@@ -309,8 +315,6 @@ class Abstract_Wallet(PrintError):
             if self._enable_slp:
                 return # ignore
             self._enable_slp = True
-
-            ok = self.storage.get('had_slp_enabled', False)
 
             for tx_hash, tti in self.tx_tokinfo.items():
                 # Fire up validation on unvalidated txes
@@ -956,12 +960,14 @@ class Abstract_Wallet(PrintError):
                 job.add_callback(callback)
 
     def rebuild_slp(self,):
-        """Wipe away old SLP transaction data and rerun on the entire tx set."""
-        with self.transaction_lock:
-            self._slp_txo = defaultdict(lambda: defaultdict(dict))
-            self.tx_tokinfo = {}
-            for txid, tx in self.transactions.items():
-                self.handleSlpTransaction(txid, tx)
+        """Wipe away old SLP transaction data and rerun on the entire tx set.
+
+        (we can't lock transaction_lock here since it may not exist when rebuilding during loadup)
+        """
+        self._slp_txo = defaultdict(lambda: defaultdict(dict))
+        self.tx_tokinfo = {}
+        for txid, tx in self.transactions.items():
+            self.handleSlpTransaction(txid, tx)
 
     def remove_transaction(self, tx_hash):
         with self.transaction_lock:
