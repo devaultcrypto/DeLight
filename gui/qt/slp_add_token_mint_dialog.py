@@ -247,7 +247,10 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
     def closeEvent(self, event):
         self.main_window.token_type_combo.setCurrentIndex(self.pre_gui_token)
         event.accept()
-        dialogs.remove(self)
+        try:
+            dialogs.remove(self)
+        except ValueError:
+            pass
 
     def update(self):
         return
