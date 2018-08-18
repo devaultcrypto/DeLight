@@ -1166,6 +1166,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.slp_amount_label.setHidden(False)
             tok = self.wallet.token_types[self.wallet.send_slpTokenId]
             self.slp_amount_e.set_token(tok['name'],tok['decimals'])
+            self.slp_amount_changed()
         self.update_status()
 
     def create_send_tab(self):
@@ -1376,7 +1377,28 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.message_opreturn_e.textEdited.connect(entry_changed)
         self.message_opreturn_e.editingFinished.connect(entry_changed)
 
-        def slp_amount_changed():
+        self.slp_amount_e.textChanged.connect(self.slp_amount_changed)
+
+        self.invoices_label = QLabel(_('Invoices'))
+        from .invoice_list import InvoiceList
+        self.invoice_list = InvoiceList(self)
+
+        vbox0 = QVBoxLayout()
+        vbox0.addLayout(grid)
+        hbox = QHBoxLayout()
+        hbox.addLayout(vbox0)
+        w = QWidget()
+        vbox = QVBoxLayout(w)
+        vbox.addLayout(hbox)
+        vbox.addStretch(1)
+        vbox.addWidget(self.invoices_label)
+        vbox.addWidget(self.invoice_list)
+        vbox.setStretchFactor(self.invoice_list, 1000)
+        w.searchable_list = self.invoice_list
+        run_hook('create_send_tab', grid)
+        return w
+
+    def slp_amount_changed(self,):
             not_enough_funds_slp = False
             if self.wallet.send_slpTokenId is not None:
                 try:
@@ -1406,27 +1428,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
             self.statusBar().showMessage(text)
             self.slp_amount_e.setStyleSheet(amt_color.as_stylesheet())
-
-        self.slp_amount_e.textChanged.connect(slp_amount_changed)
-
-        self.invoices_label = QLabel(_('Invoices'))
-        from .invoice_list import InvoiceList
-        self.invoice_list = InvoiceList(self)
-
-        vbox0 = QVBoxLayout()
-        vbox0.addLayout(grid)
-        hbox = QHBoxLayout()
-        hbox.addLayout(vbox0)
-        w = QWidget()
-        vbox = QVBoxLayout(w)
-        vbox.addLayout(hbox)
-        vbox.addStretch(1)
-        vbox.addWidget(self.invoices_label)
-        vbox.addWidget(self.invoice_list)
-        vbox.setStretchFactor(self.invoice_list, 1000)
-        w.searchable_list = self.invoice_list
-        run_hook('create_send_tab', grid)
-        return w
 
     def spend_max(self):
         self.is_max = True
