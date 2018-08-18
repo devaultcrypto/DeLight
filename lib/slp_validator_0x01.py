@@ -236,8 +236,8 @@ class Validator_SLP1:
         else:
             # TRAN --- myinfo is an integer sum(outs)
 
-            # Check whether there could be enough to satisfy outputs.
-            insum_all = sum(inp[2] for inp in inputs_info)
+            # Check whether from the unknown + valid inputs there could be enough to satisfy outputs.
+            insum_all = sum(inp[2] for inp in inputs_info if inp[1] <= 1)
             if insum_all < myinfo:
                 #print("DEBUG SLP: invalid! outsum=%d,  possible inputs=%d"%(myinfo, insum_all))
                 return (False, 3)
