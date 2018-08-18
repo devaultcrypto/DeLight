@@ -53,9 +53,18 @@ class HistoryList(MyTreeWidget):
 
 
     def slp_validity_slot(self, txid, validity):
-        for tx_hash,item in self.allitems:
-            if tx_hash == txid:
-                self.update_item_state(item)
+        # This gets pinged by the SLP validator when a validation job finishes.
+        # (see lib/wallet.py : slp_check_validation() )
+        if validity in (2,3):
+            # If validator found 'invalid', then we need to update balances,
+            # which requires recalculating / refreshing the whole list.
+            self.update()
+        else:
+            # If validator found 'valid' then the balances are OK, so just
+            # update the relevant items (note: may be multiple matches.).
+            for tx_hash,item in self.allitems:
+                if tx_hash == txid:
+                    self.update_item_state(item)
 
     def __init__(self, parent=None):
         MyTreeWidget.__init__(self, parent, self.create_menu, [], 4)
