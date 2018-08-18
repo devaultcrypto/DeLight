@@ -45,8 +45,13 @@ from electroncash.slp import SlpNoMintingBatonFound
 class SlpMgt(MyTreeWidget):
     filter_columns = [0, 1,2]  # Key, Value
 
+    def slp_validity_slot(self, txid, validity):
+        self.update()
+
     def __init__(self, parent):
         MyTreeWidget.__init__(self, parent, self.create_menu, [_('Token ID'), _('Token Name'), _('Dec.'),_('Balance')], 0, [0])
+        self.slp_validity_signal = parent.slp_validity_signal
+        self.slp_validity_signal.connect(self.slp_validity_slot, Qt.QueuedConnection)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.setSortingEnabled(True)
         self.editable_columns=[1]

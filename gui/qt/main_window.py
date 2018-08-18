@@ -107,6 +107,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     computing_privkeys_signal = pyqtSignal()
     show_privkeys_signal = pyqtSignal()
     cashaddr_toggled_signal = pyqtSignal()
+    slp_validity_signal = pyqtSignal(object, object)
+
 
     def __init__(self, gui_object, wallet):
         QMainWindow.__init__(self)
@@ -362,7 +364,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.console.showMessage(args[0])
         elif event == 'verified':
             self.history_list.update_item(*args)
-            self.token_list.update()
             self.slp_history_list.update_item_netupdate(*args)
         elif event == 'fee':
             pass
@@ -389,6 +390,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def load_wallet(self, wallet):
         wallet.thread = TaskThread(self, self.on_error)
         self.wallet = wallet
+        self.wallet.ui_emit_validity_updated = self.slp_validity_signal.emit
         self.update_recently_visited(wallet.storage.path)
         # address used to create a dummy transaction and estimate transaction fee
         self.history_list.update()

@@ -51,16 +51,16 @@ TX_ICONS = [
 class HistoryList(MyTreeWidget):
     filter_columns = [2, 3, 4]  # Date, Description, Amount
 
-    validity_signal = pyqtSignal(object, object)
 
-    def validity_slot(self, txid, validity):
+    def slp_validity_slot(self, txid, validity):
         for tx_hash,item in self.allitems:
             if tx_hash == txid:
                 self.update_item_state(item)
 
     def __init__(self, parent=None):
         MyTreeWidget.__init__(self, parent, self.create_menu, [], 4)
-        self.validity_signal.connect(self.validity_slot, Qt.QueuedConnection)
+        self.slp_validity_signal = parent.slp_validity_signal
+        self.slp_validity_signal.connect(self.slp_validity_slot, Qt.QueuedConnection)
         self.editable_columns=[]
         self.refresh_headers()
         self.setColumnHidden(1, True)
@@ -80,7 +80,6 @@ class HistoryList(MyTreeWidget):
     @profiler
     def on_update(self):
         self.wallet = self.parent.wallet
-        self.wallet.ui_emit_validity_updated = self.validity_signal.emit
         h = self.wallet.get_history(self.get_domain())
         slp_history =self.wallet.get_slp_history()
 
