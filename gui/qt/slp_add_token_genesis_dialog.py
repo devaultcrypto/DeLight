@@ -261,6 +261,16 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
                 else:
                     self.main_window.broadcast_transaction(tx, tx_desc)
 
+                token_id = tx.txid()
+                if self.token_name_e.text() == '':
+                    token_name = tx.txid()[0:10]
+                else:
+                    token_name = self.token_name_e.text()
+
+                ow = (token_name is not None)
+                ret = self.main_window.add_token_type('SLP1', token_id, token_name, decimals,
+                                                    error_callback = self.show_error, allow_overwrite=ow)
+
         self.main_window.sign_tx_with_password(tx, sign_done, password)
 
         self.init_button.setDisabled(True)
