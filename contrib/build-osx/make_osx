@@ -21,7 +21,7 @@ VERSION=`git describe --tags`
 PYTHON_VERSION=3.6.4
 BUILDDIR=/tmp/electron-cash-build
 PACKAGE=Electron-Cash
-GIT_REPO=https://github.com/fyookball/electrum
+GIT_REPO=https://github.com/simpleledger/electrum
 
 
 info "Installing Python $PYTHON_VERSION"
