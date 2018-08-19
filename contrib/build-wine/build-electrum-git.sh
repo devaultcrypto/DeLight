@@ -23,10 +23,10 @@ for repo in electrum; do
     if [ -d $repo ]; then
 	cd $repo
 	git pull
-	git checkout 3.3
+	git checkout 3.3.2
 	cd ..
     else
-	URL=https://github.com/fyookball/$repo.git
+	URL=https://github.com/simpleledger/$repo.git
 	git clone -b master $URL $repo
     fi
 done
@@ -39,7 +39,7 @@ for repo in electrum-locale electrum-icons; do
 	git checkout master
 	cd ..
     else
-	URL=https://github.com/fyookball/$repo.git
+	URL=https://github.com/simpleledger/$repo.git
 	git clone -b master $URL $repo
     fi
 done
