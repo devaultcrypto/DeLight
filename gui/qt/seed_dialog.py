@@ -44,6 +44,7 @@ def seed_warning_msg(seed):
         "<li>" + _("Never disclose your seed.") + "</li>",
         "<li>" + _("Never type it on a website.") + "</li>",
         "<li>" + _("Do not store it electronically.") + "</li>",
+        "<li>" + _("Do not use this seed on a non-SLP wallet as it may result in lost tokens.") + "</li>",
         "</ul>"
     ]) % len(seed.split())
 
