@@ -14,10 +14,9 @@ from electroncash.bitcoin import base_encode, TYPE_ADDRESS
 from electroncash.i18n import _
 from electroncash.plugins import run_hook
 
-from electroncash.util import bfh
 from .util import *
 
-from electroncash.util import format_satoshis_nofloat, format_satoshis_plain_nofloat
+from electroncash.util import bfh, format_satoshis_nofloat, format_satoshis_plain_nofloat, NotEnoughFunds, ExcessiveFee
 from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpNoMintingBatonFound, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage, buildMintOpReturnOutput_V1
 
