@@ -1398,36 +1398,36 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         run_hook('create_send_tab', grid)
         return w
 
-    def slp_amount_changed(self,):
-            not_enough_funds_slp = False
-            if self.wallet.send_slpTokenId is not None:
-                try:
-                    total_token_out = self.slp_amount_e.get_amount()
-                    if total_token_out is not None and total_token_out > self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0]:
-                        not_enough_funds_slp = True
-                except ValueError:
-                    pass
-
-            text = ""
-            if not_enough_funds_slp: #self.not_enough_funds_slp:
-                amt_color, fee_color = ColorScheme.RED, ColorScheme.RED
-                text = _( "Not enough funds for selected token")
-            elif self.slp_amount_e.isModified():
-                amt_color, fee_color = ColorScheme.DEFAULT, ColorScheme.BLUE
-            else:
-                amt_color, fee_color = ColorScheme.BLUE, ColorScheme.BLUE
-            opret_color = ColorScheme.DEFAULT
-
+    def slp_amount_changed(self):
+        not_enough_funds_slp = False
+        if self.wallet.send_slpTokenId is not None:
             try:
-                if self.slp_amount_e.get_amount() > (2 ** 64) - 1:
-                    amt_color, fee_color = ColorScheme.RED, ColorScheme.RED
-                    maxqty = format_satoshis_plain_nofloat((2 ** 64) - 1, self.wallet.token_types.get(self.wallet.send_slpTokenId)['decimals'])
-                    text = _("Token output quantity is too large. Maximum %s.")%(maxqty,)
-            except TypeError:
+                total_token_out = self.slp_amount_e.get_amount()
+                if total_token_out is not None and total_token_out > self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0]:
+                    not_enough_funds_slp = True
+            except ValueError:
                 pass
 
-            self.statusBar().showMessage(text)
-            self.slp_amount_e.setStyleSheet(amt_color.as_stylesheet())
+        text = ""
+        if not_enough_funds_slp: #self.not_enough_funds_slp:
+            amt_color, fee_color = ColorScheme.RED, ColorScheme.RED
+            text = _( "Not enough funds for selected token")
+        elif self.slp_amount_e.isModified():
+            amt_color, fee_color = ColorScheme.DEFAULT, ColorScheme.BLUE
+        else:
+            amt_color, fee_color = ColorScheme.BLUE, ColorScheme.BLUE
+        opret_color = ColorScheme.DEFAULT
+
+        try:
+            if self.slp_amount_e.get_amount() > (2 ** 64) - 1:
+                amt_color, fee_color = ColorScheme.RED, ColorScheme.RED
+                maxqty = format_satoshis_plain_nofloat((2 ** 64) - 1, self.wallet.token_types.get(self.wallet.send_slpTokenId)['decimals'])
+                text = _("Token output quantity is too large. Maximum %s.")%(maxqty,)
+        except TypeError:
+            pass
+
+        self.statusBar().showMessage(text)
+        self.slp_amount_e.setStyleSheet(amt_color.as_stylesheet())
 
     def spend_max(self):
         self.is_max = True

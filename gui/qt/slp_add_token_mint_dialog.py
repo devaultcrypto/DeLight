@@ -56,7 +56,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         grid.addWidget(HelpLabel(_('Token ID:'), msg), row, 0)
 
         self.token_id_e = QLineEdit()
-        self.token_id_e.setFixedWidth(475)
+        self.token_id_e.setFixedWidth(490)
         self.token_id_e.setText(token_id_hex)
         self.token_id_e.setDisabled(True)
         grid.addWidget(self.token_id_e, row, 1)
@@ -85,7 +85,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         msg = _('The simpleledger formatted bitcoin address for the genesis receiver of all genesis tokens.')
         grid.addWidget(HelpLabel(_('Token Receiver Address:'), msg), row, 0)
         self.token_pay_to_e = ButtonsLineEdit()
-        self.token_pay_to_e.setFixedWidth(475)
+        self.token_pay_to_e.setFixedWidth(490)
         grid.addWidget(self.token_pay_to_e, row, 1)
         row += 1
 
@@ -93,7 +93,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.token_baton_label = HelpLabel(_('Mint Baton Address:'), msg)
         grid.addWidget(self.token_baton_label, row, 0)
         self.token_baton_to_e = ButtonsLineEdit()
-        self.token_baton_to_e.setFixedWidth(475)
+        self.token_baton_to_e.setFixedWidth(490)
         grid.addWidget(self.token_baton_to_e, row, 1)
         row += 1
 
