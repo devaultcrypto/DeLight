@@ -99,10 +99,10 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
     accept_signal = pyqtSignal()
     synchronized_signal = pyqtSignal(str)
 
-    def __init__(self, config, app, plugins, storage):
+    def __init__(self, config, app, plugins, storage, partial_title='Install Wizard'):
         BaseWizard.__init__(self, config, storage)
         QDialog.__init__(self, None)
-        self.setWindowTitle('Electron Cash  -  ' + _('Install Wizard'))
+        self.setWindowTitle('Electron Cash  -  ' + _(partial_title))
         self.app = app
         self.config = config
         # Set for base base class
@@ -165,6 +165,16 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
 
         self.msg_label = QLabel('')
         vbox.addWidget(self.msg_label)
+
+        logo = QLabel()
+        logo.setPixmap(QPixmap(":icons/slp_logo_hollow.png").scaledToWidth(52))
+        logo.setMaximumWidth(52)
+        vbox.addWidget(QLabel(_("<hr><b>NOTE: This version of Electron Cash is SLP token aware.</b>")))
+        vbox.addWidget(logo)
+        vbox.addWidget(QLabel(_("To avoid losing tokens, you should avoid opening a wallet on") + '\n' \
+                                +_("other wallet software that is not aware of SLP.")))
+        vbox.addWidget(QLabel(_("For more information visit: <a href=\"https://SimpleLedger.cash\">https://SimpleLedger.cash</a>")))
+
         hbox2 = QHBoxLayout()
         self.pw_e = QLineEdit('', self)
         self.pw_e.setFixedWidth(150)
