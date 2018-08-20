@@ -116,8 +116,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.gui_object = gui_object
         self.config = config = gui_object.config
 
-        self.setup_exception_hook()
+        # If using SLP for the first time, turn it on by default.
+        slp_in_config=self.config.get('enable_slp')
+        if slp_in_config is None or slp_in_config == "":
+            self.config.set_key('enable_slp', True)
+            self.config.set_key('show_slp_history_tab',True)
+            self.config.set_key('show_tokens_tab',True) 
 
+        self.setup_exception_hook()
         self.network = gui_object.daemon.network
         self.fx = gui_object.daemon.fx
         self.invoices = wallet.invoices
