@@ -153,12 +153,22 @@ class SLPConsensusTests(unittest.TestCase):
                     except slp.SlpInvalidOutputMessage: # If output 0 is not OP_RETURN
                         self.assertEqual(d['valid'], False)
                         continue
+
+                    def fetch_hook(txids):
+                        l = []
+                        for txid in txids:
+                            try:
+                                l.append(txes[txid])
+                            except KeyError:
+                                pass
+                        ### Call proxy here!
+                        return l
+
                     job = slp_validator_0x01.ValidationJob(graph, [txid], None,
-                                        txcachegetter=txes.__getitem__,
-                                        validitycachegetter=given_validity.__getitem__,
-                                        )
+                                        fetch_hook = fetch_hook, validitycache=given_validity)
                     #if txid == '8a08b78ae434de0b1a26e56ae7e78bb11b20f8240eb3d97371fd46a609df7fc3':
                         #graph.debugging = True
+                        #job.debugging_graph_state = True
                     q = Queue()
                     job.add_callback(q.put)
                     jobmgr.add_job(job)

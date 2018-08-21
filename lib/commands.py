@@ -557,7 +557,7 @@ class Commands:
                 raise BaseException("Unknown transaction")
 
         if debug:
-            print("Note -- debug info now printed to stderr")
+            print("Debug info will be printed to stderr.")
         job = slp_validator_0x01.make_job(tx, self.wallet, self.network,
                                           debug=2, reset=reset)
         job.add_callback(q.put, way='weakmethod')

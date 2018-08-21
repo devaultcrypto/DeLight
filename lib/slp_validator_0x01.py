@@ -1,19 +1,20 @@
 """
 Validate SLP token transactions with declared version 0x01.
 
--Caching support (todo)
--Proxy support (todo)
-
 This uses the graph searching mechanism from slp_dagging.py
 """
 
 import threading
+import queue
 
 from .transaction import Transaction
 from . import slp
-from .slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage
+from .slp import SlpMessage, SlpParsingError, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage
 from .slp_dagging import TokenGraph, ValidationJob, ValidationJobManager
 from .bitcoin import TYPE_SCRIPT
+
+from . import slp_proxying # loading this module starts a thread.
+
 
 ### Uncomment one of the following options:
 
@@ -24,6 +25,7 @@ shared_jobmgr = ValidationJobManager(threadname="Validation_SLP1")
 #shared_jobmgr = None
 
 ###
+
 
 # Global db for shared graphs (each token_id_hex has its own graph).
 graph_db_lock = threading.Lock()
@@ -54,6 +56,18 @@ def kill_graph(token_id_hex):
         jobmgr.kill()
     graph.reset()
 
+def setup_config(config_set):
+    """ Called by main_window.py before wallet even gets loaded.
+
+    - Limits on downloading DAG.
+    - Proxy requests.
+    """
+    global proxy
+    global config
+
+    proxy = slp_proxying.tokengraph_proxy
+    config = config_set
+
 
 def setup_job(tx, reset=False):
     """ Perform setup steps before validation for a given transaction. """
@@ -81,26 +95,79 @@ def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, 
     """
     Basic validation job maker for a single transaction.
 
+    Creates job and starts it running in the background thread.
+
+    Before calling this you have to call setup_config().
+
     Returns job, or None if it was not a validatable type
     """
-    graph, jobmgr = setup_job(tx, reset=reset)
+    # This should probably be redone into a class, it is getting messy.
 
-    graph.debugging = bool(debug)
+    limit_dls   = config.get('slp_validator_download_limit', None)
+    limit_depth = config.get('slp_validator_depth_limit', None)
+    proxy_enable = config.get('slp_validator_proxy_enabled', True)
 
-    job = ValidationJob(graph, [tx.txid()], network,
-                        txcachegetter=wallet.transactions.__getitem__,
-                        validitycachegetter=wallet.slpv1_validity.__getitem__,
+    try:
+        graph, jobmgr = setup_job(tx, reset=reset)
+    except (SlpParsingError, IndexError):
+        return
+
+    txid = tx.txid()
+
+    num_proxy_requests = 0
+    proxyqueue = queue.Queue()
+
+    def proxy_cb(txids, results):
+        newres = {}
+        # convert from 'true/false' to (True,1) or (False,3)
+        for t,v in results.items():
+            if v:
+                newres[t] = (True, 1)
+            else:
+                newres[t] = (True, 3)
+        proxyqueue.put(newres)
+
+    def fetch_hook(txids):
+        l = []
+        for txid in txids:
+            try:
+                l.append(wallet.transactions[txid])
+            except KeyError:
+                pass
+        if proxy_enable:
+            proxy.add_job(txids, proxy_cb)
+            nonlocal num_proxy_requests
+            num_proxy_requests += 1
+        return l
+
+    job = ValidationJob(graph, [txid], network,
+                        fetch_hook=fetch_hook,
+                        validitycache=wallet.slpv1_validity,
+                        download_limit = limit_dls,
+                        depth_limit = limit_depth,
+                        debug=debug,
                         **kwargs)
-    def save_validity_callback(job):
+    def done_callback(job):
+        # wait for proxy stuff to roll in
+        results = {}
+        try:
+            for _ in range(num_proxy_requests):
+                r = proxyqueue.get(timeout=5)
+                results.update(r)
+        except queue.Empty:
+            pass
+
+        graph.finalize_from_proxy(results)
+
+        # Do consistency check here
+        # XXXXXXX
+
+        # Save validity
         for t,n in job.nodes.items():
             val = n.validity
             if val != 0:
                 wallet.slpv1_validity[t] = val
-    job.add_callback(save_validity_callback)
-
-    if debug == 2:
-        # enable printing whole graph state for every step.
-        job.debugging_graph_state = True
+    job.add_callback(done_callback)
 
     jobmgr.add_job(job)
 
@@ -129,7 +196,7 @@ class Validator_SLP1:
         """
         txouts = tx.outputs()
         if len(txouts) < 1:
-            return ('prune', 2) # not SLP: regular address in first output.
+            return ('prune', 2) # not SLP -- no outputs!
 
         # We take for granted that parseSlpOutputScript here will catch all
         # consensus-invalid op_return messages. In this procedure we check the
@@ -227,8 +294,8 @@ class Validator_SLP1:
                 raise RuntimeError('non-MINT inputs should have been pruned!', inputs_info)
             if len(inputs_info) == 0:
                 return (False, 3) # no baton? invalid.
-            if all(inp[1] == 1 for inp in inputs_info):
-                # why do we use 'all' here?
+            if any(inp[1] == 1 for inp in inputs_info):
+                # Why we use 'any' here:
                 # multiple 'valid' baton inputs are possible with double spending.
                 # technically 'valid' though miners will never confirm.
                 return (True, 1)
@@ -239,12 +306,10 @@ class Validator_SLP1:
             # Check whether from the unknown + valid inputs there could be enough to satisfy outputs.
             insum_all = sum(inp[2] for inp in inputs_info if inp[1] <= 1)
             if insum_all < myinfo:
-                #print("DEBUG SLP: invalid! outsum=%d,  possible inputs=%d"%(myinfo, insum_all))
                 return (False, 3)
 
             # Check whether the known valid inputs provide enough tokens to satisfy outputs:
             insum_valid = sum(inp[2] for inp in inputs_info if inp[1] == 1)
             if insum_valid >= myinfo:
-                #print("DEBUG SLP: valid! outsum=%d,  known valid inputs=%d"%(myinfo, insum_valid))
                 return (True, 1)
             return None

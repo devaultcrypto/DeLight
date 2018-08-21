@@ -70,6 +70,7 @@ from .fee_slider import FeeSlider
 from .util import *
 
 import electroncash.slp as slp
+from electroncash import slp_validator_0x01
 from .amountedit import SLPAmountEdit
 from electroncash.util import format_satoshis_nofloat
 
@@ -412,6 +413,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.update_console()
         self.clear_receive_tab()
         self.request_list.update()
+
+        # Set up SLP proxy here -- needs to be done before wallet.enable_slp is called.
+        slp_validator_0x01.setup_config(self.config)
 
         if self.config.get('enable_slp'):
             self.wallet.enable_slp()
@@ -2051,7 +2055,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         w.setLayout(vbox)
 
         return w
-    
+
     def create_list_tab(self, l, list_header=None):
         w = QWidget()
         w.searchable_list = l

@@ -275,7 +275,7 @@ class Abstract_Wallet(PrintError):
                 self._slp_txo[addr][txid] = {int(idx):d for idx,d in txdict.items()}
 
         ok = self.storage.get('slp_data_version', False)
-        if ok != '3':
+        if ok != 3:
             self.rebuild_slp()
 
     @profiler

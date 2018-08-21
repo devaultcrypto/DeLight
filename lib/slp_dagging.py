@@ -14,17 +14,9 @@ we have no such luxury in a light wallet.)
 Threading
 =========
 
-Currently not threadsafe but designed with future multithreading in mind, and
-the relevant 'with lock:' locations have been commented. Threading would allow
-multiple workers doing downloading/computations on graph.
-
-These principles have been followed in case threading ever gets added:
-- TokenGraph never locked when it calls Node functions
-- parent Nodes never locked when it calls child Node
-- We assume no cycles (nor self-references), which should be essentially
-  impossible due to the hash-chaining nature of transactions. If there are
-  cycles (possible by using faked txids), the validator *will* deadlock,
-  regardless of threading!
+The TokenGraph and Node objects are not threadsafe. It is fine however to
+have different graphs/nodes being worked on by different threads (see
+slp_validator_0x01).
 """
 
 import sys
@@ -36,6 +28,15 @@ import collections
 from .transaction import Transaction
 
 INF_DEPTH=2147483646  # 'infinity' value for node depths. 2**31 - 2
+
+class hardref:
+    # a proper reference that mimics weakref interface
+    __slots__ = ('_obj')
+    def __init__(self,obj):
+        self._obj = obj
+    def __call__(self,):
+        return self._obj
+
 
 class DoubleLoadException(Exception):
     pass
@@ -155,10 +156,14 @@ class ValidationJob:
 
     stopping = False
     running = False
+    stop_reason = None
+    has_never_run = True
 
     def __init__(self, graph, txids, network,
-                 txcachegetter=None, validitycachegetter=None,
-                 download_limit=None, depth_limit=None):
+                 fetch_hook=None,
+                 validitycache=None,
+                 download_limit=None, depth_limit=None,
+                 debug=False):
         """
         graph should be a TokenGraph instance with the appropriate validator.
 
@@ -167,12 +172,15 @@ class ValidationJob:
         network is a lib.network.Network object, will be used to download when
         transactions can't be found in the cache.
 
-        txcachegetter (optional) called as txcachegetter(txid_hex), and should
-        raise KeyError when a tx is not found in cache. A good value here
-        would be wallet.transactions.__getitem__ .
+        fetch_hook (optional) called as fetch_hook({txid0,txid1,...}) whenever
+        a set of transactions is loaded into the graph (from cache or network)
+        at a given depth level. It should return a list of matching Transaction
+        objects, for known txids (e.g., from wallet or elsewhere),
+        but also can do other things (like fetching proxy results). Any txids
+        that are not returned will be fetched by network.
 
-        validitycachegetter (optional) called as validitycachegetter(txid_hex),
-        and likewise should raise KeyError, otherwise return a validity value
+        validitycache (optional) invoked as validitycache[txid_hex],
+        and should raise KeyError, otherwise return a validity value
         that will be passed to load_tx.
 
         download_limit is enforced by stopping search when the `downloads`
@@ -184,14 +192,16 @@ class ValidationJob:
         self.graph = graph
         self.txids = tuple(txids)
         self.network = network
-        self.txcachegetter = txcachegetter if txcachegetter else emptygetter
-        self.validitycachegetter = validitycachegetter if validitycachegetter else emptygetter
+        self.fetch_hook = fetch_hook
+        self.validitycache = {} if validitycache is None else validitycache
         self.download_limit = download_limit
         if depth_limit is None:
             self.depth_limit = INF_DEPTH - 1
         else:
             self.depth_limit = depth_limit
         self.callbacks = []
+
+        self.debug = debug
 
         self._statelock = threading.Lock()
 
@@ -214,8 +224,11 @@ class ValidationJob:
                 raise RuntimeError("Job running already", self)
             self.stopping = False
             self.running = True
+            self.stop_reason = None
+            self.has_never_run = False
         try:
             retval = self.mainloop()
+            return retval
         except:
             retval = 'crashed'
             raise
@@ -224,18 +237,11 @@ class ValidationJob:
                 self.stop_reason = retval
                 self.running = False
                 self.stopping = False
-                cbl = tuple(self.callbacks) # make copy while locked
+                cbl = tuple(self.callbacks) # make copy while locked -- prevents double-callbacks
             for cbr in cbl:
-                cb = cbr() # indirect
-                if cb is None:
-                    # cleanup
-                    try:
-                        self.callbacks.remove(cbr)
-                    except ValueError:
-                        pass
-                else:
+                cb = cbr() # callbacks is a list of indirect references (may be weakrefs)
+                if cb is not None:
                     cb(self)
-        return self.stop_reason
 
     def stop(self,):
         """ Call from another thread, to request stopping (this function
@@ -264,8 +270,10 @@ class ValidationJob:
     def add_callback(self, cb, way='direct'):
         """
         Callback will be called with cb(job) upon stopping. May be called
-        multiple times (if job restarted); will be called immediately as
-        well if job was already stopped.
+        more than once if job is restarted.
+
+        If job has run and is now stopped, this will be called immediately
+        (in calling thread) so as to guarantee it runs at least once.
 
         `way` may be
         - 'direct': store direct reference to `cb`.
@@ -275,7 +283,7 @@ class ValidationJob:
          (Use 'weakmethod' for bound methods! See weakref documentation.
         """
         if way == 'direct':
-            cbr = lambda: cb
+            cbr = hardref(cb)
         elif way == 'weak':
             cbr = weakref.ref(cb)
         elif way == 'weakmethod':
@@ -284,12 +292,13 @@ class ValidationJob:
             raise ValueError(way)
         with self._statelock:
             self.callbacks.append(cbr)
-            try:
-                _ = self.stop_reason
-                was_stopped = True
-            except AttributeError:
-                was_stopped = False
-        if was_stopped:
+            if self.running or self.has_never_run:
+                # We are waiting to run first time, or currently running.
+                run_cb_now = False
+            else:
+                # We have run and we are now stopped.
+                run_cb_now = True
+        if run_cb_now:
             cb(self)
 
     ## Validation logic (breadth-first traversal)
@@ -302,9 +311,14 @@ class ValidationJob:
     def mainloop(self,):
         """ Breadth-first search """
 
-        nodes = self.nodes.values()
+        target_nodes = list(self.nodes.values())
 
-        self.graph.root.set_parents(nodes)
+        self.graph.debugging = bool(self.debug)
+        if self.debug == 2:
+            # enable printing whole graph state for every step.
+            self.debugging_graph_state = True
+
+        self.graph.root.set_parents(target_nodes)
         self.graph.run_sched()
 
         def dl_callback(tx):
@@ -312,7 +326,7 @@ class ValidationJob:
             txid = tx.txid()
             node = self.graph.get_node(txid)
             try:
-                val = self.validitycachegetter(txid)
+                val = self.validitycache[txid]
             except KeyError:
                 val = None
             try:
@@ -325,19 +339,28 @@ class ValidationJob:
                 self.graph.debug("stop requested")
                 return "stopped"
 
-            if not any(n.active for n in nodes):
-                self.graph.debug("target nodes finished")
+            if not any(n.active for n in target_nodes):
+                # Normal finish - the targets are known.
+                self.graph.debug("target transactions finished")
                 return True
+
+            if self.download_limit is not None and self.downloads >= self.download_limit:
+                self.graph.debug("hit the download limit.")
+                return "download limit reached"
+
 
             # fetch all finite-depth nodes
             waiting = self.graph.get_waiting(maxdepth=self.depth_limit - 1)
             if len(waiting) == 0: # No waiting nodes at all ==> completed.
+                # This really shouldn't happen
                 self.graph.debug("exhausted graph without conclusion.")
                 return "inconclusive"
 
+            # select all waiting txes at or below the current depth
             interested_txids = {n.txid for n in waiting
                                 if (n.depth <= self.currentdepth)}
-            if len(interested_txids) == 0: # Exhausted this depth
+            if len(interested_txids) == 0:
+                # current depth exhausted, so move up
                 self.currentdepth += 1
                 if self.currentdepth > self.depth_limit:
                     self.graph.debug("reached depth stop.")
@@ -373,7 +396,8 @@ class ValidationJob:
     def get_txes(self, txid_iterable, callback, errors='print'):
         """
         Get multiple txes 'in parallel' (requests all sent at once), and
-        block while waiting.
+        block while waiting. We first take txes via fetch_hook, and only if
+        missing do we then we ask the network.
 
         As they are received, we call `callback(tx)` in the current thread.
 
@@ -384,31 +408,30 @@ class ValidationJob:
         """
 
         txid_set = set(txid_iterable)
-        requests = []
 
-        # First try to get from cache:
-        cached = []
-        for txid in sorted(txid_set):
-            try:
-                tx = self.txcachegetter(txid)
-            except KeyError:
-                requests.append(('blockchain.transaction.get', [txid]))
-            else:
-                cached.append(tx)
-
-        q = queue.Queue()
-        if len(requests) > 0:
-            self.network.send(requests, q.put)
-
-        # Now start processing cached txes:
-        for tx in cached:
-            txid = tx.txid()
-            try:
+        # first try to get from cache
+        if self.fetch_hook:
+            cached = list(self.fetch_hook(txid_set))
+            for tx in cached:
+                # remove known txes from list
+                txid = tx.txid()
                 txid_set.remove(txid)
-            except KeyError:
-                raise RuntimeError("Cache mistake -- wrong txid!!", txid)
-            else:
-                callback(tx)
+        else:
+            cached = []
+
+        # build requests list from remaining txids.
+        requests = []
+        if self.network:
+            for txid in sorted(txid_set):
+                requests.append(('blockchain.transaction.get', [txid]))
+
+            if len(requests) > 0:
+                q = queue.Queue()
+                self.network.send(requests, q.put)
+
+        # Now that the net request is going, start processing cached txes.
+        for tx in cached:
+            callback(tx)
 
         # And start processing downloaded txes:
         for _ in requests: # fetch as many responses as were requested.
@@ -418,7 +441,7 @@ class ValidationJob:
                 break
             if resp.get('error'):
                 if errors=="print":
-                    print("Tx request error:", resp.get('error'))
+                    print("Tx request error:", resp.get('error'), file=sys.stderr)
                 elif errors=="raise":
                     raise RuntimeError("Tx request error", resp.get('error'))
                 else:
@@ -432,7 +455,7 @@ class ValidationJob:
                 txid_set.remove(txid)
             except KeyError:
                 if errors=="print":
-                    print("Received un-requested txid! Ignoring.", txid)
+                    print("Received un-requested txid! Ignoring.", txid, file=sys.stderr)
                 elif errors=="raise":
                     raise RuntimeError("Received un-requested txid!", txid)
                 else:
@@ -682,6 +705,34 @@ class TokenGraph:
             return [node for node in waiting_actual
                     if node.depth <= maxdepth]
 
+    def get_active(self):
+        return [node for node in self._nodes.values() if node.active]
+
+
+    def finalize_from_proxy(self, proxy_results):
+        """
+        Iterate over remaining active nodes and set their validity to the proxy result,
+        starting from the deepest ones and moving up.
+        """
+        active = self.get_active()
+        active = sorted(active, key = lambda x: x.depth, reverse=True)
+
+        for n in active:
+            if not n.active or n.depth == INF_DEPTH:
+                # some nodes may switch to inactive or lose depth while we are updating; skip them
+                continue
+            txid = n.txid
+            try:
+                proxyval = proxy_results[txid]
+            except KeyError:
+                self.debug("Cannot find proxy validity for %.10s..."%(txid,))
+                continue
+            self.debug("Using proxy validity (%r) for %.10s..."%(proxyval, txid,))
+
+            # every step:
+            n.set_validity(*proxyval)
+            self.run_sched()
+
 
 
 class Connection:
@@ -849,6 +900,9 @@ class Node:
 
         return self._inactivate_self(False, cached_validity)
 
+    def set_validity(self, keepinfo, validity):
+        # with self._lock:
+        self._inactivate_self(keepinfo, validity)
 
     ## Internal utility stuff
 
