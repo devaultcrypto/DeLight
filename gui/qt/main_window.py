@@ -1874,8 +1874,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         when the payto field is edited when a token is selected.
         '''
         if self.token_type_combo.currentData():
-            self.amount_e.setFrozen(b)
-            self.max_button.setEnabled(not b)
+            self.amount_e.setFrozen(True)
+            self.max_button.setEnabled(False)
 
     def prepare_for_payment_request(self):
         self.show_send_tab()
