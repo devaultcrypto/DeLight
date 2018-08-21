@@ -3089,7 +3089,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         addr_format_label = HelpLabel(_('Address Format') + ':', msg)
         addr_format_combo = QComboBox()
         addr_format_combo.addItems(addr_format_choices)
-        addr_format_combo.setCurrentIndex(self.config.get("addr_format"))
+        addr_format_combo.setCurrentIndex(self.config.get("addr_format", 0))
         addr_format_combo.currentIndexChanged.connect(self.toggle_cashaddr_settings)
 
         gui_widgets.append((addr_format_label,addr_format_combo))
@@ -3341,7 +3341,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.slp_amount_e.setAmount(0)
                 self.slp_amount_e.setText("")
                 self.token_type_combo.setCurrentIndex(0)
-                self.toggle_cashaddr(self.config.get('addr_format') - 1)
+                self.toggle_cashaddr(self.config.get('addr_format', 0) - 1)
 
             wallet.enable_slp() if x else wallet.disable_slp()
 
