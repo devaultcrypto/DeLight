@@ -1985,6 +1985,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             for e in [self.payto_e, self.message_e, self.message_opreturn_e]:
                 e.setText('')
                 e.setFrozen(False)
+            self.max_button.setDisabled(True)
             self.set_pay_from([])
             self.tx_external_keypairs = {}
             self.update_status()
