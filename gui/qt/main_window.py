@@ -1675,6 +1675,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 if not self.question(msg):
                     return
 
+        coins = self.get_coins(isInvoice=isInvoice)
+
         """ SLP: Add an additional token change output """
         change_addr = None
         if self.config.get('enable_slp'):
@@ -1691,7 +1693,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                         import random
                         change_addrs = [random.choice(addrs)]
                 else:
-                    change_addrs = [inputs[0]['address']]
+                    change_addrs = [coins[0]['address']]
                 """ end of logic copied from wallet.py """
                 change_addr = change_addrs[0]
                 outputs.append((TYPE_ADDRESS, change_addr, 546))
@@ -1707,7 +1709,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         freeze_fee = self.fee_e.isVisible() and self.fee_e.isModified() and (self.fee_e.text() or self.fee_e.hasFocus())
         fee = self.fee_e.get_amount() if freeze_fee else None
-        coins = self.get_coins(isInvoice=isInvoice)
         return outputs, fee, label, coins, change_addr
 
     def do_preview(self):
