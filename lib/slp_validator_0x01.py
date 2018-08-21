@@ -105,7 +105,7 @@ def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, 
 
     limit_dls   = config.get('slp_validator_download_limit', None)
     limit_depth = config.get('slp_validator_depth_limit', None)
-    proxy_enable = config.get('slp_validator_proxy_enabled', True)
+    proxy_enable = config.get('slp_validator_proxy_enabled', False)
 
     try:
         graph, jobmgr = setup_job(tx, reset=reset)
@@ -157,7 +157,8 @@ def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, 
         except queue.Empty:
             pass
 
-        graph.finalize_from_proxy(results)
+        if proxy_enable:
+            graph.finalize_from_proxy(results)
 
         # Do consistency check here
         # XXXXXXX
