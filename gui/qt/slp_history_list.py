@@ -152,21 +152,21 @@ class HistoryList(MyTreeWidget):
 
         if unktoken and validity in (None,0,1):
             # If a token is not in our list of known token_ids, warn the user.
-            icon=QIcon("icons/warning.png")
+            icon=QIcon(":icons/warning.png")
             icontooltip = _("Unknown token ID")
         elif validity == 0:
             # For in-progress validation, always show gears regardless of confirmation status.
-            icon=QIcon("icons/unconfirmed.png")
+            icon=QIcon(":icons/unconfirmed.png")
             icontooltip = _("SLP unvalidated")
         elif validity in (None,2,3):
-            icon=QIcon("icons/expired.png")
+            icon=QIcon(":icons/expired.png")
             if validity is None:
                 icontooltip = "non-SLP (tokens burned!)"
             else:
                 icontooltip = "SLP invalid (tokens burned!)"
         elif validity == 1:
             # For SLP valid known txes, show the confirmation status (gears, few-confirmations, or green check)
-            icon = QIcon("icons/" + TX_ICONS[status])
+            icon = QIcon(":icons/" + TX_ICONS[status])
             icontooltip = _("SLP valid; ") + str(conf) + " confirmation" + ("s" if conf != 1 else "")
         else:
             raise ValueError(validity)
