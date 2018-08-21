@@ -649,7 +649,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def show_report_bug(self):
         msg = ' '.join([
             _("Please report any bugs as issues on github:<br/>"),
-            "<a href=\"https://github.com/fyookball/electrum/issues\">https://github.com/fyookball/electrum/issues</a><br/><br/>",
+            "<a href=https://github.com/simpleledger/electrum/issues>https://github.com/simpleledger/electrum/issues</a><br/><br/>",
             _("Before reporting a bug, upgrade to the most recent version of Electron Cash (latest release or git HEAD), and include the version number in your report."),
             _("Try to explain not only what the bug is, but how it occurs.")
          ])
@@ -3086,7 +3086,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         addr_format_choices = ["Legacy Format","CashAddr Format","SLP Format"]
         addr_format_dict={'Legacy Format':0,'CashAddr Format':1,'SLP Format':2}
-        msg = _('Choose which format the wallet displays for Bitcoin addresses')
+        msg = _('Choose which format the wallet displays for Bitcoin Cash addresses')
         addr_format_label = HelpLabel(_('Address Format') + ':', msg)
         addr_format_combo = QComboBox()
         addr_format_combo.addItems(addr_format_choices)
