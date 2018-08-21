@@ -120,6 +120,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         # If using SLP for the first time, turn it on by default.
         slp_in_config=self.config.get('enable_slp')
         if slp_in_config is None or slp_in_config == "":
+            self.toggle_cashaddr(2, True)            
             self.config.set_key('enable_slp', True)
             self.config.set_key('show_slp_history_tab',True)
             self.config.set_key('show_tokens_tab',True) 
@@ -3062,12 +3063,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             window.cashaddr_toggled_signal.emit()
 
     def setAddrFormatText(self, format):
-        if format == 0:
-            self.addr_format_label.setText("Addresses: Legacy")
-        elif format == 1:
-            self.addr_format_label.setText("Addresses: cashAddr")
-        else:
-            self.addr_format_label.setText("Addresses: SLP")
+        try:
+            if format == 0:
+                self.addr_format_label.setText("Addresses: Legacy")
+            elif format == 1:
+                self.addr_format_label.setText("Addresses: cashAddr")
+            else:
+                self.addr_format_label.setText("Addresses: SLP")
+        except AttributeError:
+            pass
 
     def settings_dialog(self):
         self.need_restart = False
