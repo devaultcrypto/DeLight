@@ -103,7 +103,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
 
-        warnpm = QIcon("icons/warning.png").pixmap(20,20)
+        warnpm = QIcon(":icons/warning.png").pixmap(20,20)
 
         l = QLabel(); l.setPixmap(warnpm)
         hbox.addWidget(l)
