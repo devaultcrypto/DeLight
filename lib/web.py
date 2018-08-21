@@ -49,6 +49,9 @@ mainnet_block_explorers = {
     'ViaBTC.com': ('https://www.viabtc.com/bch',
                    Address.FMT_CASHADDR,
                    {'tx': 'tx', 'addr': 'address'}),
+    'Tokengraph.network': ('https://tokengraph.network',
+                   Address.FMT_CASHADDR,
+                   {'tx': 'tx', 'addr': 'user'}),
 }
 
 testnet_block_explorers = {
