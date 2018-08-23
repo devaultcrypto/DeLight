@@ -75,7 +75,8 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
         msg = _('The number of tokens created during token minting transaction, send to the receiver address provided below.')
         grid.addWidget(HelpLabel(_('Additional Token Quantity:'), msg), row, 0)
-        self.token_qty_e = SLPAmountEdit('tokens', int(decimals))
+        name = self.main_window.wallet.token_types.get(token_id_hex)['name']
+        self.token_qty_e = SLPAmountEdit(name, int(decimals))
         self.token_qty_e.setFixedWidth(200)
         self.token_qty_e.textChanged.connect(self.check_token_qty)
         grid.addWidget(self.token_qty_e, row, 1)
