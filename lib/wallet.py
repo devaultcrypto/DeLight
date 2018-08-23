@@ -1308,7 +1308,7 @@ class Abstract_Wallet(PrintError):
             return
 
         # Sort the inputs and outputs deterministically
-        if not self._enable_slp or self.send_slpTokenId is None:
+        if not self._enable_slp:
             tx.BIP_LI01_sort()
         # Timelock tx to current height.
         locktime = self.get_local_height()
