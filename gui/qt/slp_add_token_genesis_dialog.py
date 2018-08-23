@@ -264,7 +264,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
                 if self.token_name_e.text() == '':
                     token_name = tx.txid()[0:10]
                 else:
-                    token_name = self.token_name_e.text()
+                    token_name = self.token_name_e.text()[0:20]
 
                 ow = (token_name is not None)
                 ret = self.main_window.add_token_type('SLP1', token_id, token_name, decimals,
