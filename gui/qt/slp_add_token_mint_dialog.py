@@ -36,11 +36,6 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.network = main_window.network
         self.app = main_window.app
 
-        # IMPORTANT: set to None to guard tokens when Send tab may have a token selected
-        self.pre_gui_token = self.main_window.token_type_combo.currentIndex()
-        self.main_window.token_type_combo.setCurrentIndex(0)
-
-
         self.setWindowTitle(_("Mint Additional Tokens"))
 
         vbox = QVBoxLayout()
@@ -127,6 +122,8 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.show()
         self.token_qty_e.setFocus()
 
+        self.pre_gui_token = None
+
     def do_preview(self):
         self.mint_token(preview = True)
 
@@ -179,6 +176,11 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
                 self.show_message(_("Must have Baton Address in simpleledger format."))
                 return
 
+        # IMPORTANT: set to None to guard tokens when Send tab may have a token selected
+        self.pre_gui_token = self.main_window.token_type_combo.currentIndex()
+        self.main_window.token_type_combo.setCurrentIndex(0)
+        assert self.main_window.wallet.send_slpTokenId == None
+        
         coins = self.main_window.get_coins()
         fee = None
 

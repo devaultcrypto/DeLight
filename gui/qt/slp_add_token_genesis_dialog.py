@@ -38,9 +38,6 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         self.network = main_window.network
         self.app = main_window.app
 
-        # IMPORTANT: set to None to guard tokens when Send tab may have a token selected
-        self.pre_gui_token = self.main_window.token_type_combo.currentIndex()
-        self.main_window.token_type_combo.setCurrentIndex(0)
 
         self.setWindowTitle(_("Create a New Token"))
 
@@ -148,8 +145,9 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
 
         dialogs.append(self)
         self.show()
-
         self.token_name_e.setFocus()
+
+        self.pre_gui_token = None
 
     def do_preview(self):
         self.create_token(preview = True)
@@ -218,6 +216,11 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
             except:
                 self.show_message(_("Must have Baton Address in simpleledger format."))
                 return
+
+        # IMPORTANT: set tokenId to None to guard tokens during this transaction
+        self.pre_gui_token = self.main_window.token_type_combo.currentIndex()
+        self.main_window.token_type_combo.setCurrentIndex(0)
+        assert self.main_window.wallet.send_slpTokenId == None
 
         coins = self.main_window.get_coins()
         fee = None
