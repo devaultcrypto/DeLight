@@ -147,8 +147,6 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         self.show()
         self.token_name_e.setFocus()
 
-        self.pre_gui_token = None
-
     def do_preview(self):
         self.create_token(preview = True)
 
@@ -217,8 +215,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
                 self.show_message(_("Must have Baton Address in simpleledger format."))
                 return
 
-        # IMPORTANT: set tokenId to None to guard tokens during this transaction
-        self.pre_gui_token = self.main_window.token_type_combo.currentIndex()
+        # IMPORTANT: set wallet.sedn_slpTokenId to None to guard tokens during this transaction
         self.main_window.token_type_combo.setCurrentIndex(0)
         assert self.main_window.wallet.send_slpTokenId == None
 
@@ -279,7 +276,6 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         self.close()
 
     def closeEvent(self, event):
-        self.main_window.token_type_combo.setCurrentIndex(self.pre_gui_token)
         event.accept()
         try:
             dialogs.remove(self)

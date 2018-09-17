@@ -122,8 +122,6 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.show()
         self.token_qty_e.setFocus()
 
-        self.pre_gui_token = None
-
     def do_preview(self):
         self.mint_token(preview = True)
 
@@ -176,8 +174,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
                 self.show_message(_("Must have Baton Address in simpleledger format."))
                 return
 
-        # IMPORTANT: set to None to guard tokens when Send tab may have a token selected
-        self.pre_gui_token = self.main_window.token_type_combo.currentIndex()
+        # IMPORTANT: set wallet.sedn_slpTokenId to None to guard tokens during this transaction
         self.main_window.token_type_combo.setCurrentIndex(0)
         assert self.main_window.wallet.send_slpTokenId == None
         
@@ -247,7 +244,6 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
         self.close()
 
     def closeEvent(self, event):
-        self.main_window.token_type_combo.setCurrentIndex(self.pre_gui_token)
         event.accept()
         try:
             dialogs.remove(self)
