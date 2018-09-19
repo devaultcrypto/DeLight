@@ -66,7 +66,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         msg = _('An optional URL string embedded into the token genesis transaction.')
         grid.addWidget(HelpLabel(_('Document URL or contact email (optional):'), msg), row, 0)
         self.token_url_e = QLineEdit()
-        self.token_url_e.setFixedWidth(450)
+        self.token_url_e.setFixedWidth(490)
         self.token_url_e.textChanged.connect(self.upd_token)
         grid.addWidget(self.token_url_e, row, 1)
         row += 1
@@ -75,7 +75,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         grid.addWidget(HelpLabel(_('Document Hash (optional):'), msg), row, 0)
         self.token_dochash_e = QLineEdit()
         self.token_dochash_e.setInputMask("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
-        self.token_dochash_e.setFixedWidth(450)
+        self.token_dochash_e.setFixedWidth(490)
         self.token_dochash_e.textChanged.connect(self.upd_token)
         grid.addWidget(self.token_dochash_e, row, 1)
         row += 1
@@ -102,7 +102,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         msg = _('The \'simpleledger:\' formatted bitcoin address for the genesis receiver of all genesis tokens.')
         grid.addWidget(HelpLabel(_('Token Receiver Address:'), msg), row, 0)
         self.token_pay_to_e = ButtonsLineEdit()
-        self.token_pay_to_e.setFixedWidth(450)
+        self.token_pay_to_e.setFixedWidth(490)
         grid.addWidget(self.token_pay_to_e, row, 1)
         row += 1
 
@@ -118,7 +118,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         self.token_baton_label.setHidden(True)
         grid.addWidget(self.token_baton_label, row, 0)
         self.token_baton_to_e = ButtonsLineEdit()
-        self.token_baton_to_e.setFixedWidth(450)
+        self.token_baton_to_e.setFixedWidth(490)
         self.token_baton_to_e.setHidden(True)
         grid.addWidget(self.token_baton_to_e, row, 1)
         row += 1
@@ -132,6 +132,13 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         b.clicked.connect(self.close)
         b.setDefault(True)
         hbox.addWidget(self.cancel_button)
+
+        self.hash_button = b = QPushButton(_("Compute Document Hash..."))
+        self.hash_button.setAutoDefault(False)
+        self.hash_button.setDefault(False)
+        b.clicked.connect(self.hash_file)
+        b.setDefault(True)
+        hbox.addWidget(self.hash_button)
 
         hbox.addStretch(1)
 
@@ -149,6 +156,17 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
 
     def do_preview(self):
         self.create_token(preview = True)
+
+    def hash_file(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        filename, _ = QFileDialog.getOpenFileName(self,"Compute SHA256 For File", "","All Files (*)", options=options)
+        with open(filename,"rb") as f:
+            bytes = f.read() # read entire file as bytes
+            import hashlib
+            readable_hash = hashlib.sha256(bytes).hexdigest()
+            self.token_dochash_e.setText(readable_hash)
+            print(readable_hash)
 
     def upd_token(self,):
         self.token_qty_e.set_token(self.token_ticker_e.text(), int(self.token_ds_e.value()))
