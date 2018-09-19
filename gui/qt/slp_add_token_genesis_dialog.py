@@ -136,12 +136,12 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         hbox.addStretch(1)
 
         self.preview_button = EnterButton(_("Preview"), self.do_preview)
-        self.init_button = b = QPushButton(_("Create New Token")) #if self.provided_token_name is None else _("Change"))
+        self.create_button = b = QPushButton(_("Create New Token")) #if self.provided_token_name is None else _("Change"))
         b.clicked.connect(self.create_token)
-        self.init_button.setAutoDefault(True)
-        self.init_button.setDefault(True)
+        self.create_button.setAutoDefault(True)
+        self.create_button.setDefault(True)
         hbox.addWidget(self.preview_button)
-        hbox.addWidget(self.init_button)
+        hbox.addWidget(self.create_button)
 
         dialogs.append(self)
         self.show()
@@ -272,7 +272,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
 
         self.main_window.sign_tx_with_password(tx, sign_done, password)
 
-        self.init_button.setDisabled(True)
+        self.create_button.setDisabled(True)
         self.close()
 
     def closeEvent(self, event):

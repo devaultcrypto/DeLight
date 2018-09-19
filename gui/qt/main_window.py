@@ -73,6 +73,7 @@ import electroncash.slp as slp
 from electroncash import slp_validator_0x01
 from .amountedit import SLPAmountEdit
 from electroncash.util import format_satoshis_nofloat
+from .slp_add_token_genesis_dialog import SlpAddTokenGenesisDialog
 
 class StatusBarButton(QPushButton):
     def __init__(self, icon, tooltip, func):
@@ -2090,7 +2091,16 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def create_slp_mgt_tab(self):
         from .slp_mgt import SlpMgt
         self.token_list = l = SlpMgt(self)
-        return self.create_list_tab(l)
+        w = self.create_list_tab(l)
+        vbox = w.layout()
+        vbox.setSpacing(10)
+        create_button = b = QPushButton(_("Create New Token"))
+        create_button.setAutoDefault(False)
+        create_button.setDefault(False)
+        b.clicked.connect(lambda: SlpAddTokenGenesisDialog(self,))
+        vbox.addWidget(create_button)
+        w.setLayout(vbox)
+        return w
 
     def create_contacts_tab(self):
         from .contact_list import ContactList
