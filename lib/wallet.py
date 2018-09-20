@@ -1318,6 +1318,96 @@ class Abstract_Wallet(PrintError):
         run_hook('make_unsigned_transaction', self, tx)
         return tx
 
+    def make_unsigned_transaction_for_bitcoinfiles(self, inputs, outputs, config, fixed_fee=None, change_addr=None):
+        # check outputs
+        i_max = None
+        for i, o in enumerate(outputs):
+            _type, data, value = o
+            if value == '!':
+                if i_max is not None:
+                    raise BaseException("More than one output set to spend max")
+                i_max = i
+
+        # Avoid index-out-of-range with inputs[0] below
+        if not inputs:
+            raise NotEnoughFunds()
+
+        # SLP: make sure SLP token spending is not greater than valid balance
+        if self._enable_slp and self.send_slpTokenId is not None:
+            slpMsg = SlpMessage.parseSlpOutputScript(outputs[0][1])
+            if slpMsg.transaction_type == 'SEND':
+                total_token_out = sum(slpMsg.op_return_fields['token_output'])
+                valid_token_balance = self.get_slp_token_balance(slpMsg.op_return_fields['token_id_hex'])[0]
+                if total_token_out > valid_token_balance:
+                    raise NotEnoughFundsSlp()
+
+        if fixed_fee is None and config.fee_per_kb() is None:
+            raise BaseException('Dynamic fee estimates not available')
+
+        for item in inputs:
+            self.add_input_info_for_bitcoinfiles(item)
+
+        # change address
+        if change_addr:
+            change_addrs = [change_addr]
+        else:
+            addrs = self.get_change_addresses()[-self.gap_limit_for_change:]
+            if self.use_change and addrs:
+                # New change addresses are created only after a few
+                # confirmations.  Select the unused addresses within the
+                # gap limit; if none take one at random
+                change_addrs = [addr for addr in addrs if
+                                self.get_num_tx(addr) == 0]
+                if not change_addrs:
+                    change_addrs = [random.choice(addrs)]
+            else:
+                change_addrs = [inputs[0]['address']]
+
+        assert all(isinstance(addr, Address) for addr in change_addrs)
+
+        # Fee estimator
+        if fixed_fee is None:
+            fee_estimator = config.estimate_fee
+        else:
+            fee_estimator = lambda size: fixed_fee
+
+        if i_max is None:
+            # Let the coin chooser select the coins to spend
+            max_change = self.max_change_outputs if self.multiple_change else 1
+            coin_chooser = coinchooser.CoinChooserPrivacy()
+            # determine if this transaction should utilize all available inputs
+            sweep = True
+            tx = coin_chooser.make_tx(inputs, outputs, change_addrs[:max_change],
+                                      fee_estimator, self.dust_threshold(), slp_sweep=sweep)
+        else:
+            sendable = sum(map(lambda x:x['value'], inputs))
+            _type, data, value = outputs[i_max]
+            outputs[i_max] = (_type, data, 0)
+            tx = Transaction.from_io(inputs, outputs)
+            fee = fee_estimator(tx.estimated_size())
+            amount = max(0, sendable - tx.output_value() - fee)
+            outputs[i_max] = (_type, data, amount)
+            tx = Transaction.from_io(inputs, outputs)
+
+        # If user tries to send too big of a fee (more than 50 sat/byte), stop them from shooting themselves in the foot
+        tx_in_bytes=tx.estimated_size()
+        fee_in_satoshis=tx.get_fee()
+        sats_per_byte=fee_in_satoshis/tx_in_bytes
+        if (sats_per_byte > 50):
+            raise ExcessiveFee()
+            return
+
+        # Sort the inputs and outputs deterministically
+        if not self._enable_slp:
+            tx.BIP_LI01_sort()
+        # Timelock tx to current height.
+        locktime = self.get_local_height()
+        if locktime == -1: # We have no local height data (no headers synced).
+            locktime = 0
+        tx.locktime = locktime
+        run_hook('make_unsigned_transaction', self, tx)
+        return tx
+
     def mktx(self, outputs, password, config, fee=None, change_addr=None, domain=None):
         coins = self.get_spendable_coins(domain, config)
         tx = self.make_unsigned_transaction(coins, outputs, config, fee, change_addr)
@@ -1454,6 +1544,12 @@ class Abstract_Wallet(PrintError):
             item = received.get(txin['prevout_hash']+':%d'%txin['prevout_n'])
             tx_height, value, is_cb = item
             txin['value'] = value
+            self.add_input_sig_info(txin, address)
+
+    def add_input_info_for_bitcoinfiles(self, txin):
+        address = txin['address']
+        if self.is_mine(address):
+            txin['type'] = self.get_txin_type(address)
             self.add_input_sig_info(txin, address)
 
     def can_sign(self, tx):

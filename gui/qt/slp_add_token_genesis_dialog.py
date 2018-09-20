@@ -1,4 +1,3 @@
-
 import copy
 import datetime
 from functools import partial
@@ -24,6 +23,8 @@ from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidO
 from .amountedit import SLPAmountEdit
 from .transaction_dialog import show_transaction
 
+from .slp_token_document_dialog import show_dialog
+
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
 class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
@@ -35,6 +36,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
 
         self.main_window = main_window
         self.wallet = main_window.wallet
+        self.config = main_window.config
         self.network = main_window.network
         self.app = main_window.app
 
@@ -133,12 +135,19 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         b.setDefault(True)
         hbox.addWidget(self.cancel_button)
 
-        self.hash_button = b = QPushButton(_("Compute Document Hash..."))
-        self.hash_button.setAutoDefault(False)
-        self.hash_button.setDefault(False)
-        b.clicked.connect(self.hash_file)
+        # self.hash_button = b = QPushButton(_("Compute Document Hash..."))
+        # self.hash_button.setAutoDefault(False)
+        # self.hash_button.setDefault(False)
+        # b.clicked.connect(self.hash_file)
+        # b.setDefault(True)
+        # hbox.addWidget(self.hash_button)
+
+        self.tok_doc_button = b = QPushButton(_("Upload Token Document..."))
+        self.tok_doc_button.setAutoDefault(False)
+        self.tok_doc_button.setDefault(False)
+        b.clicked.connect(lambda: show_dialog(self))
         b.setDefault(True)
-        hbox.addWidget(self.hash_button)
+        hbox.addWidget(self.tok_doc_button)
 
         hbox.addStretch(1)
 
@@ -161,12 +170,13 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         filename, _ = QFileDialog.getOpenFileName(self,"Compute SHA256 For File", "","All Files (*)", options=options)
-        with open(filename,"rb") as f:
-            bytes = f.read() # read entire file as bytes
-            import hashlib
-            readable_hash = hashlib.sha256(bytes).hexdigest()
-            self.token_dochash_e.setText(readable_hash)
-            print(readable_hash)
+        if filename != '':
+            with open(filename,"rb") as f:
+                bytes = f.read() # read entire file as bytes
+                import hashlib
+                readable_hash = hashlib.sha256(bytes).hexdigest()
+                self.token_dochash_e.setText(readable_hash)
+                print(readable_hash)
 
     def upd_token(self,):
         self.token_qty_e.set_token(self.token_ticker_e.text(), int(self.token_ds_e.value()))
