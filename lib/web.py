@@ -51,7 +51,7 @@ mainnet_block_explorers = {
                    {'tx': 'tx', 'addr': 'address'}),
     'Tokengraph.network': ('https://tokengraph.network',
                    Address.FMT_CASHADDR,
-                   {'tx': 'tx', 'addr': 'user'}),
+                   {'tx': 'tx', 'addr': 'address'}),
 }
 
 testnet_block_explorers = {
