@@ -182,10 +182,10 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config):
         'height': 0,
         'coinbase': False
     }]
-    print(coins)
 
     fee = None
     change_addr = None
+
     tx = wallet.make_unsigned_transaction_for_bitcoinfiles(coins, askedoutputs, config, fee, change_addr)
 
     # unfortunately, the outputs might be in wrong order due to BIPLI01
@@ -224,7 +224,7 @@ def calculateUploadCost(file_size, metadata = {}, fee_rate = 1):
     byte_count += 18
 
     # output p2pkh
-    byte_count = 34
+    byte_count += 34
 
     # dust input bytes (this is the initial payment for the file upload)
     byte_count += 148 + 1
@@ -233,7 +233,7 @@ def calculateUploadCost(file_size, metadata = {}, fee_rate = 1):
     dust_amount = 546
 
     # other unaccounted per txn
-    byte_count += 53
+    byte_count += 10
 
     return byte_count * fee_rate + dust_amount
 
