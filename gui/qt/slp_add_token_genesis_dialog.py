@@ -23,7 +23,7 @@ from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidO
 from .amountedit import SLPAmountEdit
 from .transaction_dialog import show_transaction
 
-from .slp_token_document_dialog import show_dialog
+from .slp_token_document_dialog import BitcoinFilesUploadDialog
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
@@ -68,7 +68,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         msg = _('An optional URL string embedded into the token genesis transaction.')
         grid.addWidget(HelpLabel(_('Document URL or contact email (optional):'), msg), row, 0)
         self.token_url_e = QLineEdit()
-        self.token_url_e.setFixedWidth(490)
+        self.token_url_e.setFixedWidth(560)
         self.token_url_e.textChanged.connect(self.upd_token)
         grid.addWidget(self.token_url_e, row, 1)
         row += 1
@@ -77,7 +77,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         grid.addWidget(HelpLabel(_('Document Hash (optional):'), msg), row, 0)
         self.token_dochash_e = QLineEdit()
         self.token_dochash_e.setInputMask("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
-        self.token_dochash_e.setFixedWidth(490)
+        self.token_dochash_e.setFixedWidth(560)
         self.token_dochash_e.textChanged.connect(self.upd_token)
         grid.addWidget(self.token_dochash_e, row, 1)
         row += 1
@@ -104,7 +104,8 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         msg = _('The \'simpleledger:\' formatted bitcoin address for the genesis receiver of all genesis tokens.')
         grid.addWidget(HelpLabel(_('Token Receiver Address:'), msg), row, 0)
         self.token_pay_to_e = ButtonsLineEdit()
-        self.token_pay_to_e.setFixedWidth(490)
+        self.token_pay_to_e.setText(self.wallet.get_unused_address().to_full_ui_string())
+        self.token_pay_to_e.setFixedWidth(560)
         grid.addWidget(self.token_pay_to_e, row, 1)
         row += 1
 
@@ -120,7 +121,8 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         self.token_baton_label.setHidden(True)
         grid.addWidget(self.token_baton_label, row, 0)
         self.token_baton_to_e = ButtonsLineEdit()
-        self.token_baton_to_e.setFixedWidth(490)
+        self.token_baton_to_e.setText(self.wallet.get_unused_address().to_full_ui_string())
+        self.token_baton_to_e.setFixedWidth(560)
         self.token_baton_to_e.setHidden(True)
         grid.addWidget(self.token_baton_to_e, row, 1)
         row += 1
@@ -132,8 +134,9 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         self.cancel_button.setAutoDefault(False)
         self.cancel_button.setDefault(False)
         b.clicked.connect(self.close)
-        b.setDefault(True)
         hbox.addWidget(self.cancel_button)
+
+        hbox.addStretch(1)
 
         # self.hash_button = b = QPushButton(_("Compute Document Hash..."))
         # self.hash_button.setAutoDefault(False)
@@ -142,14 +145,12 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         # b.setDefault(True)
         # hbox.addWidget(self.hash_button)
 
-        self.tok_doc_button = b = QPushButton(_("Upload Token Document..."))
+        self.tok_doc_button = b = QPushButton(_("Upload a Token Document..."))
         self.tok_doc_button.setAutoDefault(False)
         self.tok_doc_button.setDefault(False)
-        b.clicked.connect(lambda: show_dialog(self))
+        b.clicked.connect(self.show_upload)
         b.setDefault(True)
         hbox.addWidget(self.tok_doc_button)
-
-        hbox.addStretch(1)
 
         self.preview_button = EnterButton(_("Preview"), self.do_preview)
         self.create_button = b = QPushButton(_("Create New Token")) #if self.provided_token_name is None else _("Change"))
@@ -162,6 +163,12 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         dialogs.append(self)
         self.show()
         self.token_name_e.setFocus()
+
+    def show_upload(self):
+        d = BitcoinFilesUploadDialog(self)
+        dialogs.append(d)
+        d.setModal(True)
+        d.show()
 
     def do_preview(self):
         self.create_token(preview = True)

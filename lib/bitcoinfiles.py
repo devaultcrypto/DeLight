@@ -218,7 +218,7 @@ def getFundingTxn(wallet, address, amount, config):
 
     return tx
 
-def calculateUploadCost(file_size, metadata = {}, fee_rate = 1):
+def calculateUploadCost(file_size, metadata_fields = {}, fee_rate = 1):
     # op_return length
     byte_count = file_size
     byte_count += 18
@@ -233,7 +233,7 @@ def calculateUploadCost(file_size, metadata = {}, fee_rate = 1):
     dust_amount = 546
 
     # other unaccounted per txn
-    byte_count += 10
+    byte_count += 15
 
     return byte_count * fee_rate + dust_amount
 

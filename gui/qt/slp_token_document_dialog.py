@@ -28,10 +28,6 @@ from electroncash.bitcoinfiles import *
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
-def show_dialog(main_window):
-    d = BitcoinFilesUploadDialog(main_window)
-    dialogs.append(d)
-    d.show()
 
 class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
 
@@ -75,7 +71,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         grid.addWidget(QLabel(_('Local Path:')), row, 0)
         self.path = QLineEdit("")
         self.path.setReadOnly(True)
-        self.path.setFixedWidth(560)
+        self.path.setFixedWidth(570)
         grid.addWidget(self.path, row, 1)
         row += 1
 
@@ -83,7 +79,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         grid.addWidget(QLabel(_('File Hash:')), row, 0)
         self.hash = QLineEdit("")
         self.hash.setReadOnly(True)
-        self.hash.setFixedWidth(560)
+        self.hash.setFixedWidth(570)
         self.hash.setInputMask("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
         grid.addWidget(self.hash, row, 1)
         row += 1
@@ -98,9 +94,25 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         grid.addWidget(QLabel(_('URI after upload:')), row, 0)
         self.bitcoinfileAddr_label = QLineEdit("")
         self.bitcoinfileAddr_label.setReadOnly(True)
-        self.bitcoinfileAddr_label.setFixedWidth(560)
+        self.bitcoinfileAddr_label.setFixedWidth(570)
         grid.addWidget(self.bitcoinfileAddr_label, row, 1)
         row += 1
+
+        self.progress = QProgressBar(self)
+        self.progress.setGeometry(200, 80, 250, 20)
+        vbox.addWidget(self.progress)
+
+        hbox = QHBoxLayout()
+        vbox.addLayout(hbox)
+
+        self.cancel_button = b = QPushButton(_("Cancel"))
+        self.cancel_button.setAutoDefault(False)
+        self.cancel_button.setDefault(False)
+        b.clicked.connect(self.close)
+        b.setDefault(False)
+        hbox.addWidget(self.cancel_button)
+
+        hbox.addStretch(1)
 
         self.upload_button = b = QPushButton(_("Upload"))
         self.upload_button.setAutoDefault(False)
@@ -108,13 +120,11 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         self.upload_button.setDisabled(True)
         b.clicked.connect(self.upload)
         b.setDefault(False)
-        vbox.addWidget(self.upload_button)
-                
-        self.progress = QProgressBar(self)
-        self.progress.setGeometry(200, 80, 250, 20)
-        vbox.addWidget(self.progress)
+        hbox.addWidget(self.upload_button)
+            
 
     def select_file(self):
+        self.progress.setValue(0)
         self.tx_batch = []
         self.tx_batch_signed_count = 0
         self.chunks_processed = 0
@@ -122,7 +132,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        filename, _ = QFileDialog.getOpenFileName(self,"Select File", "","All Files (*)", options=options)
+        filename, _ = QFileDialog.getOpenFileName(self, "Select File to Upload", "","All Files (*)", options=options)
 
         if filename != '':
             with open(filename,"rb") as f:
@@ -173,6 +183,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                             uri = "bitcoinfiles:" + self.tx_batch[len(self.tx_batch)-1].txid()
                             self.bitcoinfileAddr_label.setText(uri)
                             self.upload_button.setEnabled(True)
+                            self.upload_button.setDefault(True)
 
                 # IMPORTANT: set wallet.sedn_slpTokenId to None to guard tokens during this transaction
                 self.main_window.token_type_combo.setCurrentIndex(0)
@@ -182,20 +193,33 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 self.main_window.sign_tx(self.tx_batch[self.tx_batch_signed_count], sign_done)
 
     def upload(self):
+        self.progress.setMinimum(0)
+        self.progress.setMaximum(len(self.tx_batch))
+        broadcast_count = 0
         #self.main_window.push_top_level_window(self)
         for tx in self.tx_batch:
             tx_desc = None
             #self.main_window.broadcast_transaction(tx, tx_desc)
             status, msg = self.network.broadcast(tx)
-
-            #TODO: Update progress bar based on broadcash status
+            print(status)
+            print(msg)
+            if status == False:
+                self.show_error(msg)
+                self.show_error("Upload failed. Try again.")
+                return 
+            
+            broadcast_count += 1
+            self.progress.setValue(broadcast_count)
 
         self.parent.token_dochash_e.setText(self.hash.text())
         self.parent.token_url_e.setText(self.bitcoinfileAddr_label.text())
+        self.show_message("Upload complete.")
         self.close()
 
     def closeEvent(self, event):
         event.accept()
+        self.parent.raise_()
+        self.parent.activateWindow()
         try:
             dialogs.remove(self)
         except ValueError:

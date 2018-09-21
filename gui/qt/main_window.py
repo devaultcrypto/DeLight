@@ -2089,6 +2089,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return self.create_list_tab(l)
 
     def create_slp_mgt_tab(self):
+        self.create_token_dialog = None
         from .slp_mgt import SlpMgt
         self.token_list = l = SlpMgt(self)
         w = self.create_list_tab(l)
@@ -2097,10 +2098,18 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         create_button = b = QPushButton(_("Create New Token"))
         create_button.setAutoDefault(False)
         create_button.setDefault(False)
-        b.clicked.connect(lambda: SlpAddTokenGenesisDialog(self,))
+        b.clicked.connect(self.show_create_token_dialog)
         vbox.addWidget(create_button)
         w.setLayout(vbox)
         return w
+
+    def show_create_token_dialog(self):
+        try: 
+            self.create_token_dialog.show()
+            self.create_token_dialog.raise_()
+            self.create_token_dialog.activateWindow()
+        except AttributeError:
+            self.create_token_dialog = d = SlpAddTokenGenesisDialog(self,)
 
     def create_contacts_tab(self):
         from .contact_list import ContactList
