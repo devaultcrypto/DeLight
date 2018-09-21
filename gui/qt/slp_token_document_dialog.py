@@ -41,24 +41,17 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
 
         self.parent = parent
         self.main_window = parent.main_window
+        self.network = parent.main_window.network
 
         self.fileTransactions = []
 
-        self.setWindowTitle(_("Upload File to Bitcoin Cash Blockchain"))
+        self.setWindowTitle(_("Upload Token Document"))
 
-        self.setMinimumWidth(750)
+        #self.setMinimumWidth(750)
         vbox = QVBoxLayout()
         self.setLayout(vbox)
 
-        grid = QGridLayout()
-        grid.setColumnStretch(1, 1)
-        vbox.addLayout(grid)
-        row = 0
-
-        self.tx_batch = []
-        self.tx_batch_signed_count = 0
-        self.chunks_processed = 0
-        self.chunks_total = 1  
+        vbox.addWidget(QLabel("Upload a document to the blockchain using the Bitcoin Files Protocol (<a href=https://bitcoinfiles.com>bitcoinfiles.com</a>)"))
 
         # Select File
         self.select_file_button = b = QPushButton(_("Select File..."))
@@ -66,18 +59,32 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         self.select_file_button.setDefault(False)
         b.clicked.connect(self.select_file)
         b.setDefault(False)
-        grid.addWidget(self.select_file_button, row, 0)
-        row += 1
+        vbox.addWidget(self.select_file_button)#, row, 0)
+
+        grid = QGridLayout()
+        grid.setColumnStretch(1, 1)
+        vbox.addLayout(grid)
+        row = 0
+
+        # self.tx_batch = []
+        # self.tx_batch_signed_count = 0
+        # self.chunks_processed = 0
+        # self.chunks_total = 1 
 
         # Local file path
         grid.addWidget(QLabel(_('Local Path:')), row, 0)
-        self.path = QLabel("")
+        self.path = QLineEdit("")
+        self.path.setReadOnly(True)
+        self.path.setFixedWidth(560)
         grid.addWidget(self.path, row, 1)
         row += 1
 
         # File hash
         grid.addWidget(QLabel(_('File Hash:')), row, 0)
-        self.hash = QLabel("")
+        self.hash = QLineEdit("")
+        self.hash.setReadOnly(True)
+        self.hash.setFixedWidth(560)
+        self.hash.setInputMask("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
         grid.addWidget(self.hash, row, 1)
         row += 1
 
@@ -88,22 +95,35 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         row += 1
 
         # File path
-        grid.addWidget(QLabel(_('BitcoinFiles.com URI:')), row, 0)
-        self.bitcoinfileAddr_label = QLabel("")
+        grid.addWidget(QLabel(_('URI after upload:')), row, 0)
+        self.bitcoinfileAddr_label = QLineEdit("")
+        self.bitcoinfileAddr_label.setReadOnly(True)
+        self.bitcoinfileAddr_label.setFixedWidth(560)
         grid.addWidget(self.bitcoinfileAddr_label, row, 1)
         row += 1
 
         self.upload_button = b = QPushButton(_("Upload"))
         self.upload_button.setAutoDefault(False)
         self.upload_button.setDefault(False)
+        self.upload_button.setDisabled(True)
         b.clicked.connect(self.upload)
         b.setDefault(False)
         vbox.addWidget(self.upload_button)
+                
+        self.progress = QProgressBar(self)
+        self.progress.setGeometry(200, 80, 250, 20)
+        vbox.addWidget(self.progress)
 
     def select_file(self):
+        self.tx_batch = []
+        self.tx_batch_signed_count = 0
+        self.chunks_processed = 0
+        self.chunks_total = 1 
+
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         filename, _ = QFileDialog.getOpenFileName(self,"Select File", "","All Files (*)", options=options)
+
         if filename != '':
             with open(filename,"rb") as f:
                 bytes = f.read() # read entire file as bytes
@@ -116,13 +136,9 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 self.hash.setText(readable_hash)
                 self.path.setText(filename)
 
-                #self.parent.token_dochash_e.setText(readable_hash)
-                # upload the file to blockchain and set the document URL
-                # 1 - estimate cost
                 cost = calculateUploadCost(len(bytes))
                 self.upload_cost_label.setText(str(cost))
 
-                # 2 - select an address and fund the address
                 addr = self.parent.wallet.get_unused_address()
 
                 try: 
@@ -133,13 +149,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
 
                 def sign_done(success):
                     if success:
-                        #print("SIGNING DONE")
-                        self.main_window.pop_top_level_window(self)
-                        #print(self.tx_batch[self.tx_batch_signed_count].txid())
-                        #print(self.tx_batch[self.tx_batch_signed_count].serialize())
-
                         self.tx_batch_signed_count += 1
-
                         if self.chunks_processed < self.chunks_total:
                             chunk_bytes = bytes # fix this for chunk_count > 1
                             try:
@@ -152,20 +162,41 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                             self.chunks_processed += 1
 
                         if len(self.tx_batch) > self.tx_batch_signed_count:
+                            
+                            # IMPORTANT: set wallet.sedn_slpTokenId to None to guard tokens during this transaction
+                            self.main_window.token_type_combo.setCurrentIndex(0)
+                            assert self.main_window.wallet.send_slpTokenId == None
+
                             self.main_window.push_top_level_window(self)
                             self.main_window.sign_tx(self.tx_batch[self.tx_batch_signed_count], sign_done)
                         else:
                             uri = "bitcoinfiles:" + self.tx_batch[len(self.tx_batch)-1].txid()
                             self.bitcoinfileAddr_label.setText(uri)
+                            self.upload_button.setEnabled(True)
+
+                # IMPORTANT: set wallet.sedn_slpTokenId to None to guard tokens during this transaction
+                self.main_window.token_type_combo.setCurrentIndex(0)
+                assert self.main_window.wallet.send_slpTokenId == None
 
                 self.main_window.push_top_level_window(self)
                 self.main_window.sign_tx(self.tx_batch[self.tx_batch_signed_count], sign_done)
 
     def upload(self):
-        self.main_window.push_top_level_window(self)
+        #self.main_window.push_top_level_window(self)
         for tx in self.tx_batch:
             tx_desc = None
-            self.main_window.broadcast_transaction(tx, tx_desc)
-        self.main_window.pop_top_level_window(self)
+            #self.main_window.broadcast_transaction(tx, tx_desc)
+            status, msg = self.network.broadcast(tx)
+
+            #TODO: Update progress bar based on broadcash status
+
         self.parent.token_dochash_e.setText(self.hash.text())
         self.parent.token_url_e.setText(self.bitcoinfileAddr_label.text())
+        self.close()
+
+    def closeEvent(self, event):
+        event.accept()
+        try:
+            dialogs.remove(self)
+        except ValueError:
+            pass
