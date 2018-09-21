@@ -209,11 +209,13 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 return 
             
             broadcast_count += 1
+            time.sleep(0.1)
             self.progress.setValue(broadcast_count)
+            QApplication.processEvents()
 
         self.parent.token_dochash_e.setText(self.hash.text())
         self.parent.token_url_e.setText(self.bitcoinfileAddr_label.text())
-        self.show_message("Upload complete.")
+        self.show_message("File upload complete.")
         self.close()
 
     def closeEvent(self, event):

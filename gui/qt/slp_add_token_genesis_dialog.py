@@ -121,7 +121,6 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         self.token_baton_label.setHidden(True)
         grid.addWidget(self.token_baton_label, row, 0)
         self.token_baton_to_e = ButtonsLineEdit()
-        self.token_baton_to_e.setText(self.wallet.get_unused_address().to_full_ui_string())
         self.token_baton_to_e.setFixedWidth(560)
         self.token_baton_to_e.setHidden(True)
         grid.addWidget(self.token_baton_to_e, row, 1)
