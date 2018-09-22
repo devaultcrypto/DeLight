@@ -310,6 +310,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         self.close()
 
     def closeEvent(self, event):
+        self.main_window.create_token_dialog = None
         event.accept()
         try:
             dialogs.remove(self)

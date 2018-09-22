@@ -177,7 +177,6 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                             self.main_window.token_type_combo.setCurrentIndex(0)
                             assert self.main_window.wallet.send_slpTokenId == None
 
-                            self.main_window.push_top_level_window(self)
                             self.main_window.sign_tx(self.tx_batch[self.tx_batch_signed_count], sign_done)
                         else:
                             uri = "bitcoinfiles:" + self.tx_batch[len(self.tx_batch)-1].txid()
@@ -189,17 +188,14 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 self.main_window.token_type_combo.setCurrentIndex(0)
                 assert self.main_window.wallet.send_slpTokenId == None
 
-                self.main_window.push_top_level_window(self)
                 self.main_window.sign_tx(self.tx_batch[self.tx_batch_signed_count], sign_done)
 
     def upload(self):
         self.progress.setMinimum(0)
         self.progress.setMaximum(len(self.tx_batch))
         broadcast_count = 0
-        #self.main_window.push_top_level_window(self)
         for tx in self.tx_batch:
             tx_desc = None
-            #self.main_window.broadcast_transaction(tx, tx_desc)
             status, msg = self.network.broadcast(tx)
             print(status)
             print(msg)
