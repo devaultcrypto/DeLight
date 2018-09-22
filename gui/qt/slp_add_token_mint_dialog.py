@@ -136,7 +136,7 @@ class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
 
     def mint_token(self, preview=False):
         decimals = int(self.token_dec.value())
-        mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
+        mint_baton_vout = 2 if self.token_baton_to_e.text() != '' and not self.token_fixed_supply_cb.isChecked() else None
         init_mint_qty = self.token_qty_e.get_amount()
         if init_mint_qty is None:
             self.show_message(_("Invalid token quantity entered."))

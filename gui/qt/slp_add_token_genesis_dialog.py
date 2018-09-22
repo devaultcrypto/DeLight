@@ -206,7 +206,7 @@ class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
         token_document_url = self.token_url_e.text() if self.token_url_e.text() != '' else None
         token_document_hash_hex = self.token_dochash_e.text() if self.token_dochash_e.text() != '' else None
         decimals = int(self.token_ds_e.value())
-        mint_baton_vout = 2 if self.token_baton_to_e.text() != '' else None
+        mint_baton_vout = 2 if self.token_baton_to_e.text() != '' and not self.token_fixed_supply_cb.isChecked() else None
 
         init_mint_qty = self.token_qty_e.get_amount()
         if init_mint_qty is None:
