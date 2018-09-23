@@ -43,11 +43,10 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
 
         self.setWindowTitle(_("Upload Token Document"))
 
-        #self.setMinimumWidth(750)
         vbox = QVBoxLayout()
         self.setLayout(vbox)
 
-        vbox.addWidget(QLabel("Upload a document to the blockchain using the Bitcoin Files Protocol (<a href=https://bitcoinfiles.com>bitcoinfiles.com</a>)"))
+        vbox.addWidget(QLabel("Upload and download documents using the Bitcoin Files Protocol (<a href=https://bitcoinfiles.com>bitcoinfiles.com</a>)"))
 
         # Select File
         self.select_file_button = b = QPushButton(_("Select File..."))
@@ -55,17 +54,12 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         self.select_file_button.setDefault(False)
         b.clicked.connect(self.select_file)
         b.setDefault(False)
-        vbox.addWidget(self.select_file_button)#, row, 0)
+        vbox.addWidget(self.select_file_button)
 
         grid = QGridLayout()
         grid.setColumnStretch(1, 1)
         vbox.addLayout(grid)
         row = 0
-
-        # self.tx_batch = []
-        # self.tx_batch_signed_count = 0
-        # self.chunks_processed = 0
-        # self.chunks_total = 1 
 
         # Local file path
         grid.addWidget(QLabel(_('Local Path:')), row, 0)
@@ -128,7 +122,12 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         self.tx_batch = []
         self.tx_batch_signed_count = 0
         self.chunks_processed = 0
-        self.chunks_total = 1 
+        self.chunks_total = 0
+        self.chunks = []
+        self.final_upload_txn_signed = False
+
+        # set all file Metadata to None for now... UI needs updated for this
+        metadata = { 'filename': None, 'fileext': None, 'filesize': None, 'filehash': None }
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -137,46 +136,59 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         if filename != '':
             with open(filename,"rb") as f:
                 bytes = f.read() # read entire file as bytes
-                if len(bytes) > 214:
-                    self.show_error("At the moment you cannot be larger than 214 bytes. This will be updated to allow larger files soon.")
+                if len(bytes) > 2000:
+                    self.show_error("At the moment files cannot be larger than 2kb in size.")
                     return
-                # set the file hash in parent dialog
                 import hashlib
                 readable_hash = hashlib.sha256(bytes).hexdigest()
                 self.hash.setText(readable_hash)
                 self.path.setText(filename)
-
-                cost = calculateUploadCost(len(bytes))
+                cost = calculateUploadCost(len(bytes), metadata)
                 self.upload_cost_label.setText(str(cost))
-
                 addr = self.parent.wallet.get_unused_address()
-
                 try: 
                     self.tx_batch.append(getFundingTxn(self.parent.wallet, addr, cost, self.parent.config))
                 except NotEnoughFunds:
                     self.show_message("Insufficient funds for funding transaction")
                     return
 
+                # Rewind and put file into chunks
+                f.seek(0, 0)
+                chunks = []
+                while True:
+                    b = f.read(220)
+                    if b == b'': break
+                    try:
+                        chunks.append(b)
+                        self.chunks_total += 1
+                    except ValueError:
+                        break
+
+                # callback to recursive sign next txn or finish
                 def sign_done(success):
                     if success:
                         self.tx_batch_signed_count += 1
-                        if self.chunks_processed < self.chunks_total:
-                            chunk_bytes = bytes # fix this for chunk_count > 1
+                        if self.chunks_processed < self.chunks_total and not self.final_upload_txn_signed:
                             try:
-                                self.tx_batch.append(getUploadTxn(self.parent.wallet, self.tx_batch[self.chunks_processed], self.chunks_processed + 1, self.chunks_total, chunk_bytes, self.parent.config))
+                                chunk_bytes = chunks[self.chunks_processed]
+                            except ValueError as e:
+                                chunk_bytes = None
+                                pass
+                            try:
+                                #print("building new upload txn")
+                                self.tx_batch.append(getUploadTxn(self.parent.wallet, self.tx_batch[self.chunks_processed], self.chunks_processed, self.chunks_total, chunk_bytes, self.parent.config, metadata))
                             except NotEnoughFunds as e:
                                 raise e
                                 self.show_message("Insufficient funds for file chunk #" + str(self.chunks_processed + 1))
                                 return
-
                             self.chunks_processed += 1
 
                         if len(self.tx_batch) > self.tx_batch_signed_count:
-                            
                             # IMPORTANT: set wallet.sedn_slpTokenId to None to guard tokens during this transaction
                             self.main_window.token_type_combo.setCurrentIndex(0)
                             assert self.main_window.wallet.send_slpTokenId == None
-
+                            if chunk_bytes == None:
+                                self.final_upload_txn_signed = True
                             self.main_window.sign_tx(self.tx_batch[self.tx_batch_signed_count], sign_done)
                         else:
                             uri = "bitcoinfiles:" + self.tx_batch[len(self.tx_batch)-1].txid()
@@ -187,18 +199,18 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 # IMPORTANT: set wallet.sedn_slpTokenId to None to guard tokens during this transaction
                 self.main_window.token_type_combo.setCurrentIndex(0)
                 assert self.main_window.wallet.send_slpTokenId == None
-
-                self.main_window.sign_tx(self.tx_batch[self.tx_batch_signed_count], sign_done)
+                self.main_window.sign_tx(self.tx_batch[0], sign_done)
 
     def upload(self):
         self.progress.setMinimum(0)
         self.progress.setMaximum(len(self.tx_batch))
         broadcast_count = 0
+        # Broadcast all transaction to the nexwork
         for tx in self.tx_batch:
             tx_desc = None
             status, msg = self.network.broadcast(tx)
-            print(status)
-            print(msg)
+            # print(status)
+            # print(msg)
             if status == False:
                 self.show_error(msg)
                 self.show_error("Upload failed. Try again.")

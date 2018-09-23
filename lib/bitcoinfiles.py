@@ -1,15 +1,12 @@
 """
-NOTE: Despite the following description this method currently only works for single chunk files, no metadata
-
-Creates a transaction that holds a BFP file data chunk at vout0.  Multi-chunk uploads are handled using 
-    vout1 as a point to the location of the next chunk.
+Creates and parses transactions that hold file data chunk at vout0 OP_RETURN.  Multi-chunk uploads are handled using 
+    vout1 as a pointer to the location of the next file chunk.  Visit http://bitcoinfiles.com for more info.
 
 Multi-part file chunks are committed to the blockchain as transactions using the following sequence:
-1. File is partitioned into 2XX byte chunks
-2. The file is identified on the blockchain using the txid to the last committed data chunk (longest point in txn chain)
-3. The chunks are resolved by traversing a chain of transactions backwards until the first data chunk is found
-    - txn input vin0 is always used to point to a previous chunk
-4. Chunk index 0 is reserved for storing optional file metadata (i.e., chunk_index = 0, chunk_count = X, name = "", fileext = "", hash = bytes, byte_count = X)
+1. File is partitioned into 220 byte chunks.
+2. The last file chunk remainder will be placed within the Metadata OP_RETURN message if there is sufficient room
+3. The file is identified using the txid of the txn containing the Metadata OP_RETURN message (longest point in txn chain)
+4. The chunks are resolved by traversing a chain of transactions from the Metadata txn backwards until the first data chunk is found
 
 Max message length to fit in 223 byte op_return relay limit: 204 bytes
 """
@@ -34,6 +31,10 @@ class OpreturnError(Exception):
     pass
 
 class InvalidOutput(ParseError):
+    pass
+
+# Exceptions during creation of SLP message.
+class SerializingError(Exception):
     pass
 
 def parse_bitcoinfile_output_script(outputScript: ScriptOutput):
@@ -71,9 +72,21 @@ def parse_bitcoinfile_output_script(outputScript: ScriptOutput):
 
     return version, chunk_index, chunk_count, chunk_data
 
-def make_bitcoinfile_opreturn(version: int, chunk_index: int, chunk_count: int, data: bytes):
+def make_bitcoinfile_chunk_opreturn(data: bytes):
     pushes = []
-    script = bytearray((0x6a,))  # OP_RETURN
+
+    # file chunk data
+    if data is None:
+        pushes.append(b'')
+    else:
+        if not isinstance(data, (bytes, bytearray)):
+            raise SerializingError()
+        pushes.append(data)
+
+    return chunksToOpreturnOutput(pushes)
+
+def make_bitcoinfile_final_opreturn(version: int, chunk_count: int, data: bytes = None, filename = None, fileext = None, filesize: int = None, filehash: bytes = None):
+    pushes = []
 
     # lokad id
     pushes.append(lokad_id)
@@ -81,15 +94,44 @@ def make_bitcoinfile_opreturn(version: int, chunk_index: int, chunk_count: int, 
     # version/type
     pushes.append(bytes((version,)))
 
-    # file chunk number
-    pushes.append(bytes((chunk_index,)))
-
     # file chunk count
     pushes.append(bytes((chunk_count,)))
 
-    # file data 
-    pushes.append(data)
+    #filename
+    if filename is None:
+        pushes.append(b'')
+    else:
+        pushes.append(filename.encode('utf-8'))
 
+    # fileext
+    if fileext is None:
+        pushes.append(b'')
+    else: 
+        pushes.append(fileext.encode('utf-8'))
+
+    # filesize
+    if filesize is None:
+        pushes.append(b'')
+    else:
+        pushes.append(bytes((filesize,)))
+
+    # filehash
+    if filehash is None:
+        pushes.append(b'')
+    else: 
+        hashbytes = bytes.fromhex(filehash)
+        if len(hashbytes) not in (0, 32):
+            raise SerializingError()
+        pushes.append(hashbytes)
+
+    # file chunk data
+    if data is None:
+        pushes.append(b'')
+    else:
+        if not isinstance(data, (bytes, bytearray)):
+            raise SerializingError()
+        pushes.append(data)
+        
     return chunksToOpreturnOutput(pushes)
 
 # utility for creation: use smallest push except not any of: op_0, op_1negate, op_1 to op_16
@@ -162,18 +204,22 @@ def parseChunkToInt(intBytes: bytes, minByteLen: int, maxByteLen: int, raise_on_
         return None
     raise InvalidOutput('Field has wrong length')
 
-def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config):
+def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, metadata):
     """
-    NOTE: THIS METHOD ONLY DOES 1 TRANSACTION CURRENTLY, LIMITS SIZE TO 223 BYTES
+    NOTE: THIS METHOD ONLY WORKS WITH 1 TRANSACTION CURRENTLY, LIMITS SIZE TO 223 BYTES
     """
 
     assert wallet.txin_type == 'p2pkh'
 
-    vout, address, amount = prev_tx.outputs()[0]
-
-    askedoutputs = [ make_bitcoinfile_opreturn(0, chunk_index, chunk_count, chunk_data),
-                    (TYPE_ADDRESS, address, 546) ]
-
+    if chunk_index == 0:
+        out_type, address, amount = prev_tx.outputs()[0]
+        assert out_type == 0
+        vout = 0
+    else:
+        out_type, address, amount = prev_tx.outputs()[1]
+        assert out_type == 0
+        vout = 1
+        
     coins = [{
         'address': address,
         'value': amount,
@@ -182,6 +228,24 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config):
         'height': 0,
         'coinbase': False
     }]
+
+    final_op_return_no_chunk = make_bitcoinfile_final_opreturn(1, chunk_count, None, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'])
+
+    if chunk_data == None:
+        chunk_length = 0
+    else:
+        chunk_length = len(chunk_data)
+
+    if chunk_index == chunk_count - 1 and chunk_can_fit_in_final_opreturn(final_op_return_no_chunk, chunk_length):
+        op_return = make_bitcoinfile_final_opreturn(1, chunk_count, chunk_data, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'])
+        miner_fee = estimate_miner_fee(1, 1, len(op_return[1].to_script()))
+        dust_output = (amount - miner_fee) if (amount - miner_fee) >= 546 else 546
+        askedoutputs = [ op_return, (TYPE_ADDRESS, address, dust_output) ]
+    else:
+        op_return = make_bitcoinfile_chunk_opreturn(chunk_data)
+        miner_fee = estimate_miner_fee(1, 1, len(op_return[1].to_script()))
+        dust_output = (amount - miner_fee) if (amount - miner_fee) >= 546 else 546
+        askedoutputs = [ op_return, (TYPE_ADDRESS, address, dust_output) ]
 
     fee = None
     change_addr = None
@@ -193,8 +257,27 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config):
     outputs = tx.outputs()
     outputs = askedoutputs + [o for o in outputs if o not in askedoutputs]
     tx = Transaction.from_io(tx.inputs(), outputs, tx.locktime)
-
+    print(tx)
     return tx
+
+def chunk_can_fit_in_final_opreturn(final_op_return_no_chunk, chunk_data_length:int = 0):
+    if chunk_data_length == 0:
+        return True
+    op_return_length = len(final_op_return_no_chunk[1].to_script())
+    op_return_capacity = 223 - 2 - op_return_length
+    if op_return_capacity > chunk_data_length:
+        return True
+    return False
+
+def get_push_data_length(data_count):
+    if data_count > 75:
+        return data_count + 1
+    else: 
+        return data_count + 2
+
+def estimate_miner_fee(p2pkh_input_count, p2pkh_output_count, opreturn_size, feerate = 1):
+    bytecount = (p2pkh_input_count * 148) + (p2pkh_output_count * 35) + opreturn_size + 22
+    return bytecount * feerate
 
 def getFundingTxn(wallet, address, amount, config):
     
@@ -218,24 +301,48 @@ def getFundingTxn(wallet, address, amount, config):
 
     return tx
 
-def calculateUploadCost(file_size, metadata_fields = {}, fee_rate = 1):
-    # op_return length
+def calculateUploadCost(file_size, metadata, fee_rate = 1):
     byte_count = file_size
-    byte_count += 18
 
-    # output p2pkh
-    byte_count += 34
+    whole_chunks_count = int(file_size / 220)
+    last_chunk_size = file_size % 220
 
-    # dust input bytes (this is the initial payment for the file upload)
+    if last_chunk_size > 0:
+        chunk_count = whole_chunks_count + last_chunk_size
+    else:
+        chunk_count = whole_chunks_count
+
+    # cost of final transaction's op_return w/o any chunkdata
+    final_op_return_no_chunk = make_bitcoinfile_final_opreturn(1, chunk_count, None, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'])
+    byte_count += len(final_op_return_no_chunk[1].to_script())
+
+    # cost of final transaction's input/outputs
+    byte_count += 35
     byte_count += 148 + 1
 
-    # dust outputs
-    dust_amount = 546
+    # cost of chunk trasnsaction op_returns
+    byte_count += (whole_chunks_count + 1) * 3
+
+    if not chunk_can_fit_in_final_opreturn(final_op_return_no_chunk, last_chunk_size):
+        # add fees for an extra chunk transaction input/output
+        byte_count += 149 + 35
+        # cost of chunk op_return 
+        byte_count += 3
+
+    # output p2pkh
+    byte_count += 35 * whole_chunks_count
+
+    # dust input bytes (this is the initial payment for the file upload)
+    byte_count += (148 + 1) * whole_chunks_count
 
     # other unaccounted per txn
-    byte_count += 15
+    byte_count += 22 * (whole_chunks_count + (1 if last_chunk_size > 0 else 0))
+
+    # dust output to be passed along each txn
+    dust_amount = 546
 
     return byte_count * fee_rate + dust_amount
 
 def downloadBitcoinFile():
     pass
+

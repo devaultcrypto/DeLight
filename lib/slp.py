@@ -281,7 +281,7 @@ def buildGenesisOpReturnOutput_V1(ticker: str, token_name: str, token_document_u
     else:
         dochash = bytes.fromhex(token_document_hash_hex)
         if len(dochash) not in (0,32):
-            raise SlpSerializingError
+            raise SlpSerializingError()
         chunks.append(dochash)
 
     # decimals
