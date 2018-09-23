@@ -146,6 +146,11 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 cost = calculateUploadCost(len(bytes), metadata)
                 self.upload_cost_label.setText(str(cost))
                 addr = self.parent.wallet.get_unused_address()
+
+                # IMPORTANT: set wallet.send_slpTokenId to None to guard tokens during this transaction
+                self.main_window.token_type_combo.setCurrentIndex(0)
+                assert self.main_window.wallet.send_slpTokenId == None
+
                 try: 
                     self.tx_batch.append(getFundingTxn(self.parent.wallet, addr, cost, self.parent.config))
                 except NotEnoughFunds:
@@ -184,9 +189,6 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                             self.chunks_processed += 1
 
                         if len(self.tx_batch) > self.tx_batch_signed_count:
-                            # IMPORTANT: set wallet.sedn_slpTokenId to None to guard tokens during this transaction
-                            self.main_window.token_type_combo.setCurrentIndex(0)
-                            assert self.main_window.wallet.send_slpTokenId == None
                             if chunk_bytes == None:
                                 self.final_upload_txn_signed = True
                             self.main_window.sign_tx(self.tx_batch[self.tx_batch_signed_count], sign_done)
@@ -196,9 +198,6 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                             self.upload_button.setEnabled(True)
                             self.upload_button.setDefault(True)
 
-                # IMPORTANT: set wallet.sedn_slpTokenId to None to guard tokens during this transaction
-                self.main_window.token_type_combo.setCurrentIndex(0)
-                assert self.main_window.wallet.send_slpTokenId == None
                 self.main_window.sign_tx(self.tx_batch[0], sign_done)
 
     def upload(self):
