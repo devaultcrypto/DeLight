@@ -92,6 +92,9 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         grid.addWidget(self.bitcoinfileAddr_label, row, 1)
         row += 1
 
+        self.progress_label = QLabel("")
+        vbox.addWidget(self.progress_label)
+
         self.progress = QProgressBar(self)
         self.progress.setGeometry(200, 80, 250, 20)
         vbox.addWidget(self.progress)
@@ -109,8 +112,8 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         hbox.addStretch(1)
 
         self.upload_button = b = QPushButton(_("Upload"))
-        self.upload_button.setAutoDefault(False)
-        self.upload_button.setDefault(False)
+        self.upload_button.setAutoDefault(True)
+        self.upload_button.setDefault(True)
         self.upload_button.setDisabled(True)
         b.clicked.connect(self.upload)
         b.setDefault(False)
@@ -123,8 +126,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         self.tx_batch_signed_count = 0
         self.chunks_processed = 0
         self.chunks_total = 0
-        self.chunks = []
-        self.final_upload_txn_signed = False
+        self.final_metadata_txn_created = False
 
         # set all file Metadata to None for now... UI needs updated for this
         metadata = { 'filename': None, 'fileext': None, 'filesize': None, 'filehash': None }
@@ -136,8 +138,8 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         if filename != '':
             with open(filename,"rb") as f:
                 bytes = f.read() # read entire file as bytes
-                if len(bytes) > 2000:
-                    self.show_error("At the moment files cannot be larger than 2kb in size.")
+                if len(bytes) > 5261:
+                    self.show_error("Files cannot be larger than 5.261kB in size.")
                     return
                 import hashlib
                 readable_hash = hashlib.sha256(bytes).hexdigest()
@@ -154,7 +156,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 try: 
                     self.tx_batch.append(getFundingTxn(self.parent.wallet, addr, cost, self.parent.config))
                 except NotEnoughFunds:
-                    self.show_message("Insufficient funds for funding transaction")
+                    self.show_message("Insufficient confirmed funds for funding transaction.  This transaction requires that you have funds with at least 1 block confirmation.")
                     return
 
                 # Rewind and put file into chunks
@@ -169,38 +171,51 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                     except ValueError:
                         break
 
+                self.progress_label.setText("Signing 1 of " + str(len(chunks) + 1) + " transactions")
+                self.progress.setMinimum(0)
+                self.progress.setMaximum(len(chunks) + 1)
+
                 # callback to recursive sign next txn or finish
                 def sign_done(success):
                     if success:
                         self.tx_batch_signed_count += 1
-                        if self.chunks_processed < self.chunks_total and not self.final_upload_txn_signed:
+                        self.progress.setValue(self.tx_batch_signed_count)
+                        self.progress_label.setText("Signing " + str(self.tx_batch_signed_count + 1) + " of " + str(len(chunks) + 1) + " transactions")
+                        if self.chunks_processed <= self.chunks_total and not self.final_metadata_txn_created:
                             try:
                                 chunk_bytes = chunks[self.chunks_processed]
-                            except ValueError as e:
+                            except IndexError:
                                 chunk_bytes = None
-                                pass
                             try:
                                 #print("building new upload txn")
-                                self.tx_batch.append(getUploadTxn(self.parent.wallet, self.tx_batch[self.chunks_processed], self.chunks_processed, self.chunks_total, chunk_bytes, self.parent.config, metadata))
+                                txn, self.final_metadata_txn_created = getUploadTxn(self.parent.wallet, self.tx_batch[self.chunks_processed], self.chunks_processed, self.chunks_total, chunk_bytes, self.parent.config, metadata)
+                                self.tx_batch.append(txn)
                             except NotEnoughFunds as e:
-                                raise e
                                 self.show_message("Insufficient funds for file chunk #" + str(self.chunks_processed + 1))
                                 return
                             self.chunks_processed += 1
 
-                        if len(self.tx_batch) > self.tx_batch_signed_count:
-                            if chunk_bytes == None:
-                                self.final_upload_txn_signed = True
+                        if self.tx_batch_signed_count < len(self.tx_batch):
                             self.main_window.sign_tx(self.tx_batch[self.tx_batch_signed_count], sign_done)
+                            self.raise_()
+                            self.activateWindow()
+                            self.progress.setValue(self.tx_batch_signed_count)
                         else:
                             uri = "bitcoinfiles:" + self.tx_batch[len(self.tx_batch)-1].txid()
                             self.bitcoinfileAddr_label.setText(uri)
-                            self.upload_button.setEnabled(True)
+                            self.progress_label.setText("Signing complete. Ready to upload.")
+                            self.progress.setValue(0)
+                            self.raise_()
+                            self.activateWindow()
                             self.upload_button.setDefault(True)
+                            self.upload_button.setVisible(True)
+                            self.upload_button.setFocus(True)
+                            self.upload_button.setEnabled(True)
 
                 self.main_window.sign_tx(self.tx_batch[0], sign_done)
 
     def upload(self):
+        self.progress_label.setText("Broadcasting 1 of " + str(len(self.tx_batch)) + " transactions")
         self.progress.setMinimum(0)
         self.progress.setMaximum(len(self.tx_batch))
         broadcast_count = 0
@@ -217,6 +232,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
             
             broadcast_count += 1
             time.sleep(0.1)
+            self.progress_label.setText("Broadcasting " + str(broadcast_count + 1) + " of " + str(len(self.tx_batch)) + " transactions")
             self.progress.setValue(broadcast_count)
             QApplication.processEvents()
 

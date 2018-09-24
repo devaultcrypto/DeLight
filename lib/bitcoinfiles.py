@@ -124,6 +124,15 @@ def make_bitcoinfile_final_opreturn(version: int, chunk_count: int, data: bytes 
             raise SerializingError()
         pushes.append(hashbytes)
 
+    # Reserved for future ipfs filehash
+    if filehash is None:
+        pushes.append(b'')
+    else: 
+        hashbytes = bytes.fromhex(filehash)
+        if len(hashbytes) not in (0, 32):
+            raise SerializingError()
+        pushes.append(hashbytes)
+
     # file chunk data
     if data is None:
         pushes.append(b'')
@@ -209,6 +218,9 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, 
     NOTE: THIS METHOD ONLY WORKS WITH 1 TRANSACTION CURRENTLY, LIMITS SIZE TO 223 BYTES
     """
 
+    # this flag is returned to indicate which upload message was used in txn
+    is_metadata_txn = False
+
     assert wallet.txin_type == 'p2pkh'
 
     if chunk_index == 0:
@@ -236,11 +248,14 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, 
     else:
         chunk_length = len(chunk_data)
 
-    if chunk_index == chunk_count - 1 and chunk_can_fit_in_final_opreturn(final_op_return_no_chunk, chunk_length):
+    # Check for scenario where last chunk can fit into Metadata message.  Chunk may be data or None.
+    if chunk_index >= chunk_count - 1 and chunk_can_fit_in_final_opreturn(final_op_return_no_chunk, chunk_length):
+        is_metadata_txn = True
         op_return = make_bitcoinfile_final_opreturn(1, chunk_count, chunk_data, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'])
         miner_fee = estimate_miner_fee(1, 1, len(op_return[1].to_script()))
         dust_output = (amount - miner_fee) if (amount - miner_fee) >= 546 else 546
         askedoutputs = [ op_return, (TYPE_ADDRESS, address, dust_output) ]
+    # Check for scenarios where Metadata message should not be used
     else:
         op_return = make_bitcoinfile_chunk_opreturn(chunk_data)
         miner_fee = estimate_miner_fee(1, 1, len(op_return[1].to_script()))
@@ -258,14 +273,14 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, 
     outputs = askedoutputs + [o for o in outputs if o not in askedoutputs]
     tx = Transaction.from_io(tx.inputs(), outputs, tx.locktime)
     print(tx)
-    return tx
+    return tx, is_metadata_txn
 
 def chunk_can_fit_in_final_opreturn(final_op_return_no_chunk, chunk_data_length:int = 0):
     if chunk_data_length == 0:
         return True
-    op_return_length = len(final_op_return_no_chunk[1].to_script())
-    op_return_capacity = 223 - 2 - op_return_length
-    if op_return_capacity > chunk_data_length:
+    op_return_min_length = len(final_op_return_no_chunk[1].to_script())
+    op_return_capacity = 223 - op_return_min_length
+    if op_return_capacity >= chunk_data_length:
         return True
     return False
 
@@ -285,13 +300,20 @@ def getFundingTxn(wallet, address, amount, config):
 
     askedoutputs = [ (TYPE_ADDRESS, address, amount), ]
 
-    # only spend coins from this address
+    # set config key 'confirmed_only' temporarily to True
     domain = None
-    # config['confirmed_only'] is used in the following call:
+    org_confirmed_only = config.get('confirmed_only', False)
+    config.set_key('confirmed_only', True)
+    assert config.get('confirmed_only', False) == True
+
     coins = wallet.get_spendable_coins(domain, config)
     fee = None
     change_addr = None
     tx = wallet.make_unsigned_transaction(coins, askedoutputs, config, fee, change_addr)
+
+    # Change key back to original setting
+    config.set_key('confirmed_only', org_confirmed_only)
+    assert config.get('confirmed_only', False) == org_confirmed_only
 
     # unfortunately, the outputs might be in wrong order due to BIPLI01
     # output sorting, so we remake it.
@@ -326,17 +348,17 @@ def calculateUploadCost(file_size, metadata, fee_rate = 1):
     if not chunk_can_fit_in_final_opreturn(final_op_return_no_chunk, last_chunk_size):
         # add fees for an extra chunk transaction input/output
         byte_count += 149 + 35
-        # cost of chunk op_return 
-        byte_count += 3
+        # opcode cost for chunk op_return 
+        byte_count += 16
 
     # output p2pkh
-    byte_count += 35 * whole_chunks_count
+    byte_count += 35 * (whole_chunks_count)
 
     # dust input bytes (this is the initial payment for the file upload)
     byte_count += (148 + 1) * whole_chunks_count
 
     # other unaccounted per txn
-    byte_count += 22 * (whole_chunks_count + (1 if last_chunk_size > 0 else 0))
+    byte_count += 22 * (whole_chunks_count + 1)
 
     # dust output to be passed along each txn
     dust_amount = 546
