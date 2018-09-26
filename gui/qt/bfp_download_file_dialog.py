@@ -26,7 +26,7 @@ dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
 
     got_network_response_meta_sig = pyqtSignal()
-    got_network_response_chunk_sig = pyqtSignal(str, int)
+    got_network_response_chunk_sig = pyqtSignal(dict, int)
 
     @pyqtSlot()
     def got_network_response_slot(self):
@@ -40,11 +40,11 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         tx = Transaction(raw)
         self.handle_metadata_tx(tx)
 
-    @pyqtSlot()
+    @pyqtSlot(dict, int)
     def got_network_response_chunk_slot(self, response, chunk_index):
         if response.get('error'):
-            return self.fail_metadata_info("Download chunk data error!\n%r"%(resp['error'].get('message')))
-        raw = resp.get('result')
+            return self.fail_metadata_info("Download chunk data error!\n%r"%(response['error'].get('message')))
+        raw = response.get('result')
 
         tx = Transaction(raw)
         self.handle_chunk_tx(tx, chunk_index)
@@ -102,7 +102,6 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         self.cancel_button.setAutoDefault(False)
         self.cancel_button.setDefault(False)
         b.clicked.connect(self.close)
-        b.setDefault(True)
         hbox.addWidget(self.cancel_button)
 
         self.got_network_response_meta_sig.connect(self.got_network_response_slot, Qt.QueuedConnection)
@@ -115,12 +114,8 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         self.file_metadata_tx = None
 
     def closeEvent(self, event):
-        #if (self.prompt_if_unsaved and not self.saved
-            #and not self.question(_('This transaction is not saved. Close anyway?'), title=_("Warning"))):
-            #event.ignore()
-        #else:
-            event.accept()
-            dialogs.remove(self)
+        event.accept()
+        dialogs.remove(self)
 
     def download_file(self):
         self.txn_downloads = []
@@ -146,6 +141,8 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         except KeyError:
             def callback(response):
                 self.got_network_response_chunk_sig.emit(response, chunk_index)
+            requests = [ ('blockchain.transaction.get', [txid]), ]
+            self.network.send(requests, callback)
         else:
             self.handle_chunk_tx(tx, chunk_index)                
 
@@ -280,6 +277,7 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
 
         self.file_metadata_message = bfpMsg
         self.download_button.setEnabled(True)
+        self.download_button.setDefault(True)
 
     def fail_metadata_info(self, message):
         self.file_info_e.setText(message)
