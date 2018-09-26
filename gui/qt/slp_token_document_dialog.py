@@ -129,7 +129,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         self.final_metadata_txn_created = False
 
         # set all file Metadata to None for now... UI needs updated for this
-        metadata = { 'filename': None, 'fileext': None, 'filesize': None, 'filehash': None }
+        metadata = { 'filename': None, 'fileext': None, 'filesize': None, 'filehash': None, 'uri': None }
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog

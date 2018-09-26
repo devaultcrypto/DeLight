@@ -74,6 +74,7 @@ from electroncash import slp_validator_0x01
 from .amountedit import SLPAmountEdit
 from electroncash.util import format_satoshis_nofloat
 from .slp_add_token_genesis_dialog import SlpAddTokenGenesisDialog
+from .bfp_download_file_dialog import BfpDownloadFileDialog
 
 class StatusBarButton(QPushButton):
     def __init__(self, icon, tooltip, func):
@@ -92,7 +93,6 @@ class StatusBarButton(QPushButton):
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Return:
             self.func()
-
 
 from electroncash.paymentrequest import PR_PAID
 
@@ -609,6 +609,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tools_menu.addSeparator()
         tools_menu.addAction(_("&Sign/verify message"), self.sign_verify_message)
         tools_menu.addAction(_("&Encrypt/decrypt message"), self.encrypt_message)
+        tools_menu.addAction(_("Download file via BFP"), lambda: BfpDownloadFileDialog(self,))
         tools_menu.addSeparator()
 
         paytomany_menu = tools_menu.addAction(_("&Pay to many"), self.paytomany)
@@ -2654,7 +2655,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         b = QPushButton(_("Close"))
         b.clicked.connect(d.accept)
         hbox.addWidget(b)
-
         layout.addLayout(hbox, 4, 1)
         d.exec_()
 

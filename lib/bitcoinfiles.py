@@ -18,55 +18,65 @@ from .transaction import Transaction
 from .bitcoin import TYPE_SCRIPT, TYPE_ADDRESS
 from .address import Script, ScriptError, OpCodes
 from enum import Enum
+from .network import Network
 
 lokad_id = b"BFP\x00"
 
-class ParseError(Exception):
+class BfpParsingError(Exception):
     pass
 
-class AuthenticationError(Exception):
+class BfpUnsupportedBfpMsgType(BfpParsingError):
+    # Cannot parse OP_RETURN due to unrecognized version
+    # (may or may not be valid)
     pass
 
-class OpreturnError(Exception):
+
+
+class BfpOpreturnError(Exception):
     pass
 
-class InvalidOutput(ParseError):
+class BfpInvalidOutput(BfpParsingError):
     pass
 
 # Exceptions during creation of SLP message.
-class SerializingError(Exception):
+class BfpSerializingError(Exception):
+    pass
+
+class BfpInvalidOutputMessage(BfpParsingError):
+    # This exception (and subclasses) marks a message as definitely invalid
+    # under SLP consensus rules. (either malformed SLP or just not SLP)
     pass
 
 def parse_bitcoinfile_output_script(outputScript: ScriptOutput):
     try:
         pushes = parseOpreturnToChunks(outputScript.to_script(), allow_op_0 = False, allow_op_number = False)
-    except OpreturnError as e:
-        raise InvalidOutput('Bad OP_RETURN', *e.args) from e
+    except BfpOpreturnError as e:
+        raise BfpInvalidOutput('Bad OP_RETURN', *e.args) from e
 
     if len(pushes) == 0:
-        raise InvalidOutput('Empty OP_RETURN')
+        raise BfpInvalidOutput('Empty OP_RETURN')
 
     if pushes[0] != lokad_id:
-        raise InvalidOutput('Not BFP')
+        raise BfpInvalidOutput('Not BFP')
 
     if len(pushes) == 1:
-        raise InvalidOutput('Missing version')
+        raise BfpInvalidOutput('Missing version')
 
     # check if the token version is supported
     version = parseChunkToInt(pushes[1], 1, 2, True)
     if version != 0:
-        raise InvalidOutput('Unsupported version')
+        raise BfpInvalidOutput('Unsupported version')
 
     if len(pushes) == 2:
-        raise InvalidOutput('Missing chunk_index')
+        raise BfpInvalidOutput('Missing chunk_index')
     chunk_index = parseChunkToInt(pushes[2], 1, 1, True)
 
     if len(pushes) == 3:
-        raise InvalidOutput('Missing chunk_count')
+        raise BfpInvalidOutput('Missing chunk_count')
     chunk_count = parseChunkToInt(pushes[3], 1, 1, True)
 
     if len(pushes) == 4:
-        raise InvalidOutput('Missing chunk_data')
+        raise BfpInvalidOutput('Missing chunk_data')
 
     chunk_data = pushes[4]
 
@@ -80,12 +90,12 @@ def make_bitcoinfile_chunk_opreturn(data: bytes):
         pushes.append(b'')
     else:
         if not isinstance(data, (bytes, bytearray)):
-            raise SerializingError()
+            raise BfpSerializingError()
         pushes.append(data)
 
     return chunksToOpreturnOutput(pushes)
 
-def make_bitcoinfile_final_opreturn(version: int, chunk_count: int, data: bytes = None, filename = None, fileext = None, filesize: int = None, filehash: bytes = None):
+def make_bitcoinfile_final_opreturn(version: int, chunk_count: int, data: bytes = None, filename = None, fileext = None, filesize: int = None, filehash: bytes = None, fileuri = None):
     pushes = []
 
     # lokad id
@@ -121,24 +131,21 @@ def make_bitcoinfile_final_opreturn(version: int, chunk_count: int, data: bytes 
     else: 
         hashbytes = bytes.fromhex(filehash)
         if len(hashbytes) not in (0, 32):
-            raise SerializingError()
+            raise BfpSerializingError()
         pushes.append(hashbytes)
 
-    # Reserved for future ipfs filehash
-    if filehash is None:
+    # Reserved for external URI
+    if fileuri is None:
         pushes.append(b'')
     else: 
-        hashbytes = bytes.fromhex(filehash)
-        if len(hashbytes) not in (0, 32):
-            raise SerializingError()
-        pushes.append(hashbytes)
+        pushes.append(fileuri.encode('utf-8'))
 
     # file chunk data
     if data is None:
         pushes.append(b'')
     else:
         if not isinstance(data, (bytes, bytearray)):
-            raise SerializingError()
+            raise BfpSerializingError()
         pushes.append(data)
         
     return chunksToOpreturnOutput(pushes)
@@ -173,31 +180,31 @@ def parseOpreturnToChunks(script: bytes, *,  allow_op_0: bool, allow_op_number: 
     """Extract pushed bytes after opreturn. Returns list of bytes() objects,
     one per push.
 
-    Strict refusal of non-push opcodes; bad scripts throw OpreturnError."""
+    Strict refusal of non-push opcodes; bad scripts throw BfpOpreturnError."""
     try:
         ops = Script.get_ops(script)
     except ScriptError as e:
-        raise OpreturnError('Script error') from e
+        raise BfpOpreturnError('Script error') from e
 
     if ops[0] != OpCodes.OP_RETURN:
-        raise OpreturnError('No OP_RETURN')
+        raise BfpOpreturnError('No OP_RETURN')
 
     chunks = []
     for opitem in ops[1:]:
         op, data = opitem if isinstance(opitem, tuple) else (opitem, None)
         if op > OpCodes.OP_16:
-            raise OpreturnError('Non-push opcode')
+            raise BfpOpreturnError('Non-push opcode')
         if op > OpCodes.OP_PUSHDATA4:
             if op == 80:
-                raise OpreturnError('Non-push opcode')
+                raise BfpOpreturnError('Non-push opcode')
             if not allow_op_number:
-                raise OpreturnError('OP_1NEGATE to OP_16 not allowed')
+                raise BfpOpreturnError('OP_1NEGATE to OP_16 not allowed')
             if op == OpCodes.OP_1NEGATE:
                 data = [0x81]
             else: # OP_1 - OP_16
                 data = [op-80]
         if op == OpCodes.OP_0 and not allow_op_0:
-            raise OpreturnError('OP_0 not allowed')
+            raise BfpOpreturnError('OP_0 not allowed')
         chunks.append(b'' if data is None else bytes(data))
     return chunks
 
@@ -206,12 +213,12 @@ def parseChunkToInt(intBytes: bytes, minByteLen: int, maxByteLen: int, raise_on_
     # For empty data different possibilities may occur:
     #      minByteLen <= 0 : return 0
     #      raise_on_Null == False and minByteLen > 0: return None
-    #      raise_on_Null == True and minByteLen > 0:  raise InvalidOutput
+    #      raise_on_Null == True and minByteLen > 0:  raise BfpInvalidOutput
     if len(intBytes) >= minByteLen and len(intBytes) <= maxByteLen:
         return int.from_bytes(intBytes, 'big', signed=False)
     if len(intBytes) == 0 and not raise_on_Null:
         return None
-    raise InvalidOutput('Field has wrong length')
+    raise BfpInvalidOutput('Field has wrong length')
 
 def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, metadata):
     """
@@ -231,7 +238,7 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, 
         out_type, address, amount = prev_tx.outputs()[1]
         assert out_type == 0
         vout = 1
-        
+
     coins = [{
         'address': address,
         'value': amount,
@@ -241,7 +248,7 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, 
         'coinbase': False
     }]
 
-    final_op_return_no_chunk = make_bitcoinfile_final_opreturn(1, chunk_count, None, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'])
+    final_op_return_no_chunk = make_bitcoinfile_final_opreturn(1, chunk_count, None, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'], metadata['uri'])
 
     if chunk_data == None:
         chunk_length = 0
@@ -251,7 +258,7 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, 
     # Check for scenario where last chunk can fit into Metadata message.  Chunk may be data or None.
     if chunk_index >= chunk_count - 1 and chunk_can_fit_in_final_opreturn(final_op_return_no_chunk, chunk_length):
         is_metadata_txn = True
-        op_return = make_bitcoinfile_final_opreturn(1, chunk_count, chunk_data, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'])
+        op_return = make_bitcoinfile_final_opreturn(1, chunk_count, chunk_data, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'], metadata['uri'])
         miner_fee = estimate_miner_fee(1, 1, len(op_return[1].to_script()))
         dust_output = (amount - miner_fee) if (amount - miner_fee) >= 546 else 546
         askedoutputs = [ op_return, (TYPE_ADDRESS, address, dust_output) ]
@@ -272,7 +279,6 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, 
     outputs = tx.outputs()
     outputs = askedoutputs + [o for o in outputs if o not in askedoutputs]
     tx = Transaction.from_io(tx.inputs(), outputs, tx.locktime)
-    print(tx)
     return tx, is_metadata_txn
 
 def chunk_can_fit_in_final_opreturn(final_op_return_no_chunk, chunk_data_length:int = 0):
@@ -335,7 +341,7 @@ def calculateUploadCost(file_size, metadata, fee_rate = 1):
         chunk_count = whole_chunks_count
 
     # cost of final transaction's op_return w/o any chunkdata
-    final_op_return_no_chunk = make_bitcoinfile_final_opreturn(1, chunk_count, None, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'])
+    final_op_return_no_chunk = make_bitcoinfile_final_opreturn(1, chunk_count, None, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'], metadata['uri'])
     byte_count += len(final_op_return_no_chunk[1].to_script())
 
     # cost of final transaction's input/outputs
@@ -368,3 +374,64 @@ def calculateUploadCost(file_size, metadata, fee_rate = 1):
 def downloadBitcoinFile():
     pass
 
+class BfpMessage:
+    lokad_id = lokad_id
+
+    def __init__(self):
+        self.msg_type = None
+        self.op_return_fields = {}
+
+    def __repr__(self,):
+        return "<%s msg_type=%d %r %r>"%(type(self).__qualname__, self.msg_type, self.op_return_fields)
+
+    # This method attempts to parse a ScriptOutput object as an BFP message.
+    # Bad scripts will throw a subclass of BfpParsingError; any other exception indicates a bug in this code.
+    # - Unrecognized SLP versions will throw BfpUnsupportedSlpTokenType.
+    # - It is a STRICT parser -- consensus-invalid messages will throw BfpInvalidOutputMessage.
+    # - Non-SLP scripts will also throw BfpInvalidOutputMessage.
+    @staticmethod
+    def parseBfpScriptOutput(outputScript: ScriptOutput):
+        bfpMsg = BfpMessage()
+        try:
+            chunks = parseOpreturnToChunks(outputScript.to_script(), allow_op_0 = False, allow_op_number = False)
+        except BfpOpreturnError as e:
+            raise BfpInvalidOutputMessage('Bad OP_RETURN', *e.args) from e
+
+        if len(chunks) == 0:
+            raise BfpInvalidOutputMessage('Empty OP_RETURN')
+
+        if chunks[0] != lokad_id:
+            raise BfpInvalidOutputMessage('Not BFP')
+
+        if len(chunks) == 1:
+            raise BfpInvalidOutputMessage('Missing msg_type')
+
+        bfpMsg.msg_type = parseChunkToInt(chunks[1], 1, 2, True)
+        if bfpMsg.msg_type != 1:
+            raise BfpUnsupportedBfpMsgType(bfpMsg.msg_type)
+
+        if bfpMsg.msg_type == 1:
+
+            if len(chunks) != 9:
+                raise BfpInvalidOutputMessage('On-Chain file BFP message with incorrect number of parameters')
+
+            if len(chunks) == 2:
+                raise BfpInvalidOutputMessage('Missing chunk count')
+            try:
+                bfpMsg.op_return_fields['chunk_count'] = parseChunkToInt(chunks[2], 1, 1, True)
+            except:
+                raise BfpInvalidOutputMessage('Bad chunk count')
+
+            bfpMsg.op_return_fields['filename'] = chunks[3]
+            bfpMsg.op_return_fields['fileext'] = chunks[4]
+            bfpMsg.op_return_fields['size'] = parseChunkToInt(chunks[5], 0, 2, False)
+
+            bfpMsg.op_return_fields['hash'] = chunks[6]
+            if len(bfpMsg.op_return_fields['hash']) not in (0, 32):
+                raise BfpInvalidOutputMessage('Hash is incorrect length')
+            
+            bfpMsg.op_return_fields['uri'] = chunks[7]
+            bfpMsg.op_return_fields['chunk_data'] = chunks[8]
+        else:
+            raise BfpInvalidOutputMessage('Not a BFP metadata message')
+        return bfpMsg
