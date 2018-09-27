@@ -609,6 +609,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tools_menu.addSeparator()
         tools_menu.addAction(_("&Sign/verify message"), self.sign_verify_message)
         tools_menu.addAction(_("&Encrypt/decrypt message"), self.encrypt_message)
+        tools_menu.addSeparator()
         tools_menu.addAction(_("Download file via BFP"), lambda: BfpDownloadFileDialog(self,))
         tools_menu.addSeparator()
 

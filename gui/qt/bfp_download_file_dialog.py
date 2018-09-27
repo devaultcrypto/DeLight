@@ -63,7 +63,9 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         vbox = QVBoxLayout()
         self.setLayout(vbox)
 
-        vbox.addWidget(QLabel(_('File URI:')))
+        vbox.addWidget(QLabel("Upload and download documents using the Bitcoin Files Protocol (<a href=https://bitcoinfiles.com>bitcoinfiles.com</a>)"))
+
+        vbox.addWidget(QLabel(_('File URI (e.g., bitcoinfile:<txid>):')))
         self.file_id_e = ButtonsLineEdit()
         self.file_id_e.setFixedWidth(550)
         vbox.addWidget(self.file_id_e)
@@ -211,7 +213,9 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
 
     def download_metadata_info(self):
         txid = self.file_id_e.text()
-
+        txid = txid.replace('bitcoinfile:', '')
+        txid = txid.replace('bitcoinfiles:', '')
+        print(txid)
         self.file_info_e.setText("Downloading...")
         self.download_button.setDisabled(True)
         self.view_tx_button.setDisabled(True)
@@ -234,10 +238,10 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
 
         txid = tx.txid()
         file_id = self.file_id_e.text().strip()
+        file_id = file_id.replace('bitcoinfile:', '')
+        file_id = file_id.replace('bitcoinfiles:', '')
         if file_id and txid != file_id:
             return self.fail_metadata_info(_('TXID does not match file ID!'))
-        #self.new_file_id = txid
-        #self.file_id_e.setText(self.new_file_id)
 
         try:
             bfpMsg = BfpMessage.parseBfpScriptOutput(tx.outputs()[0][1])
