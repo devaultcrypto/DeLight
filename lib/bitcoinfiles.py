@@ -102,10 +102,10 @@ def make_bitcoinfile_final_opreturn(version: int, chunk_count: int, data: bytes 
     pushes.append(lokad_id)
 
     # version/type
-    pushes.append(bytes((version,)))
+    pushes.append(version.to_bytes(1,'big'))
 
     # file chunk count
-    pushes.append(bytes((chunk_count,)))
+    pushes.append(chunk_count.to_bytes(1,'big'))
 
     #filename
     if filename is None:
@@ -123,7 +123,7 @@ def make_bitcoinfile_final_opreturn(version: int, chunk_count: int, data: bytes 
     if filesize is None:
         pushes.append(b'')
     else:
-        pushes.append(bytes((filesize,)))
+        pushes.append(filesize.to_bytes(2,'big'))
 
     # filehash
     if filehash is None:
