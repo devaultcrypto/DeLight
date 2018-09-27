@@ -5,6 +5,7 @@ from functools import partial
 import json
 import threading
 import sys
+from os.path import basename, splitext
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -145,6 +146,13 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 readable_hash = hashlib.sha256(bytes).hexdigest()
                 self.hash.setText(readable_hash)
                 self.path.setText(filename)
+                metadata['filesize'] = len(bytes)
+                try:
+                    metadata['filename'] = splitext(basename(filename))[0]
+                    metadata['fileext'] = splitext(basename(filename))[1]
+                except IndexError:
+                    pass
+                metadata['filehash'] = readable_hash
                 cost = calculateUploadCost(len(bytes), metadata)
                 self.upload_cost_label.setText(str(cost))
                 addr = self.parent.wallet.get_unused_address()
@@ -156,7 +164,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 try:
                     self.tx_batch.append(getFundingTxn(self.parent.wallet, addr, cost, self.parent.config))
                 except NotEnoughFunds:
-                    self.show_message("Insufficient confirmed funds for funding transaction.  This transaction requires that you have funds with at least 1 block confirmation.")
+                    self.show_message("Insufficient funds.\n\nYou must have at least balance of at least: " + str(cost) + " sat AND have at least 1 block confirmation.")
                     return
 
                 # Rewind and put file into chunks
