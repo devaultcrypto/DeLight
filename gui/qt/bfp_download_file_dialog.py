@@ -82,7 +82,7 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         b.setDisabled(True)
         hbox.addWidget(b)
 
-        self.view_tx_button = b = QPushButton(_("View Tx"))
+        self.view_tx_button = b = QPushButton(_("View Metadata Tx"))
         b.clicked.connect(self.view_tx)
         b.setDisabled(True)
         hbox.addWidget(b)
@@ -91,9 +91,14 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         self.file_info_e = QTextBrowser()
         #self.token_info_e.setReadOnly(True)
         self.file_info_e.setOpenExternalLinks(True)
-        self.file_info_e.setFixedWidth(550)
-        self.file_info_e.setMinimumHeight(100)
+        self.file_info_e.setFixedWidth(600)
+        self.file_info_e.setMinimumHeight(150)
         vbox.addWidget(self.file_info_e)
+
+        self.progress = QProgressBar(self)
+        self.progress.setGeometry(200, 80, 250, 20)
+        self.progress.setHidden(True)
+        vbox.addWidget(self.progress)
 
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
@@ -121,16 +126,21 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         self.txn_downloads = []
         self.file = None
         self.chunk_count = self.file_metadata_message.op_return_fields['chunk_count']
+        self.progress.setMaximum(self.chunk_count)
+        self.progress.setMinimum(0)
+        self.progress.setValue(0)
 
         if self.chunk_count > 0:
             if self.file_metadata_message.op_return_fields['chunk_data'] != b'':
                 self.txn_downloads.append({ 'txid': self.file_metadata_tx.txid(), 'data': self.file_metadata_message.op_return_fields['chunk_data'] })
             
-            if self.chunk_count > 1:
+            if self.chunk_count > 1 or (self.chunk_count == 1 and self.file_metadata_message.op_return_fields['chunk_data'] == b''):
                 self.txn_downloads.append({ 'txid': self.file_metadata_tx.inputs()[0]['prevout_hash'], 'data': None} )
                 assert self.file_metadata_tx.inputs()[0]['prevout_n'] == 1
             
             index = len(self.txn_downloads)-1
+            self.file_info_e.textCursor().insertText("Downloading file...")
+            self.file_info_e.textCursor().insertBlock()
             self.download_chunk_data(self.txn_downloads[index]['txid'], index)
         else:
             raise Exception("There is no data in this file.")
@@ -152,9 +162,12 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         except Exception as e:
             raise e
             return self.fail_metadata_info(_("This transaction does not contain any chunk data"))
- 
+
         if len(data) != 1:
             return self.fail_metadata_info(_("This transaction does not contain any chunk data"))
+
+        self.progress.setValue(self.progress.value() + 1)
+        self.progress.setVisible(True)
         self.txn_downloads[chunk_index]['data'] = data[0]
         if chunk_index < self.chunk_count - 1:
             self.txn_downloads.append({ 'txid': tx.inputs()[0]['prevout_hash'], 'data': None })
@@ -162,11 +175,35 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
             index = len(self.txn_downloads)-1
             self.download_chunk_data(self.txn_downloads[index]['txid'], index)
         else:
+            self.progress.setHidden(True)
             self.txn_downloads.reverse()
             self.file = b''
             for d in self.txn_downloads:
                 self.file += d['data']
-            name = QFileDialog.getSaveFileName(self, 'Save File')[0]
+
+            self.file_info_e.textCursor().insertText("File download complete.")
+            self.file_info_e.textCursor().insertBlock()
+
+            import hashlib
+            readable_hash = hashlib.sha256(self.file).hexdigest()
+            metadata_hash = self.file_metadata_message.op_return_fields['hash'].hex()
+            if metadata_hash == '':
+                self.file_info_e.textCursor().insertText("Info: No file hash provided in metadata.")
+            elif metadata_hash == readable_hash:
+                self.file_info_e.textCursor().insertText("Success: Hash of file download matches its own metadata.")
+            else: 
+                self.file_info_e.textCursor().insertText("Failure: Hash of file download does not match its own metadata.")
+                self.show_error("Aborting file save.\n\nThe hash provided in the file's metadata does not match the downloaded file data.")
+                return
+            
+            self.file_info_e.textCursor().insertBlock()
+            filename = self.file_metadata_message.op_return_fields['filename'].decode('utf8')
+            ext = self.file_metadata_message.op_return_fields['fileext'].decode('utf8')
+            try:
+                filenameext = filename + ext if ext[0] == '.' else filename + "." + ext
+            except IndexError:
+                filenameext = ""
+            name = QFileDialog.getSaveFileName(self, 'Save File', filenameext)[0]
             if name != '':
                 file = open(name,'wb')
                 file.write(self.file)
@@ -176,7 +213,6 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         txid = self.file_id_e.text()
 
         self.file_info_e.setText("Downloading...")
-        self.get_info_button.setDisabled(True)
         self.download_button.setDisabled(True)
         self.view_tx_button.setDisabled(True)
 
@@ -221,11 +257,11 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
 
         fields = [
             ('filename', _('name'), 'utf8', None),
-            ('fileext', _('ext'), 'utf8', None),
-            ('size', _('size'), 'int', None),
-            ('uri', _('uri'), 'utf8', 'html'),
-            ('chunk_count', _('chunk count'), 'int', None),
-            ('hash', _('hash'), 'hex', None),
+            ('fileext', _('extension'), 'utf8', None),
+            ('size', _('bytes'), 'int', None),
+            ('uri', _('external uri'), 'utf8', 'html'),
+            ('chunk_count', _('chunks'), 'int', None),
+            ('hash', _('sha256'), 'hex', None),
                  ]
 
         cursor.insertText(_('File Metadata:'))
@@ -264,7 +300,7 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
             else:
                 showstr = repr(friendlystring)
 
-            cursor.insertText(' '*(10 - len(n)) + n + ': ', f_fieldnames)
+            cursor.insertText(''*(10 - len(n)) + n + ': ', f_fieldnames)
             if f == 'html':
                 enc_url  = html.escape(friendlystring)
                 enc_text = html.escape(showstr)
