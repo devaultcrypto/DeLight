@@ -47,41 +47,6 @@ class BfpInvalidOutputMessage(BfpParsingError):
     # under SLP consensus rules. (either malformed SLP or just not SLP)
     pass
 
-def parse_bitcoinfile_output_script(outputScript: ScriptOutput):
-    try:
-        pushes = parseOpreturnToChunks(outputScript.to_script(), allow_op_0 = False, allow_op_number = False)
-    except BfpOpreturnError as e:
-        raise BfpInvalidOutput('Bad OP_RETURN', *e.args) from e
-
-    if len(pushes) == 0:
-        raise BfpInvalidOutput('Empty OP_RETURN')
-
-    if pushes[0] != lokad_id:
-        raise BfpInvalidOutput('Not BFP')
-
-    if len(pushes) == 1:
-        raise BfpInvalidOutput('Missing version')
-
-    # check if the token version is supported
-    version = parseChunkToInt(pushes[1], 1, 2, True)
-    if version != 0:
-        raise BfpInvalidOutput('Unsupported version')
-
-    if len(pushes) == 2:
-        raise BfpInvalidOutput('Missing chunk_index')
-    chunk_index = parseChunkToInt(pushes[2], 1, 1, True)
-
-    if len(pushes) == 3:
-        raise BfpInvalidOutput('Missing chunk_count')
-    chunk_count = parseChunkToInt(pushes[3], 1, 1, True)
-
-    if len(pushes) == 4:
-        raise BfpInvalidOutput('Missing chunk_data')
-
-    chunk_data = pushes[4]
-
-    return version, chunk_index, chunk_count, chunk_data
-
 def make_bitcoinfile_chunk_opreturn(data: bytes):
     pushes = []
 
@@ -370,9 +335,6 @@ def calculateUploadCost(file_size, metadata, fee_rate = 1):
     dust_amount = 546
 
     return byte_count * fee_rate + dust_amount
-
-def downloadBitcoinFile():
-    pass
 
 class BfpMessage:
     lokad_id = lokad_id
