@@ -60,7 +60,7 @@ def make_bitcoinfile_chunk_opreturn(data: bytes):
 
     return chunksToOpreturnOutput(pushes)
 
-def make_bitcoinfile_final_opreturn(version: int, chunk_count: int, data: bytes = None, filename = None, fileext = None, filesize: int = None, filehash: bytes = None, fileuri = None):
+def make_bitcoinfile_metadata_opreturn(version: int, chunk_count: int, data: bytes = None, filename = None, fileext = None, filesize: int = None, filehash: bytes = None, prev_filehash: bytes = None, fileuri = None):
     pushes = []
 
     # lokad id
@@ -73,13 +73,13 @@ def make_bitcoinfile_final_opreturn(version: int, chunk_count: int, data: bytes 
     pushes.append(chunk_count.to_bytes(1,'big'))
 
     #filename
-    if filename is None:
+    if filename is None or filename is '':
         pushes.append(b'')
     else:
         pushes.append(filename.encode('utf-8'))
 
     # fileext
-    if fileext is None:
+    if fileext is None or fileext is '':
         pushes.append(b'')
     else: 
         pushes.append(fileext.encode('utf-8'))
@@ -90,17 +90,26 @@ def make_bitcoinfile_final_opreturn(version: int, chunk_count: int, data: bytes 
     else:
         pushes.append(filesize.to_bytes(2,'big'))
 
-    # filehash
-    if filehash is None:
+    # filehash sha256
+    if filehash is None or filehash is '':
         pushes.append(b'')
-    else: 
+    else:
         hashbytes = bytes.fromhex(filehash)
         if len(hashbytes) not in (0, 32):
             raise BfpSerializingError()
         pushes.append(hashbytes)
 
-    # Reserved for external URI
-    if fileuri is None:
+    # previous sha256 filehash
+    if prev_filehash is None or prev_filehash is '':
+        pushes.append(b'')
+    else: 
+        hashbytes = bytes.fromhex(prev_filehash)
+        if len(hashbytes) not in (0, 32):
+            raise BfpSerializingError()
+        pushes.append(hashbytes)
+
+    # external URI
+    if fileuri is None or fileuri is '':
         pushes.append(b'')
     else: 
         pushes.append(fileuri.encode('utf-8'))
@@ -213,8 +222,7 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, 
         'coinbase': False
     }]
 
-    final_op_return_no_chunk = make_bitcoinfile_final_opreturn(1, chunk_count, None, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'], metadata['uri'])
-
+    final_op_return_no_chunk = make_bitcoinfile_metadata_opreturn(1, chunk_count, None, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['file_sha256'], metadata['prev_file_sha256'], metadata['uri'])
     if chunk_data == None:
         chunk_length = 0
     else:
@@ -223,7 +231,7 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, 
     # Check for scenario where last chunk can fit into Metadata message.  Chunk may be data or None.
     if chunk_index >= chunk_count - 1 and chunk_can_fit_in_final_opreturn(final_op_return_no_chunk, chunk_length):
         is_metadata_txn = True
-        op_return = make_bitcoinfile_final_opreturn(1, chunk_count, chunk_data, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'], metadata['uri'])
+        op_return = make_bitcoinfile_metadata_opreturn(1, chunk_count, chunk_data, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['file_sha256'], metadata['prev_file_sha256'], metadata['uri'])
         miner_fee = estimate_miner_fee(1, 1, len(op_return[1].to_script()))
         dust_output = (amount - miner_fee) if (amount - miner_fee) >= 546 else 546
         askedoutputs = [ op_return, (TYPE_ADDRESS, address, dust_output) ]
@@ -306,7 +314,7 @@ def calculateUploadCost(file_size, metadata, fee_rate = 1):
         chunk_count = whole_chunks_count
 
     # cost of final transaction's op_return w/o any chunkdata
-    final_op_return_no_chunk = make_bitcoinfile_final_opreturn(1, chunk_count, None, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['filehash'], metadata['uri'])
+    final_op_return_no_chunk = make_bitcoinfile_metadata_opreturn(1, chunk_count, None, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['file_sha256'], metadata['prev_file_sha256'], metadata['uri'])
     byte_count += len(final_op_return_no_chunk[1].to_script())
 
     # cost of final transaction's input/outputs
@@ -368,17 +376,15 @@ class BfpMessage:
         if len(chunks) == 1:
             raise BfpInvalidOutputMessage('Missing msg_type')
 
-        bfpMsg.msg_type = parseChunkToInt(chunks[1], 1, 2, True)
+        bfpMsg.msg_type = parseChunkToInt(chunks[1], 1, 1, True)
         if bfpMsg.msg_type != 1:
             raise BfpUnsupportedBfpMsgType(bfpMsg.msg_type)
 
         if bfpMsg.msg_type == 1:
 
-            if len(chunks) != 9:
+            if len(chunks) != 10:
                 raise BfpInvalidOutputMessage('On-Chain file BFP message with incorrect number of parameters')
 
-            if len(chunks) == 2:
-                raise BfpInvalidOutputMessage('Missing chunk count')
             try:
                 bfpMsg.op_return_fields['chunk_count'] = parseChunkToInt(chunks[2], 1, 1, True)
             except:
@@ -388,12 +394,16 @@ class BfpMessage:
             bfpMsg.op_return_fields['fileext'] = chunks[4]
             bfpMsg.op_return_fields['size'] = parseChunkToInt(chunks[5], 0, 2, False)
 
-            bfpMsg.op_return_fields['hash'] = chunks[6]
-            if len(bfpMsg.op_return_fields['hash']) not in (0, 32):
-                raise BfpInvalidOutputMessage('Hash is incorrect length')
+            bfpMsg.op_return_fields['file_sha256'] = chunks[6]
+            if len(bfpMsg.op_return_fields['file_sha256']) not in (0, 32):
+                raise BfpInvalidOutputMessage('File Hash is incorrect length for sha256')
+
+            bfpMsg.op_return_fields['prev_file_sha256'] = chunks[7]
+            if len(bfpMsg.op_return_fields['prev_file_sha256']) not in (0, 32):
+                raise BfpInvalidOutputMessage('Previous hash is incorrect length for sha256')
             
-            bfpMsg.op_return_fields['uri'] = chunks[7]
-            bfpMsg.op_return_fields['chunk_data'] = chunks[8]
+            bfpMsg.op_return_fields['uri'] = chunks[8]
+            bfpMsg.op_return_fields['chunk_data'] = chunks[9]
         else:
             raise BfpInvalidOutputMessage('Not a BFP metadata message')
         return bfpMsg

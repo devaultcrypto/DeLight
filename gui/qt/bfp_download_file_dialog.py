@@ -94,7 +94,7 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         #self.token_info_e.setReadOnly(True)
         self.file_info_e.setOpenExternalLinks(True)
         self.file_info_e.setFixedWidth(600)
-        self.file_info_e.setMinimumHeight(150)
+        self.file_info_e.setMinimumHeight(250)
         vbox.addWidget(self.file_info_e)
 
         self.progress = QProgressBar(self)
@@ -188,7 +188,7 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
 
             import hashlib
             readable_hash = hashlib.sha256(self.file).hexdigest()
-            metadata_hash = self.file_metadata_message.op_return_fields['hash'].hex()
+            metadata_hash = self.file_metadata_message.op_return_fields['file_sha256'].hex()
             if metadata_hash == '':
                 self.file_info_e.textCursor().insertText("Info: No file hash provided in metadata.")
             elif metadata_hash == readable_hash:
@@ -215,7 +215,6 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         txid = self.file_id_e.text()
         txid = txid.replace('bitcoinfile:', '')
         txid = txid.replace('bitcoinfiles:', '')
-        print(txid)
         self.file_info_e.setText("Downloading...")
         self.download_button.setDisabled(True)
         self.view_tx_button.setDisabled(True)
@@ -265,7 +264,8 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
             ('size', _('bytes'), 'int', None),
             ('uri', _('external uri'), 'utf8', 'html'),
             ('chunk_count', _('chunks'), 'int', None),
-            ('hash', _('sha256'), 'hex', None),
+            ('file_sha256', _('sha256'), 'hex', None),
+            ('prev_file_sha256', _('supercedes a file having sha256'), 'hex', None)
                  ]
 
         cursor.insertText(_('File Metadata:'))
