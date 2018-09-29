@@ -213,14 +213,14 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                         break
 
                 min_len = 223 - len(make_bitcoinfile_metadata_opreturn(1, 0, None, self.metadata['filename'], self.metadata['fileext'], self.metadata['filesize'], self.metadata['file_sha256'], self.metadata['prev_file_sha256'], self.metadata['uri'])[1].to_script())
-                # determine if the metadata data chunk will be empty for progress bar
+                
+                # determine if the metadata txn data chunk will be empty for progress bar accuracy
                 print(min_len)
                 if len(bytes) < 220:
                     chunk_count_adder = 1 if len(bytes) > min_len else 0
                 else:
                     chunk_count_adder = 1 if min_len - (len(bytes) % 220) < 0 else 0
 
-                print(chunk_count_adder)
                 self.progress.setMaximum(len(chunks) + chunk_count_adder + 1)
                 self.progress.setMinimum(0)
                 self.progress_label.setText("Signing 1 of " + str(len(chunks) + chunk_count_adder + 1) + " transactions")

@@ -132,20 +132,25 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
         self.progress.setMinimum(0)
         self.progress.setValue(0)
 
+        metadata_chunk_is_empty = self.file_metadata_message.op_return_fields['chunk_data'] == b''
+
         if self.chunk_count > 0:
-            if self.file_metadata_message.op_return_fields['chunk_data'] != b'':
+            if not metadata_chunk_is_empty:
                 self.txn_downloads.append({ 'txid': self.file_metadata_tx.txid(), 'data': self.file_metadata_message.op_return_fields['chunk_data'] })
             
-            if self.chunk_count > 1 or (self.chunk_count == 1 and self.file_metadata_message.op_return_fields['chunk_data'] == b''):
+            if self.chunk_count > 1 or (self.chunk_count == 1 and metadata_chunk_is_empty):
                 self.txn_downloads.append({ 'txid': self.file_metadata_tx.inputs()[0]['prevout_hash'], 'data': None} )
                 assert self.file_metadata_tx.inputs()[0]['prevout_n'] == 1
             
             index = len(self.txn_downloads)-1
             self.file_info_e.textCursor().insertText("Downloading file...")
             self.file_info_e.textCursor().insertBlock()
-            self.download_chunk_data(self.txn_downloads[index]['txid'], index)
+            if self.chunk_count > 1 or (self.chunk_count == 1 and metadata_chunk_is_empty):
+                self.download_chunk_data(self.txn_downloads[index]['txid'], index)
+            else:
+                self.build_file()              
         else:
-            raise Exception("There is no data in this file.")
+            raise Exception("This file does not contain any data.")
 
     def download_chunk_data(self, txid, chunk_index):
         try: 
@@ -156,17 +161,52 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
             requests = [ ('blockchain.transaction.get', [txid]), ]
             self.network.send(requests, callback)
         else:
-            self.handle_chunk_tx(tx, chunk_index)                
+            self.handle_chunk_tx(tx, chunk_index)              
+
+    def build_file(self):
+        self.progress.setHidden(True)
+        self.txn_downloads.reverse()
+        self.file = b''
+        for d in self.txn_downloads:
+            self.file += d['data']
+
+        self.file_info_e.textCursor().insertText("File download complete.")
+        self.file_info_e.textCursor().insertBlock()
+
+        import hashlib
+        readable_hash = hashlib.sha256(self.file).hexdigest()
+        metadata_hash = self.file_metadata_message.op_return_fields['file_sha256'].hex()
+        if metadata_hash == '':
+            self.file_info_e.textCursor().insertText("Info: No file hash provided in metadata.")
+        elif metadata_hash == readable_hash:
+            self.file_info_e.textCursor().insertText("Success: Hash of file download matches its own metadata.")
+        else: 
+            self.file_info_e.textCursor().insertText("Failure: Hash of file download does not match its own metadata.")
+            self.show_error("Aborting file save.\n\nThe hash provided in the file's metadata does not match the downloaded file data.")
+            return
+        
+        self.file_info_e.textCursor().insertBlock()
+        filename = self.file_metadata_message.op_return_fields['filename'].decode('utf8')
+        ext = self.file_metadata_message.op_return_fields['fileext'].decode('utf8')
+        try:
+            filenameext = filename + ext if ext[0] == '.' else filename + "." + ext
+        except IndexError:
+            filenameext = ""
+        name = QFileDialog.getSaveFileName(self, 'Save File', filenameext)[0]
+        if name != '':
+            file = open(name,'wb')
+            file.write(self.file)
+            file.close()
 
     def handle_chunk_tx(self, tx, chunk_index):
         try: 
             data = parseOpreturnToChunks(tx.outputs()[0][1].to_script(), allow_op_0 = False, allow_op_number = False)
         except Exception as e:
             raise e
-            return self.fail_metadata_info(_("This transaction does not contain any chunk data"))
-
+            return self.fail_metadata_info(_("This chunk does not contain any data"))
+            
         if len(data) != 1:
-            return self.fail_metadata_info(_("This transaction does not contain any chunk data"))
+            return self.fail_metadata_info(_("This chunk does not contain any data"))
 
         self.progress.setValue(self.progress.value() + 1)
         self.progress.setVisible(True)
@@ -177,39 +217,7 @@ class BfpDownloadFileDialog(QDialog, MessageBoxMixin):
             index = len(self.txn_downloads)-1
             self.download_chunk_data(self.txn_downloads[index]['txid'], index)
         else:
-            self.progress.setHidden(True)
-            self.txn_downloads.reverse()
-            self.file = b''
-            for d in self.txn_downloads:
-                self.file += d['data']
-
-            self.file_info_e.textCursor().insertText("File download complete.")
-            self.file_info_e.textCursor().insertBlock()
-
-            import hashlib
-            readable_hash = hashlib.sha256(self.file).hexdigest()
-            metadata_hash = self.file_metadata_message.op_return_fields['file_sha256'].hex()
-            if metadata_hash == '':
-                self.file_info_e.textCursor().insertText("Info: No file hash provided in metadata.")
-            elif metadata_hash == readable_hash:
-                self.file_info_e.textCursor().insertText("Success: Hash of file download matches its own metadata.")
-            else: 
-                self.file_info_e.textCursor().insertText("Failure: Hash of file download does not match its own metadata.")
-                self.show_error("Aborting file save.\n\nThe hash provided in the file's metadata does not match the downloaded file data.")
-                return
-            
-            self.file_info_e.textCursor().insertBlock()
-            filename = self.file_metadata_message.op_return_fields['filename'].decode('utf8')
-            ext = self.file_metadata_message.op_return_fields['fileext'].decode('utf8')
-            try:
-                filenameext = filename + ext if ext[0] == '.' else filename + "." + ext
-            except IndexError:
-                filenameext = ""
-            name = QFileDialog.getSaveFileName(self, 'Save File', filenameext)[0]
-            if name != '':
-                file = open(name,'wb')
-                file.write(self.file)
-                file.close()
+            self.build_file()
 
     def download_metadata_info(self):
         txid = self.file_id_e.text()
