@@ -5,6 +5,7 @@ from functools import partial
 import json
 import threading
 import sys
+from pathlib import Path
 from os.path import basename, splitext
 
 from PyQt5.QtCore import *
@@ -18,7 +19,7 @@ from electroncash.plugins import run_hook
 
 from .util import *
 
-from electroncash.util import bfh, format_satoshis_nofloat, format_satoshis_plain_nofloat, NotEnoughFunds, ExcessiveFee
+from electroncash.util import bfh, format_satoshis_nofloat, format_satoshis_plain_nofloat, NotEnoughFunds, ExcessiveFee, InvalidPassword
 from electroncash.transaction import Transaction
 
 from electroncash import bitcoinfiles
@@ -32,7 +33,7 @@ dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
 class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
 
-    def __init__(self, parent, file_receiver=None, show_on_create=False):
+    def __init__(self, parent, file_receiver=None, show_on_create=False, screen_name="Upload Token Document"):
         # We want to be a top-level window
         QDialog.__init__(self, parent)
 
@@ -42,9 +43,11 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         from .main_window import ElectrumWindow
         if isinstance(parent, SlpCreateTokenGenesisDialog):
             self.main_window = parent.main_window
+            self.wallet = parent.main_window.wallet
             self.network = parent.main_window.network
         elif isinstance(parent, ElectrumWindow):
             self.main_window = parent
+            self.wallet = parent.wallet
             self.network = parent.network
         else:
             raise Exception("Parent must be of type ElectrumWindow or SlpCreateTokenGenesisDialog")
@@ -53,8 +56,9 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         self.metadata = None
         self.filename = None
         self.is_dirty = False
+        self.password = None
 
-        self.setWindowTitle(_("Upload Token Document"))
+        self.setWindowTitle(_(screen_name))
 
         vbox = QVBoxLayout()
         self.setLayout(vbox)
@@ -136,6 +140,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         vbox.addWidget(self.progress_label)
 
         self.progress = QProgressBar(self)
+        self.progress.setHidden(True)
         self.progress.setGeometry(200, 80, 250, 20)
         vbox.addWidget(self.progress)
 
@@ -166,6 +171,25 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         b.clicked.connect(self.upload)
         b.setDefault(False)
         hbox.addWidget(self.upload_button)
+
+        hbox = QHBoxLayout()
+        vbox.addLayout(hbox)
+
+        warnpm = QIcon(":icons/warning.png").pixmap(20,20)
+
+        l = QLabel(); l.setPixmap(warnpm)
+        hbox.addWidget(l)
+        hbox.addWidget(QLabel(_('            WARNING: The selected file will be uploaded to the blockchain and be permanently part of the public record.')))
+        l = QLabel(); l.setPixmap(warnpm)
+        hbox.addStretch(1)
+        hbox.addWidget(l)
+
+        # check if self.password is needed for wallet
+        if parent.wallet.has_password():
+            from .password_dialog import PasswordDialog
+            parent = parent
+            d = PasswordDialog(parent, None)
+            self.password = d.run()
 
         if show_on_create:
             self.setModal(True)
@@ -275,6 +299,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
 
                 self.progress.setMaximum(len(chunks) + chunk_count_adder + 1)
                 self.progress.setMinimum(0)
+                self.progress.setVisible(True)
                 self.progress_label.setText("Signing 1 of " + str(len(chunks) + chunk_count_adder + 1) + " transactions")
                 
                 # callback to recursive sign next txn or finish
@@ -299,11 +324,12 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                             self.chunks_processed += 1
 
                         if self.tx_batch_signed_count < len(self.tx_batch):
-                            self.main_window.sign_tx(self.tx_batch[self.tx_batch_signed_count], sign_done)
+                            self.main_window.sign_tx_with_password(self.tx_batch[self.tx_batch_signed_count], sign_done, self.password)
                         else:
                             uri = "bitcoinfile:" + self.tx_batch[len(self.tx_batch)-1].txid()
                             self.bitcoinfileAddr_label.setText(uri)
                             self.progress_label.setText("Signing complete. Ready to upload.")
+                            self.progress.setHidden(True)
                             self.is_dirty = False
                             self.progress.setValue(0)
                             self.sign_button.setDisabled(True)
@@ -311,9 +337,21 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                             self.upload_button.setDefault(True)
                             self.activateWindow()
                             self.raise_()
-                self.main_window.sign_tx(self.tx_batch[0], sign_done)
+                self.main_window.sign_tx_with_password(self.tx_batch[0], sign_done, self.password)
 
     def select_file(self):
+        if self.wallet.has_password():
+            if self.password == None:
+                x = self.show_message("Incorrect password.")
+                self.close()
+                return
+            try:
+                self.wallet.check_password(self.password)
+            except InvalidPassword:
+                x = self.show_message("Incorrect password.")
+                self.close()
+                return
+
         self.progress.setValue(0)
         self.tx_batch = []
         self.tx_batch_signed_count = 0
@@ -322,12 +360,14 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         self.final_metadata_txn_created = False
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        self.filename, _ = QFileDialog.getOpenFileName(self, "Select File to Upload", "","All Files (*)", options=options)
+        home = str(Path.home())
+        self.filename, _ = QFileDialog.getOpenFileName(self, "Select File to Upload", home, "All Files (*)", options=options)
         self.sign_txns()
         
     def upload(self):
         if not self.is_dirty:
             self.progress_label.setText("Broadcasting 1 of " + str(len(self.tx_batch)) + " transactions")
+            self.progress.setVisible(True)
             self.progress.setMinimum(0)
             self.progress.setMaximum(len(self.tx_batch))
             broadcast_count = 0
@@ -348,6 +388,8 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 self.progress.setValue(broadcast_count)
                 QApplication.processEvents()
 
+            self.progress_label.setText("Broadcasting complete.")
+            self.progress.setHidden(True)
             try:
                 self.parent.token_dochash_e.setText(self.hash.text())
                 self.parent.token_url_e.setText(self.bitcoinfileAddr_label.text())

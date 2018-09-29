@@ -182,7 +182,6 @@ class SlpCreateTokenGenesisDialog(QDialog, MessageBoxMixin):
                 import hashlib
                 readable_hash = hashlib.sha256(bytes).hexdigest()
                 self.token_dochash_e.setText(readable_hash)
-                print(readable_hash)
 
     def upd_token(self,):
         self.token_qty_e.set_token(self.token_ticker_e.text(), int(self.token_ds_e.value()))

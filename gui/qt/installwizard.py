@@ -108,7 +108,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         # Set for base base class
         self.plugins = plugins
         self.language_for_seed = config.get('language')
-        self.setMinimumSize(600, 400)
+        self.setMinimumSize(600, 450)
         self.accept_signal.connect(self.accept)
         self.title = QLabel()
         self.main_widget = QWidget()
@@ -166,15 +166,6 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         self.msg_label = QLabel('')
         vbox.addWidget(self.msg_label)
 
-        logo = QLabel()
-        logo.setPixmap(QPixmap(":icons/slp_logo_hollow.png").scaledToWidth(52))
-        logo.setMaximumWidth(52)
-        vbox.addWidget(QLabel(_("<hr><b>NOTE: This version of Electron Cash is SLP token aware.</b>")))
-        vbox.addWidget(logo)
-        vbox.addWidget(QLabel(_("To avoid losing tokens, you should avoid opening a wallet on") + '\n' \
-                                +_("other wallet software that is not aware of SLP.")))
-        vbox.addWidget(QLabel(_("For more information visit: <a href=\"https://SimpleLedger.cash\">https://SimpleLedger.cash</a>")))
-
         hbox2 = QHBoxLayout()
         self.pw_e = QLineEdit('', self)
         self.pw_e.setFixedWidth(150)
@@ -184,6 +175,17 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox2.addWidget(self.pw_e)
         hbox2.addStretch()
         vbox.addLayout(hbox2)
+
+        logo = QLabel()
+        logo.setPixmap(QPixmap(":icons/slp_logo_hollow.png").scaledToWidth(52))
+        logo.setMaximumWidth(52)
+        vbox.addWidget(QLabel(_("<hr><b>NOTE: This version of Electron Cash is SLP token aware.</b>")))
+        vbox.addWidget(logo)
+        vbox.addWidget(QLabel(_("To avoid losing tokens, you should avoid opening a wallet on") + '\n' \
+                                +_("other wallet software that is not aware of SLP.")))
+        vbox.addWidget(QLabel(_("For more information visit: <a href=\"https://SimpleLedger.cash\">https://SimpleLedger.cash</a>")))
+
+
         self.set_layout(vbox, title=_('Electron Cash wallet'))
 
         wallet_folder = os.path.dirname(self.storage.path)
