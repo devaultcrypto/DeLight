@@ -30,8 +30,6 @@ class BfpUnsupportedBfpMsgType(BfpParsingError):
     # (may or may not be valid)
     pass
 
-
-
 class BfpOpreturnError(Exception):
     pass
 
@@ -194,7 +192,7 @@ def parseChunkToInt(intBytes: bytes, minByteLen: int, maxByteLen: int, raise_on_
         return None
     raise BfpInvalidOutput('Field has wrong length')
 
-def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, metadata):
+def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, metadata, file_receiver: Address):
     """
     NOTE: THIS METHOD ONLY WORKS WITH 1 TRANSACTION CURRENTLY, LIMITS SIZE TO 223 BYTES
     """
@@ -234,7 +232,10 @@ def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, 
         op_return = make_bitcoinfile_metadata_opreturn(1, chunk_count, chunk_data, metadata['filename'], metadata['fileext'], metadata['filesize'], metadata['file_sha256'], metadata['prev_file_sha256'], metadata['uri'])
         miner_fee = estimate_miner_fee(1, 1, len(op_return[1].to_script()))
         dust_output = (amount - miner_fee) if (amount - miner_fee) >= 546 else 546
+        address = file_receiver if file_receiver != None else address
+        assert isinstance(address, Address)
         askedoutputs = [ op_return, (TYPE_ADDRESS, address, dust_output) ]
+        
     # Check for scenarios where Metadata message should not be used
     else:
         op_return = make_bitcoinfile_chunk_opreturn(chunk_data)

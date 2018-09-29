@@ -23,11 +23,11 @@ from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidO
 from .amountedit import SLPAmountEdit
 from .transaction_dialog import show_transaction
 
-from .slp_token_document_dialog import BitcoinFilesUploadDialog
+from .bfp_upload_file_dialog import BitcoinFilesUploadDialog
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
-class SlpAddTokenGenesisDialog(QDialog, MessageBoxMixin):
+class SlpCreateTokenGenesisDialog(QDialog, MessageBoxMixin):
 
     def __init__(self, main_window):
         #self.provided_token_name = token_name

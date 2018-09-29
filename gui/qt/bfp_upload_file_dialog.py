@@ -11,7 +11,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from electroncash.address import Address, PublicKey
+from electroncash.address import Address, PublicKey, Base58Error
 from electroncash.bitcoin import base_encode, TYPE_ADDRESS, TYPE_SCRIPT
 from electroncash.i18n import _
 from electroncash.plugins import run_hook
@@ -32,14 +32,24 @@ dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
 class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
 
-    def __init__(self, parent):
+    def __init__(self, parent, file_receiver=None, show_on_create=False):
         # We want to be a top-level window
-        QDialog.__init__(self, parent=None)
+        QDialog.__init__(self, parent)
 
+        # check parent window type
         self.parent = parent
-        self.main_window = parent.main_window
-        self.network = parent.main_window.network
+        from .slp_create_token_genesis_dialog import SlpCreateTokenGenesisDialog
+        from .main_window import ElectrumWindow
+        if isinstance(parent, SlpCreateTokenGenesisDialog):
+            self.main_window = parent.main_window
+            self.network = parent.main_window.network
+        elif isinstance(parent, ElectrumWindow):
+            self.main_window = parent
+            self.network = parent.network
+        else:
+            raise Exception("Parent must be of type ElectrumWindow or SlpCreateTokenGenesisDialog")
 
+        self.file_receiver = file_receiver
         self.metadata = None
         self.filename = None
         self.is_dirty = False
@@ -53,10 +63,9 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
 
         # Select File
         self.select_file_button = b = QPushButton(_("Select File..."))
-        self.select_file_button.setAutoDefault(False)
-        self.select_file_button.setDefault(False)
+        b.setAutoDefault(True)
+        b.setDefault(True)
         b.clicked.connect(self.select_file)
-        b.setDefault(False)
         vbox.addWidget(self.select_file_button)
 
         grid = QGridLayout()
@@ -97,6 +106,25 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         grid.addWidget(self.prev_hash, row, 1)
         row += 1
 
+        # File Receiver Checkbox
+        self.token_fixed_supply_cb = cb = QCheckBox(_('Send file to a BCH address'))
+        self.token_fixed_supply_cb.setChecked(False)
+        grid.addWidget(self.token_fixed_supply_cb, row, 1)
+        cb.clicked.connect(self.toggle_receiver_addr)
+        row += 1
+
+        # Specific file receiver
+        self.file_receiver_label = QLabel(_('Receiver Address:'))
+        self.file_receiver_label.setHidden(True)
+        grid.addWidget(self.file_receiver_label, row, 0)
+        self.file_receiver_e = QLineEdit("")
+        self.file_receiver_e.setHidden(True)
+        self.file_receiver_e.setReadOnly(False)
+        self.file_receiver_e.setFixedWidth(570)
+        self.file_receiver_e.textChanged.connect(self.make_dirty)
+        grid.addWidget(self.file_receiver_e, row, 1)
+        row += 1
+
         # File path
         grid.addWidget(QLabel(_('URI after upload (auto-populated):')), row, 0)
         self.bitcoinfileAddr_label = QLineEdit("")
@@ -124,32 +152,45 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         hbox.addStretch(1)
 
         self.sign_button = b = QPushButton(_("Sign"))
-        self.sign_button.setAutoDefault(True)
-        self.sign_button.setDefault(True)
+        self.sign_button.setAutoDefault(False)
+        self.sign_button.setDefault(False)
         self.sign_button.setDisabled(True)
         b.clicked.connect(self.sign_txns)
         b.setDefault(False)
         hbox.addWidget(self.sign_button)
 
         self.upload_button = b = QPushButton(_("Upload"))
-        self.upload_button.setAutoDefault(True)
-        self.upload_button.setDefault(True)
+        self.upload_button.setAutoDefault(False)
+        self.upload_button.setDefault(False)
         self.upload_button.setDisabled(True)
         b.clicked.connect(self.upload)
         b.setDefault(False)
         hbox.addWidget(self.upload_button)
 
+        if show_on_create:
+            self.setModal(True)
+            self.show()
+
+    def toggle_receiver_addr(self):
+        self.file_receiver_e.setVisible(not self.file_receiver_e.isVisible())
+        self.file_receiver_label.setVisible(not self.file_receiver_label.isVisible())
+        if not self.file_receiver_e.isVisible():
+            self.file_receiver_e.setText('')
+
     def make_dirty(self):
         self.is_dirty = True
         self.upload_button.setDisabled(True)
-        self.sign_button.setEnabled(True)
-        self.sign_button.setDefault(True)
         self.progress.setValue(0)
         self.tx_batch = []
         self.tx_batch_signed_count = 0
         self.chunks_processed = 0
         self.chunks_total = 0
         self.final_metadata_txn_created = False
+        if self.filename != '':
+            self.sign_button.setEnabled(True)
+            self.sign_button.setDefault(True)
+        else:
+            self.select_file_button.setDefault(True)
 
     def sign_txns(self):
 
@@ -162,7 +203,19 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 self.show_message(_("Previous document hash must be a 32 byte hexidecimal string or left empty."))
                 return
 
+        if self.file_receiver_e.text() != '':
+            try: 
+                addr = Address.from_string(self.file_receiver_e.text())
+            except Base58Error:
+                self.show_message(_("Receiver address checksum fails."))
+                return
+            
+            self.file_receiver = Address.from_string(self.file_receiver_e.text())
+        else:
+            self.file_receiver = None
+    
         if self.filename != '':
+            self.select_file_button.setDefault(False)
             with open(self.filename,"rb") as f:
 
                 # clear fields before re-populating
@@ -215,7 +268,6 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 min_len = 223 - len(make_bitcoinfile_metadata_opreturn(1, 0, None, self.metadata['filename'], self.metadata['fileext'], self.metadata['filesize'], self.metadata['file_sha256'], self.metadata['prev_file_sha256'], self.metadata['uri'])[1].to_script())
                 
                 # determine if the metadata txn data chunk will be empty for progress bar accuracy
-                print(min_len)
                 if len(bytes) < 220:
                     chunk_count_adder = 1 if len(bytes) > min_len else 0
                 else:
@@ -239,7 +291,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                             except IndexError:
                                 chunk_bytes = None
                             try:
-                                txn, self.final_metadata_txn_created = getUploadTxn(self.parent.wallet, self.tx_batch[self.chunks_processed], self.chunks_processed, self.chunks_total, chunk_bytes, self.parent.config, self.metadata)
+                                txn, self.final_metadata_txn_created = getUploadTxn(self.parent.wallet, self.tx_batch[self.chunks_processed], self.chunks_processed, self.chunks_total, chunk_bytes, self.parent.config, self.metadata, self.file_receiver)
                                 self.tx_batch.append(txn)
                             except NotEnoughFunds as e:
                                 self.show_message("Insufficient funds for file chunk #" + str(self.chunks_processed + 1))
@@ -296,8 +348,12 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 self.progress.setValue(broadcast_count)
                 QApplication.processEvents()
 
-            self.parent.token_dochash_e.setText(self.hash.text())
-            self.parent.token_url_e.setText(self.bitcoinfileAddr_label.text())
+            try:
+                self.parent.token_dochash_e.setText(self.hash.text())
+                self.parent.token_url_e.setText(self.bitcoinfileAddr_label.text())
+            except AttributeError:
+                pass
+
             self.show_message("File upload complete.")
             self.close()
 

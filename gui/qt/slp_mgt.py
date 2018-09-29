@@ -37,8 +37,8 @@ from .util import *
 
 from electroncash.util import format_satoshis_nofloat
 from .slp_add_token_dialog import SlpAddTokenDialog
-from .slp_add_token_genesis_dialog import SlpAddTokenGenesisDialog
-from .slp_add_token_mint_dialog import SlpAddTokenMintDialog
+from .slp_create_token_genesis_dialog import SlpCreateTokenGenesisDialog
+from .slp_create_token_mint_dialog import SlpCreateTokenMintDialog
 
 from electroncash.slp import SlpNoMintingBatonFound
 
@@ -96,11 +96,11 @@ class SlpMgt(MyTreeWidget):
             menu.addAction(_("Remove this token"), lambda: self.parent.delete_slp_token(keys))
         menu.addAction(_("Add existing token"), lambda: SlpAddTokenDialog(self.parent,))
 
-        menu.addAction(_("Create a new token"), lambda: SlpAddTokenGenesisDialog(self.parent,))
+        menu.addAction(_("Create a new token"), lambda: SlpCreateTokenGenesisDialog(self.parent,))
         if len(selected) == 1:
             try:
                 self.parent.wallet.get_slp_token_baton(keys[0])
-                menu.addAction(_("Mint this token"), lambda: SlpAddTokenMintDialog(self.parent, keys[0]))
+                menu.addAction(_("Mint this token"), lambda: SlpCreateTokenMintDialog(self.parent, keys[0]))
             except SlpNoMintingBatonFound:
                 pass
 

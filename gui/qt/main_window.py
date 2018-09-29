@@ -73,8 +73,9 @@ import electroncash.slp as slp
 from electroncash import slp_validator_0x01
 from .amountedit import SLPAmountEdit
 from electroncash.util import format_satoshis_nofloat
-from .slp_add_token_genesis_dialog import SlpAddTokenGenesisDialog
+from .slp_create_token_genesis_dialog import SlpCreateTokenGenesisDialog
 from .bfp_download_file_dialog import BfpDownloadFileDialog
+from .bfp_upload_file_dialog import BitcoinFilesUploadDialog
 
 class StatusBarButton(QPushButton):
     def __init__(self, icon, tooltip, func):
@@ -610,7 +611,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tools_menu.addAction(_("&Sign/verify message"), self.sign_verify_message)
         tools_menu.addAction(_("&Encrypt/decrypt message"), self.encrypt_message)
         tools_menu.addSeparator()
-        tools_menu.addAction(_("Download file via BFP"), lambda: BfpDownloadFileDialog(self,))
+        tools_menu.addAction(_("Upload a file using BFP"), lambda: BitcoinFilesUploadDialog(self, None, True))
+        tools_menu.addAction(_("Download a file using BFP"), lambda: BfpDownloadFileDialog(self,))
         tools_menu.addSeparator()
 
         paytomany_menu = tools_menu.addAction(_("&Pay to many"), self.paytomany)
@@ -2111,7 +2113,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.create_token_dialog.raise_()
             self.create_token_dialog.activateWindow()
         except AttributeError:
-            self.create_token_dialog = d = SlpAddTokenGenesisDialog(self,)
+            self.create_token_dialog = d = SlpCreateTokenGenesisDialog(self,)
 
     def create_contacts_tab(self):
         from .contact_list import ContactList

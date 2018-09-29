@@ -25,7 +25,7 @@ from .transaction_dialog import show_transaction
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
-class SlpAddTokenMintDialog(QDialog, MessageBoxMixin):
+class SlpCreateTokenMintDialog(QDialog, MessageBoxMixin):
 
     def __init__(self, main_window, token_id_hex):
         # We want to be a top-level window
