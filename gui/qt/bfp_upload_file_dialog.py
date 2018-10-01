@@ -210,11 +210,14 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         self.chunks_processed = 0
         self.chunks_total = 0
         self.final_metadata_txn_created = False
-        if self.filename != '':
+        if self.filename != '' and self.filename != None:
             self.sign_button.setEnabled(True)
             self.sign_button.setDefault(True)
         else:
             self.select_file_button.setDefault(True)
+            self.path.setText('')
+            self.hash.setText('')
+            self.upload_cost_label.setText('')
 
     def sign_txns(self):
 
@@ -273,8 +276,12 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
 
                 try:
                     self.tx_batch.append(getFundingTxn(self.parent.wallet, addr, cost, self.parent.config))
+                    self.progress_label.setText('')
                 except NotEnoughFunds:
-                    self.show_message("Insufficient funds.\n\nYou must have at least balance of at least: " + str(cost) + " sat AND have at least 1 block confirmation.")
+                    self.show_message("Insufficient funds.\n\nYou must have a balance of at least: " + str(cost) + " satoshis AND have at least 1 block confirmation.")
+                    self.progress_label.setText('')
+                    self.filename = None
+                    self.make_dirty()
                     return
 
                 # Rewind and put file into chunks
