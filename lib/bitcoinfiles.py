@@ -284,16 +284,17 @@ def getFundingTxn(wallet, address, amount, config):
     domain = None
     org_confirmed_only = config.get('confirmed_only', False)
     config.set_key('confirmed_only', True)
-    assert config.get('confirmed_only', False) == True
 
-    coins = wallet.get_spendable_coins(domain, config)
-    fee = None
-    change_addr = None
-    tx = wallet.make_unsigned_transaction(coins, askedoutputs, config, fee, change_addr)
-
-    # Change key back to original setting
-    config.set_key('confirmed_only', org_confirmed_only)
-    assert config.get('confirmed_only', False) == org_confirmed_only
+    try:
+        coins = wallet.get_spendable_coins(domain, config)
+        fee = None
+        change_addr = None
+        tx = wallet.make_unsigned_transaction(coins, askedoutputs, config, fee, change_addr)
+    except util.NotEnoughFunds as e:
+        raise e
+    finally:
+        # Change 'confirmed_only' key back to original setting
+        config.set_key('confirmed_only', org_confirmed_only)
 
     # unfortunately, the outputs might be in wrong order due to BIPLI01
     # output sorting, so we remake it.
