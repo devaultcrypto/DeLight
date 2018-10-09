@@ -23,7 +23,7 @@ for repo in electrum; do
     if [ -d $repo ]; then
 	cd $repo
 	git pull
-	git checkout 3.4.1
+	git checkout 3.4.2
 	cd ..
     else
 	URL=https://github.com/simpleledger/$repo.git
