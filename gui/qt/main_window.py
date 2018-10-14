@@ -820,6 +820,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         elif self.network.is_connected():
             server_height = self.network.get_server_height()
             server_lag = self.network.get_local_height() - server_height
+            num_chains = len(self.network.get_blockchains())
             # Server height can be 0 after switching to a new server
             # until we get a headers subscription request response.
             # Display the synchronizing message in that case.
@@ -828,7 +829,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 icon = QIcon(":icons/status_waiting.png")
             elif server_lag > 1:
                 text = _("Server is lagging ({} blocks)").format(server_lag)
-                icon = QIcon(":icons/status_lagging.png")
+                icon = QIcon(":icons/status_lagging.png") if num_chains <= 1 else QIcon(":icons/status_lagging_fork.png")
             else:
                 text = ""
                 token_id = self.wallet.send_slpTokenId
@@ -852,9 +853,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     text += self.fx.get_fiat_status_text(c + u + x,
                         self.base_unit(), self.get_decimal_point()) or ''
                 if not self.network.proxy:
-                    icon = QIcon(":icons/status_connected.png")
+                    icon = QIcon(":icons/status_connected.png") if num_chains <= 1 else QIcon(":icons/status_connected_fork.png")
                 else:
-                    icon = QIcon(":icons/status_connected_proxy.png")
+                    icon = QIcon(":icons/status_connected_proxy.png") if num_chains <= 1 else QIcon(":icons/status_connected_proxy_fork.png")
         else:
             text = _("Not connected")
             icon = QIcon(":icons/status_disconnected.png")
