@@ -332,7 +332,7 @@ class BIP32_KeyStore(Deterministic_KeyStore, Xpub):
 
     def dump(self):
         d = Deterministic_KeyStore.dump(self)
-        d['type'] = 'bip32'
+        d['type'] = 'bip32' 
         d['xpub'] = self.xpub
         d['xprv'] = self.xprv
         return d
@@ -749,6 +749,14 @@ def from_seed(seed, passphrase, is_p2sh):
         keystore.passphrase = passphrase
         bip32_seed = Mnemonic.mnemonic_to_seed(seed, passphrase)
         der = "m/"
+        xtype = 'standard'
+        keystore.add_xprv_from_seed(bip32_seed, xtype, der)
+    elif t == 'bip39':
+        keystore = BIP32_KeyStore({})
+        keystore.add_seed(seed)
+        keystore.passphrase = passphrase
+        bip32_seed = Mnemonic.mnemonic_to_seed(seed, passphrase)
+        der = "m/44'/245'/0'"
         xtype = 'standard'
         keystore.add_xprv_from_seed(bip32_seed, xtype, der)
     else:
