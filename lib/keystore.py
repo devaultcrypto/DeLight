@@ -735,8 +735,8 @@ def bip44_derivation(account_id):
     coin = 1 if NetworkConstants.TESTNET else 0
     return "m/%d'/%d'/%d'" % (bip, coin, int(account_id))
 
-def bip44_derivation_145(account_id):
-	return "m/44'/145'/%d'"% int(account_id)
+def bip44_derivation_245(account_id):
+	return "m/44'/245'/%d'"% int(account_id)
 
 def from_seed(seed, passphrase, is_p2sh):
     t = seed_type(seed)
