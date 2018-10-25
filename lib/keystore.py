@@ -689,7 +689,7 @@ def load_keystore(storage, name):
         k = Old_KeyStore(d)
     elif t == 'imported':
         k = Imported_KeyStore(d)
-    elif t == 'bip32':
+    elif t == 'bip32' or t == 'bip39':
         k = BIP32_KeyStore(d)
     elif t == 'hardware':
         k = hardware_keystore(d)
