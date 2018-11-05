@@ -261,8 +261,8 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 self.path.setText(self.filename)
                 self.metadata['filesize'] = len(bytes)
                 try:
-                    self.metadata['filename'] = splitext(basename(self.filename))[0]
-                    self.metadata['fileext'] = splitext(basename(self.filename))[1]
+                    self.metadata['filename'] = basename(self.filename).split(os.extsep, 1)[0]
+                    self.metadata['fileext'] = basename(self.filename).split(os.extsep, 1)[1]
                 except IndexError:
                     pass
                 self.metadata['file_sha256'] = readable_hash
