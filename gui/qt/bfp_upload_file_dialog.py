@@ -110,10 +110,29 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
         grid.addWidget(self.prev_hash, row, 1)
         row += 1
 
+        # Originating address checkbox
+        self.org_addr_cb = cb = QCheckBox(_('Upload file using a specific wallet address'))
+        self.org_addr_cb.setChecked(False)
+        grid.addWidget(self.org_addr_cb, row, 1)
+        cb.clicked.connect(self.toggle_org_addr)
+        row += 1
+
+        # Specific file origination address
+        self.org_add_label = QLabel(_('Originating Address for Upload:'))
+        self.org_add_label.setHidden(True)
+        grid.addWidget(self.org_add_label, row, 0)
+        self.file_org_addr_e = QLineEdit("")
+        self.file_org_addr_e.setHidden(True)
+        self.file_org_addr_e.setReadOnly(False)
+        self.file_org_addr_e.setFixedWidth(570)
+        self.file_org_addr_e.textChanged.connect(self.make_dirty)
+        grid.addWidget(self.file_org_addr_e, row, 1)
+        row += 1
+
         # File Receiver Checkbox
-        self.token_fixed_supply_cb = cb = QCheckBox(_('Send file to a BCH address'))
-        self.token_fixed_supply_cb.setChecked(False)
-        grid.addWidget(self.token_fixed_supply_cb, row, 1)
+        self.receiver_addr_cb = cb = QCheckBox(_('Send file to a BCH address'))
+        self.receiver_addr_cb.setChecked(False)
+        grid.addWidget(self.receiver_addr_cb, row, 1)
         cb.clicked.connect(self.toggle_receiver_addr)
         row += 1
 
@@ -195,6 +214,12 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
             self.setModal(True)
             self.show()
 
+    def toggle_org_addr(self):
+        self.file_org_addr_e.setVisible(not self.file_org_addr_e.isVisible())
+        self.org_add_label.setVisible(not self.org_add_label.isVisible())
+        if not self.file_org_addr_e.isVisible():
+            self.file_org_addr_e.setText('')
+
     def toggle_receiver_addr(self):
         self.file_receiver_e.setVisible(not self.file_receiver_e.isVisible())
         self.file_receiver_label.setVisible(not self.file_receiver_label.isVisible())
@@ -230,9 +255,17 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 self.show_message(_("Previous document hash must be a 32 byte hexidecimal string or left empty."))
                 return
 
+        if self.file_org_addr_e.text() != '':
+            try: 
+                Address.from_string(self.file_org_addr_e.text())
+            except Base58Error:
+                self.show_message(_("Originating address checksum fails."))
+                return
+
         if self.file_receiver_e.text() != '':
             try: 
-                addr = Address.from_string(self.file_receiver_e.text())
+                #addr = Address.from_string(self.file_receiver_e.text())
+                Address.from_string(self.file_receiver_e.text())
             except Base58Error:
                 self.show_message(_("Receiver address checksum fails."))
                 return
@@ -268,7 +301,10 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 self.metadata['file_sha256'] = readable_hash
                 cost = calculateUploadCost(len(bytes), self.metadata)
                 self.upload_cost_label.setText(str(cost))
-                addr = self.parent.wallet.get_unused_address()
+                if(self.org_addr_cb.isChecked and self.file_org_addr_e.text() != ''):
+                    addr = Address.from_string(self.file_org_addr_e.text())
+                else:
+                    addr = self.parent.wallet.get_unused_address()
 
                 # IMPORTANT: set wallet.send_slpTokenId to None to guard tokens during this transaction
                 self.main_window.token_type_combo.setCurrentIndex(0)
