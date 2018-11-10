@@ -34,6 +34,8 @@ from electroncash.util import format_satoshis_nofloat
 
 from .slp_add_token_dialog import SlpAddTokenDialog
 
+from locale import localeconv
+
 TX_ICONS = [
     "warning.png",
     "warning.png",
@@ -146,9 +148,11 @@ class HistoryList(MyTreeWidget):
             tokenname=tinfo['name']
             deltastr = format_satoshis_nofloat(delta, is_diff=True, decimal_point=tinfo['decimals'],)
 
-            # right-pad with spaces so the decimal points line up
-            d1,d2 = deltastr.rsplit('.',1)
-            deltastr += "\u2014"*(9-len(d2))
+            # right-pad so the decimal points line up
+            # (note that because zeros are stripped, we have to locate decimal point here)
+            dp = localeconv()['decimal_point']
+            d1,d2 = deltastr.rsplit(dp,1)
+            deltastr += "\u2014"*(9-len(d2)) # \u2014 is long dash
 
         if unktoken and validity in (None,0,1):
             # If a token is not in our list of known token_ids, warn the user.
