@@ -24,7 +24,6 @@ import unicodedata
 import string
 
 import ecdsa
-import pbkdf2
 import binascii
 
 from .util import print_error
@@ -157,7 +156,7 @@ class Mnemonic(object):
         PBKDF2_ROUNDS = 2048
         mnemonic = normalize_text(mnemonic)
         passphrase = normalize_text(passphrase)
-        return pbkdf2.PBKDF2(mnemonic, 'mnemonic' + passphrase, iterations = PBKDF2_ROUNDS, macmodule = hmac, digestmodule = hashlib.sha512).read(64)
+        return hashlib.pbkdf2_hmac('sha512', mnemonic.encode('utf-8'), b'mnemonic' + passphrase.encode('utf-8'), PBKDF2_ROUNDS, None)
 
     def mnemonic_encode(self, i):
         n = len(self.wordlist)
