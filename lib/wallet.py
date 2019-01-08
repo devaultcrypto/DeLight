@@ -2366,6 +2366,7 @@ wallet_constructors = {
     'standard': Standard_Wallet,
     'old': Standard_Wallet,
     'xpub': Standard_Wallet,
+    'bip39-slp': Standard_Wallet,
     'imported_privkey': ImportedPrivkeyWallet,
     'imported_addr': ImportedAddressWallet,
 }
