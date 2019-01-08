@@ -60,7 +60,7 @@ class NetworkConstants:
         cls.GENESIS = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
         cls.DEFAULT_PORTS = {'t': '50001', 's': '50002'}
         cls.DEFAULT_SERVERS = read_json_dict('servers.json')
-        cls.TITLE = 'Electron Cash'
+        cls.TITLE = 'Electron Cash SLP'
 
         # Bitcoin Cash fork block specification
         cls.BITCOIN_CASH_FORK_BLOCK_HEIGHT = 478559
@@ -79,7 +79,7 @@ class NetworkConstants:
         cls.GENESIS = "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"
         cls.DEFAULT_PORTS = {'t':'51001', 's':'51002'}
         cls.DEFAULT_SERVERS = read_json_dict('servers_testnet.json')
-        cls.TITLE = 'Electron Cash Testnet'
+        cls.TITLE = 'Electron Cash SLP Testnet'
 
         # Bitcoin Cash fork block specification
         cls.BITCOIN_CASH_FORK_BLOCK_HEIGHT = 1155876
