@@ -129,13 +129,20 @@ class NodesListWidget(QTreeWidget):
         h.setSectionResizeMode(0, QHeaderView.Stretch)
         h.setSectionResizeMode(1, QHeaderView.ResizeToContents)
 
+class ServerFlag:
+    ''' Used by ServerListWidget for Server flags & Symbols '''
+    Blacklisted = 2 # Blacklisting was a hidden mechanism inherited from Electrum. We would blacklist misbehaving servers under the hood. Now that facility is exposed (editable by the user). We never connect to blacklisted servers.
+    Default = 1 # Default servers start off as the servers in servers.json and are "more trusted" and optionally the user can elect to connect to only these servers
+    NoFlag = 0
+    Symbol = ("", "⚜️", "⛔") # indexed using pseudo-enum above
+    UnSymbol = ("", "✖️", "⭕️️") # used for "disable X" context menu
 
 class ServerListWidget(QTreeWidget):
 
     def __init__(self, parent):
         QTreeWidget.__init__(self)
         self.parent = parent
-        self.setHeaderLabels([_('Host'), _('Port')])
+        self.setHeaderLabels(['', _('Host'), _('Port')])
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.create_menu)
 
@@ -144,8 +151,25 @@ class ServerListWidget(QTreeWidget):
         if not item:
             return
         menu = QMenu()
-        server = item.data(1, Qt.UserRole)
-        menu.addAction(_("Use as server"), lambda: self.set_server(server))
+        server = item.data(2, Qt.UserRole)
+        useAction = menu.addAction(_("Use as server"), lambda: self.set_server(server))
+        menu.addSeparator()
+        flagval = item.data(0, Qt.UserRole)
+        if flagval & ServerFlag.Blacklisted:
+            optxt = ServerFlag.UnSymbol[ServerFlag.Blacklisted] + " " + _("Unblacklist server")
+            isbl = True
+            useAction.setDisabled(True)
+            useAction.setText(_("Server blacklisted"))
+        else:
+            optxt = ServerFlag.Symbol[ServerFlag.Blacklisted] + " " + _("Blacklist server")
+            isbl = False
+            if not isbl:
+                if flagval & ServerFlag.Default:
+                    optxt_fav = ServerFlag.UnSymbol[ServerFlag.Default] + " " + _("Remove from defaults")
+                else:
+                    optxt_fav = ServerFlag.Symbol[ServerFlag.Default] + " " + _("Add to defaults")
+                menu.addAction(optxt_fav, lambda: print_error("DEFAULTS NOT IMPLEMENTED YET"))
+        menu.addAction(optxt, lambda: self.parent.set_blacklisted(server, not isbl))
         menu.exec_(self.viewport().mapToGlobal(position))
 
     def set_server(self, s):
@@ -166,22 +190,31 @@ class ServerListWidget(QTreeWidget):
         pt.setX(50)
         self.customContextMenuRequested.emit(pt)
 
-    def update(self, servers, protocol, use_tor):
+    def update(self, network, servers, protocol, use_tor):
         self.clear()
+        self.setIndentation(0)
         for _host, d in sorted(servers.items()):
             if _host.endswith('.onion') and not use_tor:
                 continue
             port = d.get(protocol)
             if port:
-                x = QTreeWidgetItem([_host, port])
                 server = serialize_server(_host, port, protocol)
-                x.setData(1, Qt.UserRole, server)
+                flag, flagval, tt = (ServerFlag.Symbol[ServerFlag.Blacklisted], ServerFlag.Blacklisted, _("This server is blacklisted")) if network.server_is_blacklisted(server) else ("", 0, "")
+                flag2, flagval2, tt2 = (ServerFlag.Symbol[ServerFlag.Default], ServerFlag.Default, _("This is a default server")) if network.server_is_default(server) else ("", 0, "")
+                flag = flag or flag2; del flag2
+                tt = tt or tt2; del tt2
+                flagval |= flagval2; del flagval2
+                x = QTreeWidgetItem([flag, _host, port])
+                if tt: x.setToolTip(0, tt)
+                x.setData(2, Qt.UserRole, server)
+                x.setData(0, Qt.UserRole, flagval)
                 self.addTopLevelItem(x)
 
         h = self.header()
         h.setStretchLastSection(False)
-        h.setSectionResizeMode(0, QHeaderView.Stretch)
-        h.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        h.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        h.setSectionResizeMode(1, QHeaderView.Stretch)
+        h.setSectionResizeMode(2, QHeaderView.ResizeToContents)
 
 
 class NetworkChoiceLayout(QObject):
@@ -243,14 +276,38 @@ class NetworkChoiceLayout(QObject):
         grid.addWidget(self.autoconnect_cb, 0, 0, 1, 3)
         grid.addWidget(HelpButton(msg), 0, 4)
 
-        grid.addWidget(QLabel(_('Server') + ':'), 1, 0)
-        grid.addWidget(self.server_host, 1, 1, 1, 2)
-        grid.addWidget(self.server_port, 1, 3)
+        self.default_only_cb = QCheckBox(_("Connect only to default servers"))
+        self.default_only_cb.setEnabled(self.config.is_modifiable('default_servers_only'))
+        self.default_only_cb.setToolTip(_("If enabled, restricts Electron Cash to connecting to servers only marked as 'default'."))
+
+        self.default_only_cb.clicked.connect(self.set_default_only) # re-set the config key and notify network.py
+
+        msg = ' '.join([
+            _("If 'Connect only to default servers' is enabled, Electron Cash will only connect to servers marked as 'default' servers ({}).").format(ServerFlag.Symbol[ServerFlag.Default]),
+            _("Initially the default server list is a list that ships with Electron Cash consisting of known-good servers."),
+            _("This feature was added in response to the potential for a malicious actor to deny service via launching many servers (aka a sybil attack)."),
+            _("If unsure, most of the time it's safe to leave option this disabled. However leaving it enabled is safer (if a little bit of a discouraging factor for people wanting to set up a new server).")
+        ])
+        grid.addWidget(self.default_only_cb, 1, 0, 1, 3)
+        grid.addWidget(HelpButton(msg), 1, 4)
+
+
+        grid.addWidget(QLabel(_('Server') + ':'), 2, 0)
+        grid.addWidget(self.server_host, 2, 1, 1, 2)
+        grid.addWidget(self.server_port, 2, 3)
 
         label = _('Server peers') if network.is_connected() else _('Default Servers')
-        grid.addWidget(QLabel(label), 2, 0, 1, 5)
+        grid.addWidget(QLabel(label), 3, 0, 1, 5)
         self.servers_list = ServerListWidget(self)
-        grid.addWidget(self.servers_list, 3, 0, 1, 5)
+        grid.addWidget(self.servers_list, 4, 0, 1, 5)
+        grid.addWidget(QLabel(ServerFlag.Symbol[ServerFlag.Default] + "=" + _("Default") + "    " + ServerFlag.Symbol[ServerFlag.Blacklisted] + "=" + _("Blacklisted")), 5, 0, 1, 4)
+        msg = ' '.join([
+            _("Default servers ({}) are servers you have designated as reliable and/or trustworthy.").format(ServerFlag.Symbol[ServerFlag.Default]),
+            _("Initially, the default list is the hard-coded list of known-good servers vetted by the Electron Cash developers."),
+            _("You can add or remove any server from this list and optionally elect to only connect to default servers."),
+            "\n\n"+_("Blacklisted servers ({}) are servers you have deemed unreliable and/or untrustworthy, and so they will never be connected-to by Electron Cash.").format(ServerFlag.Symbol[ServerFlag.Blacklisted])
+        ])
+        grid.addWidget(HelpButton(msg), 5, 4)
 
         # Proxy tab
         grid = QGridLayout(proxy_tab)
@@ -358,13 +415,14 @@ class NetworkChoiceLayout(QObject):
         self.server_host.setText(host)
         self.server_port.setText(port)
         self.autoconnect_cb.setChecked(auto_connect)
+        #self.default_only_cb.setChecked(default_only)
 
         host = self.network.interface.host if self.network.interface else _('None')
         self.server_label.setText(host)
 
         self.set_protocol(protocol)
         self.servers = self.network.get_servers()
-        self.servers_list.update(self.servers, self.protocol, self.tor_cb.isChecked())
+        self.servers_list.update(self.network, self.servers, self.protocol, self.tor_cb.isChecked())
         self.enable_set_server()
 
         height_str = "%d "%(self.network.get_local_height()) + _('blocks')
@@ -512,6 +570,16 @@ class NetworkChoiceLayout(QObject):
     def proxy_settings_changed(self):
         self.tor_cb.setChecked(False)
 
+    def set_blacklisted(self, server, bl):
+        self.network.server_set_blacklisted(server, bl, True)
+        self.set_server() # if the blacklisted server is the active server, this will force a reconnect to another server
+        self.update()
+
+    def set_default_only(self, b):
+        print_error("set_default_only UNIMPLEMENTED", b)
+        #self.set_server() # forces us to send a set-server to network.py which recomputes eligible servers, etc
+        #self.update()
+
 
 class TorDetector(QThread):
     found_proxy = pyqtSignal(object)
@@ -525,9 +593,8 @@ class TorDetector(QThread):
             self.stopQ.put(None)
 
     def run(self):
-        ports = [9050, 9150]
+        ports = [9050, 9150] # Probable ports for Tor to listen at
         while True:
-            # Probable ports for Tor to listen at
             for p in ports:
                 if TorDetector.is_tor_port(p):
                     self.found_proxy.emit(("127.0.0.1", p))
