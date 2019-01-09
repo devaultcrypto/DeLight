@@ -410,7 +410,7 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         if len(string) > 35:
             if ":" in string:
                 addrpiece1,addrpiece2 = string.split(":")
-                if addrpiece1=="simpleledger":
+                if addrpiece1=="simpleledger" or addrpiece1=="slptest":
                    return cls.from_slpaddr_string(string)
                 else:
                     return cls.from_cashaddr_string(string)
