@@ -680,7 +680,6 @@ def hardware_keystore(d):
     raise BaseException('unknown hardware type', hw_type)
 
 def load_keystore(storage, name):
-    w = storage.get('wallet_type', 'standard')
     d = storage.get(name, {})
     t = d.get('type')
     if not t:
@@ -689,7 +688,7 @@ def load_keystore(storage, name):
         k = Old_KeyStore(d)
     elif t == 'imported':
         k = Imported_KeyStore(d)
-    elif t == 'bip32' or t == 'bip39':
+    elif t == 'bip32':
         k = BIP32_KeyStore(d)
     elif t == 'hardware':
         k = hardware_keystore(d)

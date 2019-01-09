@@ -374,13 +374,13 @@ class BaseWizard(object):
         k = keystore.from_master_key(text, password)
         self.on_keystore(k)
 
-    def create_standard_seed(self): self.create_seed('standard')
+    def create_standard_seed(self): self.create_seed('bip39')
 
     def create_seed(self, seed_type):
         from . import mnemonic
         self.seed_type = seed_type
         seed = mnemonic.Mnemonic('en').make_seed() # self.seed_type)
-        self.opt_bip39 = False
+        self.opt_bip39 = True
         f = lambda x: self.request_passphrase(seed, x)
         self.show_seed_dialog(run_next=f, seed_text=seed)
 
