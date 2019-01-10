@@ -239,8 +239,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         # update fee slider in case we missed the callback
         self.fee_slider.update()
         self.load_wallet(wallet)
-
-        self.connect_slots(gui_object.timer)
+        gui_object.timer.timeout.connect(self.timer_actions)
         self.fetch_alias()
 
     def update_token_type_combo(self):
@@ -742,9 +741,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.config.set_key('io_dir', os.path.dirname(fileName), True)
         return fileName
 
-    def connect_slots(self, sender):
-        sender.timer_signal.connect(self.timer_actions)
-
     def timer_actions(self):
 
         # Note this runs in the GUI thread
@@ -995,6 +991,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         from .request_list import RequestList
         self.request_list = RequestList(self)
+        self.request_list.chkVisible()
 
         # layout
         vbox_g = QVBoxLayout()
@@ -1414,6 +1411,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.invoices_label = QLabel(_('Invoices'))
         from .invoice_list import InvoiceList
         self.invoice_list = InvoiceList(self)
+        self.invoice_list.chkVisible()
 
         vbox0 = QVBoxLayout()
         vbox0.addLayout(grid)
@@ -3612,6 +3610,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.qr_window.close()
         self.close_wallet()
 
+        self.gui_object.timer.timeout.disconnect(self.timer_actions)
         self.gui_object.close_window(self)
 
     def internal_plugins_dialog(self):
