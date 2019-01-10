@@ -5,7 +5,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules, coll
 import sys
 import os
 
-PACKAGE='Electron-Cash'
+PACKAGE='Electron-Cash-SLP'
 PYPKG='electroncash'
 MAIN_SCRIPT='electron-cash'
 ICONS_FILE='electron.icns'

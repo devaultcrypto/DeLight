@@ -3,7 +3,7 @@
 NAME_ROOT=Electron-Cash-SLP
 PYTHON_VERSION=3.5.4
 
-CHECKOUT_TAG=3.4.2
+CHECKOUT_TAG=3.4.3
 
 # These settings probably don't need any change
 export WINEPREFIX=/opt/wine64
