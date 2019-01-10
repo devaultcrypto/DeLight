@@ -417,7 +417,7 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
             # Broadcast all transaction to the nexwork
             for tx in self.tx_batch:
                 tx_desc = None
-                status, msg = self.network.broadcast(tx)
+                status, msg = self.network.broadcast_transaction(tx)
                 # print(status)
                 # print(msg)
                 if status == False:
