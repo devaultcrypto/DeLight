@@ -93,8 +93,8 @@ class PayToEdit(ScanQRTextEdit):
         m = re.match(RE_ALIAS, r)
         address = m.group(2) if m else r
         if slp_token_type_index > 0:
-            if "simpleledger" not in address:
-                address="simpleledger:"+address
+            if NetworkConstants.SLPADDR_PREFIX not in address:
+                address=NetworkConstants.SLPADDR_PREFIX + ":" + address
         return Address.from_string(address)
 
     def parse_amount(self, x):

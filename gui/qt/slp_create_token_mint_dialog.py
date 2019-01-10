@@ -23,6 +23,8 @@ from electroncash.slp import SlpMessage, SlpNoMintingBatonFound, SlpUnsupportedS
 from .amountedit import SLPAmountEdit
 from .transaction_dialog import show_transaction
 
+from electroncash.networks import NetworkConstants
+
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
 class SlpCreateTokenMintDialog(QDialog, MessageBoxMixin):
@@ -130,8 +132,8 @@ class SlpCreateTokenMintDialog(QDialog, MessageBoxMixin):
         self.token_baton_label.setHidden(self.token_fixed_supply_cb.isChecked())
 
     def parse_address(self, address):
-        if "simpleledger" not in address:
-            address="simpleledger:"+address
+        if NetworkConstants.SLPADDR_PREFIX not in address:
+            address = NetworkConstants.SLPADDR_PREFIX + ":" + address
         return Address.from_string(address)
 
     def mint_token(self, preview=False):

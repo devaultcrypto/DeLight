@@ -25,6 +25,8 @@ from .transaction_dialog import show_transaction
 
 from .bfp_upload_file_dialog import BitcoinFilesUploadDialog
 
+from electroncash.networks import NetworkConstants
+
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
 class SlpCreateTokenGenesisDialog(QDialog, MessageBoxMixin):
@@ -195,8 +197,8 @@ class SlpCreateTokenGenesisDialog(QDialog, MessageBoxMixin):
         self.token_baton_label.setHidden(self.token_fixed_supply_cb.isChecked())
 
     def parse_address(self, address):
-        if "simpleledger" not in address:
-            address="simpleledger:"+address
+        if NetworkConstants.SLPADDR_PREFIX not in address:
+            address = NetworkConstants.SLPADDR_PREFIX + ":" + address
         return Address.from_string(address)
 
     def create_token(self, preview=False):

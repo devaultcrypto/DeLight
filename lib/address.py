@@ -414,7 +414,7 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
             try:
                 if ":" in string:
                     addrpiece1,addrpiece2 = string.split(":")
-                    if addrpiece1=="simpleledger" or addrpiece1=="slptest":
+                    if addrpiece1 == NetworkConstants.SLPADDR_PREFIX:
                         return cls.from_slpaddr_string(string)
                     else:
                         return cls.from_cashaddr_string(string)
