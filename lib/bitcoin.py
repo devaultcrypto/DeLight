@@ -222,6 +222,8 @@ def seed_type(x):
         return 'old'
     elif is_new_seed(x):
         return 'standard'
+    else: #TODO: ADD CHECK FOR VALID BIP39 HERE
+        return 'bip39'
     return ''
 
 is_seed = lambda x: bool(seed_type(x))

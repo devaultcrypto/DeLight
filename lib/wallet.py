@@ -2270,7 +2270,7 @@ class Simple_Deterministic_Wallet(Simple_Wallet, Deterministic_Wallet):
 
 
 class Standard_Wallet(Simple_Deterministic_Wallet):
-    wallet_type = 'standard'
+    wallet_type = 'bip39-slp'
 
     def pubkeys_to_address(self, pubkey):
         return Address.from_pubkey(pubkey)
@@ -2357,7 +2357,7 @@ class Multisig_Wallet(Deterministic_Wallet):
         txin['num_sig'] = self.m
 
 
-wallet_types = ['standard', 'multisig', 'imported']
+wallet_types = ['standard', 'bip39-slp', 'multisig', 'imported']
 
 def register_wallet_type(category):
     wallet_types.append(category)
@@ -2366,6 +2366,7 @@ wallet_constructors = {
     'standard': Standard_Wallet,
     'old': Standard_Wallet,
     'xpub': Standard_Wallet,
+    'bip39-slp': Standard_Wallet,
     'imported_privkey': ImportedPrivkeyWallet,
     'imported_addr': ImportedAddressWallet,
 }

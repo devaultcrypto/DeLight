@@ -78,10 +78,10 @@ class SeedLayout(QVBoxLayout):
                 else:
                     msg = ''
                 self.seed_warning.setText(msg)
-            cb_bip39 = QCheckBox(_('BIP39 seed'))
-            cb_bip39.toggled.connect(f)
-            cb_bip39.setChecked(self.is_bip39)
-            vbox.addWidget(cb_bip39)
+            #cb_bip39 = QCheckBox(_('BIP39 seed'))
+            #cb_bip39.toggled.connect(f)
+            #cb_bip39.setChecked(self.is_bip39)
+            #vbox.addWidget(cb_bip39)
 
 
 
@@ -112,7 +112,7 @@ class SeedLayout(QVBoxLayout):
         if not dialog.exec_():
             return None
         self.is_ext = cb_ext.isChecked() if 'ext' in self.options else False
-        self.is_bip39 = cb_bip39.isChecked() if 'bip39' in self.options else False
+        self.is_bip39 = True #cb_bip39.isChecked() if 'bip39' in self.options else False
         self.is_bip39_145 = cb_bip39_145.isChecked() if 'bip39_145' in self.options else False
 
     def __init__(self, seed=None, title=None, icon=True, msg=None, options=None, is_seed=None, passphrase=None, parent=None):

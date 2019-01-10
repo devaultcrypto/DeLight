@@ -636,6 +636,7 @@ class RestoreWallet1(NewWalletSeed2):
                                                              _('If you are not sure what this is, leave this field unchanged.'),
                                                              _("If you want the wallet to use legacy Bitcoin addresses use m/44'/0'/0'"),
                                                              _("If you want the wallet to use Bitcoin Cash addresses use m/44'/145'/0'")]),
+                                                             _("If you want the wallet to use SLP addresses use m/44'/245'/0'")]),
                                         onOk = onOk, placeholder = _('Derivation') + '...', text = default_derivation
                                         )
         elif seed_type == 'old':
