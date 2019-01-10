@@ -1710,7 +1710,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                         return
                     except:
                         pass
-                outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
+                #outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
             elif self.wallet.send_slpTokenId is None:
                 pass
             elif self.config.get('enable_slp'):
