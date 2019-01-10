@@ -3,11 +3,13 @@ import time
 import sys
 import platform
 import queue
+import threading
 from collections import namedtuple
 from functools import partial, wraps
 
 from electroncash.i18n import _
 from electroncash.address import Address
+from electroncash.util import print_error, PrintError, Weak
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -59,6 +61,7 @@ class ThreadedButton(QPushButton):
     def __init__(self, text, task, on_success=None, on_error=None):
         QPushButton.__init__(self, text)
         self.task = task
+        self.thread = None
         self.on_success = on_success
         self.on_error = on_error
         self.clicked.connect(self.run_task)
@@ -69,8 +72,10 @@ class ThreadedButton(QPushButton):
         self.thread.add(self.task, self.on_success, self.done, self.on_error)
 
     def done(self):
-        self.setEnabled(True)
         self.thread.stop()
+        self.thread.wait()
+        self.setEnabled(True)
+        self.thread = None
 
 
 class WWLabel(QLabel):
@@ -216,7 +221,7 @@ class WindowModalDialog(QDialog, MessageBoxMixin):
 class WaitingDialog(WindowModalDialog):
     '''Shows a please wait dialog whilst runnning a task.  It is not
     necessary to maintain a reference to this dialog.'''
-    def __init__(self, parent, message, task, on_success=None, on_error=None):
+    def __init__(self, parent, message, task, on_success=None, on_error=None, auto_cleanup=True):
         assert parent
         if isinstance(parent, MessageBoxMixin):
             parent = parent.top_level_window()
@@ -224,15 +229,19 @@ class WaitingDialog(WindowModalDialog):
         vbox = QVBoxLayout(self)
         vbox.addWidget(QLabel(message))
         self.accepted.connect(self.on_accepted)
-        self.show()
+        self.show() # Bug here -- user can hit ESC key and kill the dialog before it's done. TODO: FIX!
         self.thread = TaskThread(self)
         self.thread.add(task, on_success, self.accept, on_error)
+        self.auto_cleanup = auto_cleanup
 
     def wait(self):
         self.thread.wait()
 
     def on_accepted(self):
         self.thread.stop()
+        if self.auto_cleanup:
+            self.wait() # wait for thread to complete so that we can get cleaned up
+            self.setParent(None) # this causes GC to happen sooner rather than later. Before this call was added the WaitingDialogs would stick around in memory until the ElectrumWindow was closed and would never get GC'd before then. (as of PyQt5 5.11.3)
 
 
 def line_dialog(parent, title, label, ok_label, default=None):
@@ -454,8 +463,7 @@ class MyTreeWidget(QTreeWidget):
         key = item.data(0, Qt.UserRole)
         text = item.text(column)
         self.parent.wallet.set_label(key, text)
-        self.parent.history_list.update_labels()
-        self.parent.update_completions()
+        self.parent.update_labels()
 
     def update(self):
         # Defer updates if editing
@@ -651,7 +659,179 @@ class OPReturnError(Exception):
 class OPReturnTooLarge(OPReturnError):
     """ thrown when the OP_RETURN for a tx is >220 bytes """
 
-def rate_limited(rate):
+class RateLimiter(PrintError):
+    ''' Manages the state of a @rate_limited decorated function, collating
+    multiple invocations. This class is not intented to be used directly. Instead,
+    use the @rate_limited decorator (for instance methods).
+
+    This state instance gets inserted into the instance attributes of the target
+    object wherever a @rate_limited decorator appears.
+
+    The inserted attribute is named "__FUNCNAME__RateLimiter". '''
+    # some defaults
+    last_ts = 0.0
+    timer = None
+    saved_args = (tuple(),dict())
+    ctr = 0
+
+    def __init__(self, rate, obj, func):
+        self.n = func.__name__
+        self.qn = func.__qualname__
+        self.rate = rate
+        self.obj = Weak.ref(obj) # keep a weak reference to the object to prevent cycles
+        self.func = func
+        #self.print_error("*** Created: func=",func,"obj=",obj,"rate=",rate)
+
+    def diagnostic_name(self):
+        return "{}:{}".format("rate_limited",self.qn)
+
+    def kill_timer(self):
+        if self.timer:
+            #self.print_error("deleting timer")
+            self.timer.stop()
+            self.timer.deleteLater()
+            self.timer = None
+
+    @classmethod
+    def attr_name(cls, func): return "__{}__{}".format(func.__name__, cls.__name__)
+
+    @classmethod
+    def invoke(cls, rate, func, args, kwargs):
+        ''' Calls _invoke() on an existing RateLimiter object (or creates a new
+        one for the given function on first run per target object instance). '''
+        assert args and isinstance(args[0], object), "@rate_limited decorator may only be used with object instance methods"
+        assert threading.current_thread() is threading.main_thread(), "@rate_limited decorator may only be used with functions called in the main thread"
+        obj = args[0]
+        a_name = cls.attr_name(func)
+        #print_error("*** a_name =",a_name,"obj =",obj)
+        rl = getattr(obj, a_name, None) # we hide the RateLimiter state object in an attribute (name based on the wrapped function name) in the target object
+        if rl is None:
+            # must be the first invocation, create a new RateLimiter state instance.
+            rl = cls(rate, obj, func)
+            setattr(obj, a_name, rl)
+        return rl._invoke(args, kwargs)
+
+    def _invoke(self, args, kwargs):
+        self._push_args(args, kwargs)  # since we're collating, save latest invocation's args unconditionally. any future invocation will use the latest saved args.
+        self.ctr += 1 # increment call counter
+        #self.print_error("args_saved",args,"kwarg_saved",kwargs)
+        if not self.timer: # check if there's a pending invocation already
+            now = time.time()
+            diff = float(self.rate) - (now - self.last_ts)
+            if diff <= 0:
+                # Time since last invocation was greater than self.rate, so call the function directly now.
+                #self.print_error("calling directly")
+                return self._doIt()
+            else:
+                # Time since last invocation was less than self.rate, so defer to the future with a timer.
+                self.timer = QTimer(self.obj() if isinstance(self.obj(), QObject) else None)
+                self.timer.timeout.connect(self._doIt)
+                #self.timer.destroyed.connect(lambda x=None,qn=self.qn: print(qn,"Timer deallocated"))
+                self.timer.setSingleShot(True)
+                self.timer.start(diff*1e3)
+                #self.print_error("deferring")
+        else:
+            # We had a timer active, which means as future call will occur. So return early and let that call happenin the future.
+            # Note that a side-effect of this aborted invocation was to update self.saved_args.
+            pass
+            #self.print_error("ignoring (already scheduled)")
+
+    def _pop_args(self):
+        args, kwargs = self.saved_args # grab the latest collated invocation's args. this attribute is always defined.
+        self.saved_args = (tuple(),dict()) # clear saved args immediately
+        return args, kwargs
+
+    def _push_args(self, args, kwargs):
+        self.saved_args = (args, kwargs)
+
+    def _doIt(self):
+        #self.print_error("called!")
+        t0 = time.time()
+        args, kwargs = self._pop_args()
+        #self.print_error("args_actually_used",args,"kwarg_actually_used",kwargs)
+        ctr0 = self.ctr # read back current call counter to compare later for reentrancy detection
+        retval = self.func(*args, **kwargs) # and.. call the function. use latest invocation's args
+        was_reentrant = self.ctr != ctr0 # if ctr is not the same, func() led to a call this function!
+        del args, kwargs # deref args right away (allow them to get gc'd)
+        tf = time.time()
+        time_taken = tf-t0
+        if time_taken > float(self.rate):
+            self.print_error("method took too long: {} > {}. Fudging timestamps to compensate.".format(time_taken, self.rate))
+            self.last_ts = tf # Hmm. This function takes longer than its rate to complete. so mark its last run time as 'now'. This breaks the rate but at least prevents this function from starving the CPU (benforces a delay).
+        else:
+            self.last_ts = t0 # Function takes less than rate to complete, so mark its t0 as when we entered to keep the rate constant.
+
+        if self.timer: # timer is not None if and only if we were a delayed (collated) invocation.
+            if was_reentrant:
+                # we got a reentrant call to this function as a result of calling func() above! re-schedule the timer.
+                self.print_error("*** detected a re-entrant call, re-starting timer")
+                time_left = float(self.rate) - (tf - self.last_ts)
+                self.timer.start(time_left*1e3)
+            else:
+                # We did not get a reentrant call, so kill the timer so subsequent calls can schedule the timer and/or call func() immediately.
+                self.kill_timer()
+        elif was_reentrant:
+            self.print_error("*** detected a re-entrant call")
+
+        return retval
+
+
+class RateLimiterClassLvl(RateLimiter):
+    ''' This RateLimiter object is used if classlevel=True is specified to the
+    @rate_limited decorator.  It inserts the __RateLimiterClassLvl state object
+    on the class level and collates calls for all instances to not exceed rate.
+
+    Each instance is guaranteed to receive at least 1 call and to have multiple
+    calls updated with the latest args for the final call. So for instance:
+
+    a.foo(1)
+    a.foo(2)
+    b.foo(10)
+    b.foo(3)
+
+    Would collate to a single 'class-level' call using 'rate':
+
+    a.foo(2) # latest arg taken, collapsed to 1 call
+    b.foo(3) # latest arg taken, collapsed to 1 call
+
+    '''
+
+    @classmethod
+    def invoke(cls, rate, func, args, kwargs):
+        assert args and not isinstance(args[0], type), "@rate_limited decorator may not be used with static or class methods"
+        obj = args[0]
+        objcls = obj.__class__
+        args = list(args)
+        args.insert(0, objcls) # prepend obj class to trick super.invoke() into making this state object be class-level.
+        return super(RateLimiterClassLvl, cls).invoke(rate, func, args, kwargs)
+
+    def _push_args(self, args, kwargs):
+        objcls, obj = args[0:2]
+        args = args[2:]
+        self.saved_args[obj] = (args, kwargs)
+
+    def _pop_args(self):
+        weak_dict = self.saved_args
+        self.saved_args = Weak.KeyDictionary()
+        return (weak_dict,),dict()
+
+    def _call_func_for_all(self, weak_dict):
+        for ref in weak_dict.keyrefs():
+            obj = ref()
+            if obj:
+                args,kwargs = weak_dict[obj]
+                #self.print_error("calling for",obj.diagnostic_name() if hasattr(obj, "diagnostic_name") else obj,"timer=",bool(self.timer))
+                self.func_target(obj, *args, **kwargs)
+
+    def __init__(self,rate, obj, func):
+        # note: obj here is really the __class__ of the obj because we prepended the class in our custom invoke() above.
+        super().__init__(rate, obj, func)
+        self.func_target = func
+        self.func = self._call_func_for_all
+        self.saved_args = Weak.KeyDictionary() # we don't use a simple arg tuple, but instead an instance -> args,kwargs dictionary to store collated calls, per instance collated
+
+
+def rate_limited(rate, classlevel=False):
     """ A Function decorator for rate-limiting GUI event callbacks. Argument
         rate in seconds is the minimum allowed time between subsequent calls of
         this instance of the function. Calls that arrive more frequently than
@@ -663,44 +843,9 @@ def rate_limited(rate):
     def wrapper0(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            assert args and isinstance(args[0], object), "@rate_limited decorator may only be used with object instance methods"
-            slf = args[0]
-            n = func.__name__
-            n_last = "__{}__last_ts__rate_limited".format(n) # last ts, stored as attribute of object
-            n_timer = "__{}__timer__rate_limited".format(n) # QTimer, stored as attribute of object
-            n_updated_args = "__{}__saved_args__rate_limited".format(n) # store args,kwargs in a tuple
-            if not hasattr(slf, n_last): setattr(slf, n_last, 0.0)
-            if not hasattr(slf, n_timer): setattr(slf, n_timer, None)
-            setattr(slf, n_updated_args, (args,kwargs)) # since we're collating, save latest invocation's args
-            #print(n,"args_saved",args,"kwarg_saved",kwargs)
-            def doIt():
-                setattr(slf, n_last, time.time())
-                t = getattr(slf, n_timer)
-                if t:
-                    t.stop(); t.deleteLater(); setattr(slf, n_timer, None); del t
-                #print(n,"calling!")
-                tup = getattr(slf, n_updated_args)
-                args_updated, kwargs_updated = tup
-                #print(n,"args_actually_used",args_updated,"kwarg_actually_used",kwargs_updated)
-                func(*args_updated, **kwargs_updated) # use latest invocation's args
-                setattr(slf, n_updated_args, (tuple(),dict())) # clear saved args
-            now = time.time()
-            diff = float(rate) - (now - getattr(slf, n_last))
-            if not getattr(slf, n_timer):
-                if diff <= 0:
-                    #print(n,"calling directly")
-                    doIt()
-                else:
-                    t = QTimer(slf if isinstance(slf, QObject) else None)
-                    t.timeout.connect(doIt)
-                    #t.destroyed.connect(lambda x=None: print(n,"Timer deallocated"))
-                    t.setSingleShot(True)
-                    t.start(diff*1e3)
-                    setattr(slf, n_timer, t)
-                    #print(n,"deferring")
-            else:
-                pass
-                #print(n,"ignoring (already scheduled)")
+            if classlevel:
+                return RateLimiterClassLvl.invoke(rate, func, args, kwargs)
+            return RateLimiter.invoke(rate, func, args, kwargs)
         return wrapper
     return wrapper0
 

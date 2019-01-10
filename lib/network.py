@@ -1570,8 +1570,10 @@ class Network(util.DaemonThread):
             return _("The transaction already exists in the server's mempool.")
         elif r"txn-mempool-conflict" in server_msg:
             return _("The transaction conflicts with a transaction already in the server's mempool.")
+        elif r'too-long-mempool-chain' in server_msg:
+            return _("The transaction was rejected due to having too many mempool ancestors. Wait for confirmations and try again.")
         elif r"bad-txns-nonstandard-inputs" in server_msg:
-            return _("The transaction was rejected due its use of non-standard inputs.")
+            return _("The transaction was rejected due to its use of non-standard inputs.")
         elif r"absurdly-high-fee" in server_msg:
             return _("The transaction was rejected because it specifies an absurdly high fee.")
         elif r"non-mandatory-script-verify-flag" in server_msg:
