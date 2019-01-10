@@ -602,7 +602,7 @@ class ElectrumWindow(App):
         self.num_nodes = len(self.network.get_interfaces())
         self.num_chains = len(self.network.get_blockchains())
         chain = self.network.blockchain()
-        self.blockchain_checkpoint = chain.get_checkpoint()
+        self.blockchain_checkpoint = chain.get_base_height()
         self.blockchain_name = chain.get_name()
         if self.network.interface:
             self.server_host = self.network.interface.host
@@ -617,7 +617,9 @@ class ElectrumWindow(App):
         elif event == 'status':
             self._trigger_update_status()
         elif event == 'new_transaction':
-            self._trigger_update_wallet()
+            tx, wallet = args
+            if wallet == self.wallet:
+                self._trigger_update_wallet()
         elif event == 'verified':
             self._trigger_update_wallet()
 
@@ -806,7 +808,7 @@ class ElectrumWindow(App):
         Clock.schedule_once(lambda dt: on_success(tx))
 
     def _broadcast_thread(self, tx, on_complete):
-        ok, txid = self.network.broadcast(tx)
+        ok, txid = self.network.broadcast_transaction(tx)
         Clock.schedule_once(lambda dt: on_complete(ok, txid))
 
     def broadcast(self, tx, pr=None):

@@ -55,6 +55,11 @@ class HistoryList(MyTreeWidget):
         self.setSortingEnabled(True)
         self.sortByColumn(0, Qt.AscendingOrder)
 
+        self.monospaceFont = QFont(MONOSPACE_FONT)
+        self.withdrawalBrush = QBrush(QColor("#BC1E1E"))
+        self.invoiceIcon = QIcon(":icons/seal")
+        self.statusIcons = {}
+
     def refresh_headers(self):
         headers = ['', '', _('Date'), _('Description') , _('Amount'), _('Balance')]
         fx = self.parent.fx
@@ -66,6 +71,10 @@ class HistoryList(MyTreeWidget):
         '''Replaced in address_dialog.py'''
         return self.wallet.get_addresses()
 
+    @rate_limited(1.0) # We rate limit the history list refresh no more than once every second
+    def update(self):
+        super().update()
+        
     @profiler
     def on_update(self):
         self.wallet = self.parent.wallet
@@ -79,7 +88,9 @@ class HistoryList(MyTreeWidget):
             tx_hash, height, conf, timestamp, value, balance = h_item
             status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
             has_invoice = self.wallet.invoices.paid.get(tx_hash)
-            icon = QIcon(":icons/" + TX_ICONS[status])
+            if status not in self.statusIcons:
+                self.statusIcons[status] = QIcon(":icons/" + TX_ICONS[status])
+            icon = self.statusIcons[status]
             v_str = self.parent.format_amount(value, True, whitespaces=True)
             balance_str = self.parent.format_amount(balance, whitespaces=True)
             label = self.wallet.get_label(tx_hash)
@@ -94,17 +105,16 @@ class HistoryList(MyTreeWidget):
             item.setToolTip(0, str(conf) + " confirmation" + ("s" if conf != 1 else ""))
             item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
             if has_invoice:
-                item.setIcon(3, QIcon(":icons/seal"))
+                item.setIcon(3, self.invoiceIcon)
             for i in range(len(entry)):
                 if i>3:
                     item.setTextAlignment(i, Qt.AlignRight)
                 if i!=2:
-                    item.setFont(i, QFont(MONOSPACE_FONT))
+                    item.setFont(i, self.monospaceFont)
             if value and value < 0:
-                item.setForeground(3, QBrush(QColor("#BC1E1E")))
-                item.setForeground(4, QBrush(QColor("#BC1E1E")))
-            if tx_hash:
-                item.setData(0, Qt.UserRole, tx_hash)
+                item.setForeground(3, self.withdrawalBrush)
+                item.setForeground(4, self.withdrawalBrush)
+            item.setData(0, Qt.UserRole, tx_hash)
             self.insertTopLevelItem(0, item)
             if current_tx == tx_hash:
                 self.setCurrentItem(item)
@@ -115,7 +125,9 @@ class HistoryList(MyTreeWidget):
         else:
             tx_hash = item.data(0, Qt.UserRole)
             tx = self.wallet.transactions.get(tx_hash)
-            self.parent.show_transaction(tx)
+            if tx:
+                label = self.wallet.get_label(tx_hash) or None
+                self.parent.show_transaction(tx, label)
 
     def update_labels(self):
         root = self.invisibleRootItem()
@@ -155,6 +167,7 @@ class HistoryList(MyTreeWidget):
         tx_URL = web.BE_URL(self.config, 'tx', tx_hash)
         height, conf, timestamp = self.wallet.get_tx_height(tx_hash)
         tx = self.wallet.transactions.get(tx_hash)
+        if not tx: return # this happens sometimes on wallet synch when first starting up.
         is_relevant, is_mine, v, fee = self.wallet.get_wallet_delta(tx)
         is_unconfirmed = height <= 0
         pr_key = self.wallet.invoices.paid.get(tx_hash)
@@ -166,8 +179,8 @@ class HistoryList(MyTreeWidget):
             # We grab a fresh reference to the current item, as it has been deleted in a reported issue.
             menu.addAction(_("Edit {}").format(column_title),
                 lambda: self.currentItem() and self.editItem(self.currentItem(), column))
-
-        menu.addAction(_("Details"), lambda: self.parent.show_transaction(tx))
+        label = self.wallet.get_label(tx_hash) or None
+        menu.addAction(_("Details"), lambda: self.parent.show_transaction(tx, label))
         if is_unconfirmed and tx:
             child_tx = self.wallet.cpfp(tx, 0)
             if child_tx:

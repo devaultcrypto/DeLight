@@ -51,8 +51,8 @@ Development version
 
 Check out the code from Github::
 
-    git clone git://github.com/fyookball/electrum.git
-    cd electrum
+    git clone https://github.com/Electron-Cash/Electron-Cash
+    cd Electron-Cash
 
 Run install (this should install dependencies)::
 
@@ -87,16 +87,29 @@ Creating Binaries
 =================
 
 
-To create binaries, create the 'packages' directory::
+To create binaries, create the 'packages/' directory::
 
     ./contrib/make_packages
 
 This directory contains the python dependencies used by Electron Cash.
 
+The `make_packages` command may fail with some Ubuntu-packaged versions of
+pip ("can't combine user with prefix."). To solve this, it is necessary to
+upgrade your pip to the official version::
+
+    pip install pip --user
+
+Linux (source with packages)
+----------------------------
+
+Run the following to create the release tarball under `dist/`::
+
+    ./setup.py sdist
+
 Mac OS X / macOS
 --------
 
-See `contrib/build-osx/`.
+See `contrib/osx/`.
 
 Windows
 -------

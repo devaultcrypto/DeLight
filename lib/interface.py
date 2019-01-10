@@ -252,9 +252,15 @@ class Interface(util.PrintError):
     - Member variable server.
     """
 
+    MODE_DEFAULT = 'default'
+    MODE_BACKWARD = 'backward'
+    MODE_BINARY = 'binary'
+    MODE_CATCH_UP = 'catch_up'
+    MODE_VERIFICATION = 'verification'
+
     def __init__(self, server, socket):
         self.server = server
-        self.host, _, _ = server.rsplit(':', 2)
+        self.host, self.port, _ = server.rsplit(':', 2)
         self.socket = socket
 
         self.pipe = util.SocketPipe(socket)
@@ -265,6 +271,18 @@ class Interface(util.PrintError):
         self.unanswered_requests = {}
         self.last_send = time.time()
         self.closed_remotely = False
+        
+        self.mode = None
+        
+    def __repr__(self):
+        return "<{}.{} {}>".format(__name__, type(self).__name__, self.format_address())
+
+    def format_address(self):
+        return "{}:{}".format(self.host, self.port)
+
+    def set_mode(self, mode):
+        self.print_error("set_mode({})".format(mode))
+        self.mode = mode
 
     def diagnostic_name(self):
         return self.host
@@ -301,8 +319,8 @@ class Interface(util.PrintError):
         wire_requests = self.unsent_requests[0:n]
         try:
             self.pipe.send_all([make_dict(*r) for r in wire_requests])
-        except socket.error as e:
-            self.print_error("socket error:", e)
+        except (OSError, ssl.SSLError) as e:
+            self.print_error("send_requests: {}: {}".format(type(e).__name__, e))
             return False
         self.unsent_requests = self.unsent_requests[n:]
         for request in wire_requests:

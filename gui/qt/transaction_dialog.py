@@ -94,8 +94,6 @@ class TxDialog(QDialog, MessageBoxMixin):
 
         self.add_io(vbox)
 
-        vbox.addStretch(1)
-
         self.sign_button = b = QPushButton(_("Sign"))
         b.clicked.connect(self.sign)
 
@@ -129,6 +127,18 @@ class TxDialog(QDialog, MessageBoxMixin):
         vbox.addLayout(hbox)
         self.update()
 
+        # connect slots so we update in realtime as blocks come in, etc
+        parent.history_updated_signal.connect(self.update_tx_if_in_wallet)
+        parent.network_signal.connect(self.got_verified_tx)
+
+    def got_verified_tx(self, event, args):
+        if event == 'verified' and args[0] == self.tx.txid():
+            self.update()
+
+    def update_tx_if_in_wallet(self):
+        if self.tx.txid() in self.wallet.transactions:
+            self.update()
+
     def do_broadcast(self):
         if self.window_to_close_on_broadcast:
             self.window_to_close_on_broadcast.close()
@@ -146,7 +156,14 @@ class TxDialog(QDialog, MessageBoxMixin):
             event.ignore()
         else:
             event.accept()
-            dialogs.remove(self)
+            try:
+                dialogs.remove(self)
+            except ValueError:  # wasn't in list
+                pass
+
+    def reject(self):
+        # Override escape-key to close normally (and invoke closeEvent)
+        self.close()
 
     def show_qr(self):
         text = bfh(str(self.tx))
@@ -173,8 +190,6 @@ class TxDialog(QDialog, MessageBoxMixin):
         fileName = self.main_window.getSaveFileName(_("Select where to save your signed transaction"), name, "*.txn")
         if fileName:
             tx_dict = self.tx.as_dict()
-            input_values = [x.get('value') for x in self.tx.inputs()]
-            tx_dict['input_values'] = input_values
             with open(fileName, "w+") as f:
                 f.write(json.dumps(tx_dict, indent=4) + '\n')
             self.show_message(_("Transaction saved successfully"))
@@ -240,14 +255,12 @@ class TxDialog(QDialog, MessageBoxMixin):
         i_text = QTextEdit()
         i_text.setFont(QFont(MONOSPACE_FONT))
         i_text.setReadOnly(True)
-        i_text.setMaximumHeight(100)
 
         vbox.addWidget(i_text)
         vbox.addWidget(QLabel(_("Outputs") + ' (%d)'%len(self.tx.outputs())))
         o_text = QTextEdit()
         o_text.setFont(QFont(MONOSPACE_FONT))
         o_text.setReadOnly(True)
-        o_text.setMaximumHeight(100)
         vbox.addWidget(o_text)
         self.main_window.cashaddr_toggled_signal.connect(
             partial(self.update_io, i_text, o_text))
@@ -300,8 +313,9 @@ class TxDialog(QDialog, MessageBoxMixin):
             if v is not None:
                 if len(addrstr) > 42: # for long outputs, make a linebreak.
                     cursor.insertBlock()
-                    addrstr = "   ^^^"
+                    addrstr = '\u21b3'
                     cursor.insertText(addrstr, ext)
+                # insert enough spaces until column 43, to line up amounts
                 cursor.insertText(' '*(43 - len(addrstr)), ext)
                 cursor.insertText(format_amount(v), ext)
             cursor.insertBlock()

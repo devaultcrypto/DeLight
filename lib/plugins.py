@@ -68,13 +68,14 @@ EXTERNAL_USE_PREFIX = 'use_external_'
 class Plugins(DaemonThread):
 
     @profiler
-    def __init__(self, config, is_local, gui_name):
+    def __init__(self, config, gui_name):
         DaemonThread.__init__(self)
-        if is_local:
+        try:
+            internal_plugins_namespace = __import__('electroncash_plugins')
+        except ImportError:
+            # Assume we're running within the source tree.
             find = imp.find_module('plugins')
             internal_plugins_namespace = imp.load_module('electroncash_plugins', *find)
-        else:
-            internal_plugins_namespace = __import__('electroncash_plugins')
         self.internal_plugins_pkgpath = os.path.dirname(internal_plugins_namespace.__file__)
         self.config = config
         self.gui_name = gui_name
@@ -200,7 +201,7 @@ class Plugins(DaemonThread):
 
         try:
             module = zipfile.load_module(name)
-        except zipimport.ZipImportError:
+        except zipimport.ZipImportError as e:
             self.print_error("unable to load zip plugin '%s' package '%s'" % (plugin_file_path, name), str(e))
             return
 

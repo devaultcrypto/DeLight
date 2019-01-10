@@ -166,27 +166,24 @@ def short_hex(bytes):
 
 def script_GetOp(_bytes):
     i = 0
-    while i < len(_bytes):
+    blen = len(_bytes)
+    while i < blen:
         vch = None
         opcode = _bytes[i]
         i += 1
-        if opcode >= opcodes.OP_SINGLEBYTE_END:
-            opcode <<= 8
-            opcode |= _bytes[i]
-            i += 1
 
         if opcode <= opcodes.OP_PUSHDATA4:
             nSize = opcode
             if opcode == opcodes.OP_PUSHDATA1:
-                nSize = _bytes[i]
+                nSize = _bytes[i] if i < blen else 0
                 i += 1
             elif opcode == opcodes.OP_PUSHDATA2:
-                (nSize,) = struct.unpack_from('<H', _bytes, i)
+                (nSize,) = struct.unpack_from('<H', _bytes, i) if i+2 <= blen else (0,) # tolerate truncated script
                 i += 2
             elif opcode == opcodes.OP_PUSHDATA4:
-                (nSize,) = struct.unpack_from('<I', _bytes, i)
+                (nSize,) = struct.unpack_from('<I', _bytes, i) if i+4 <= blen else (0,)
                 i += 4
-            vch = _bytes[i:i + nSize]
+            vch = _bytes[i:i + nSize] # array slicing here never throws exception even if truncated script
             i += nSize
 
         yield opcode, vch, i
@@ -478,7 +475,6 @@ class Transaction:
                         j = pubkeys.index(pubkey)
                         print_error("adding sig", i, j, pubkey, sig)
                         self._inputs[i]['signatures'][j] = sig
-                        #self._inputs[i]['x_pubkeys'][j] = pubkey
                         break
         # redo raw
         self.raw = self.serialize()
@@ -589,16 +585,20 @@ class Transaction:
 
     @classmethod
     def get_preimage_script(self, txin):
-        if txin['type'] == 'p2pkh':
+        _type = txin['type']
+        if _type == 'p2pkh':
             return txin['address'].to_script().hex()
-        elif txin['type'] in ['p2sh']:
+        elif _type == 'p2sh':
             pubkeys, x_pubkeys = self.get_sorted_pubkeys(txin)
             return multisig_script(pubkeys, txin['num_sig'])
-        elif txin['type'] == 'p2pk':
+        elif _type == 'p2pk':
             pubkey = txin['pubkeys'][0]
             return public_key_to_p2pk_script(pubkey)
+        elif _type == 'unknown':
+            # this approach enables most P2SH smart contracts (but take care if using OP_CODESEPARATOR)
+            return txin['scriptCode']
         else:
-            raise TypeError('Unknown txin type', txin['type'])
+            raise RuntimeError('Unknown txin type', _type)
 
     @classmethod
     def serialize_outpoint(self, txin):
@@ -699,13 +699,14 @@ class Transaction:
     @profiler
     def estimated_size(self):
         '''Return an estimated tx size in bytes.'''
-        return len(self.serialize(True)) / 2 if not self.is_complete() or self.raw is None else len(self.raw) / 2 # ASCII hex string
+        return (len(self.serialize(True)) // 2 if not self.is_complete() or self.raw is None
+                else len(self.raw) // 2)  # ASCII hex string
 
     @classmethod
     def estimated_input_size(self, txin):
         '''Return an estimated of serialized input size in bytes.'''
         script = self.input_script(txin, True)
-        return len(self.serialize_input(txin, script, True)) / 2
+        return len(self.serialize_input(txin, script, True)) // 2  # ASCII hex string
 
     def signature_count(self):
         r = 0
@@ -744,7 +745,6 @@ class Transaction:
                     sig = private_key.sign_digest_deterministic(pre_hash, hashfunc=hashlib.sha256, sigencode = ecdsa.util.sigencode_der)
                     assert public_key.verify_digest(sig, pre_hash, sigdecode = ecdsa.util.sigdecode_der)
                     txin['signatures'][j] = bh2u(sig) + int_to_hex(self.nHashType() & 255, 1)
-                    txin['x_pubkeys'][j] = pubkey
                     txin['pubkeys'][j] = pubkey # needed for fd keys
                     self._inputs[i] = txin
         print_error("is_complete", self.is_complete())
