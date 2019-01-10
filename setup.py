@@ -61,7 +61,7 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
     ]
 
 setup(
-    name="Electron Cash",
+    name="Electron Cash SLP",
     version=version.PACKAGE_VERSION,
     install_requires=requirements + ['pyqt5'],
     extras_require={
@@ -100,10 +100,10 @@ setup(
     },
     scripts=['electron-cash'],
     data_files=data_files,
-    description="Lightweight Bitcoin Cash Wallet",
-    author="Jonald Fyookball",
+    description="Lightweight Bitcoin Cash Wallet with SLP Support",
+    author="Electron Cash LLC",
     author_email="jonf@electroncash.org",
     license="MIT Licence",
     url="http://electroncash.org",
-    long_description="""Lightweight Bitcoin Cash Wallet"""
+    long_description="""Lightweight Bitcoin Cash Wallet with SLP Support"""
 )

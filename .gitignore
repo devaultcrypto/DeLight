@@ -6,7 +6,7 @@ dist/
 *.egg/
 /electrum.py
 contrib/pyinstaller/
-Electron_Cash.egg-info/
+Electron_Cash_SLP.egg-info/
 locale/
 .devlocaltmp/
 *_trial_temp
@@ -30,3 +30,7 @@ xcuserdata/
 
 # IntelliJ Pycharm IDE
 /.idea
+
+# osx build files
+libsecp256k1.0.dylib
+libusb-1.0.dylib

@@ -18,7 +18,7 @@ from lib.util import print_error
 from lib.version import PACKAGE_VERSION as version
 
 
-name = "Electron-Cash"
+name = "Electron-Cash-SLP"
 mainscript = 'electron-cash'
 
 if sys.version_info[:3] < (3, 5, 2):
