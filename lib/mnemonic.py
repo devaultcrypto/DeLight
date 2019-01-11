@@ -118,6 +118,11 @@ class Mnemonic(object):
         filename = filenames.get(lang[0:2], 'english.txt')
         self.wordlist = load_wordlist(filename)
         print_error("wordlist has %d words"%len(self.wordlist))
+
+    def get_suggestions(self, prefix):
+        for w in self.wordlist:
+            if w.startswith(prefix):
+                yield w
     
     @classmethod
     def _get_directory(cls):
