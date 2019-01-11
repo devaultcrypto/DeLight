@@ -181,12 +181,15 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         logo.setMaximumWidth(52)
         vbox.addWidget(QLabel(_("<hr><b>NOTE: This version of Electron Cash is SLP token aware.</b>")))
         vbox.addWidget(logo)
-        vbox.addWidget(QLabel(_("To avoid losing tokens, you should avoid opening a wallet on") + '\n' \
-                                +_("other wallet software that is not aware of SLP.")))
+        vbox.addWidget(QLabel(_("New wallets SLP use m/44'/245'/0' as the address derivation path.") + '\n' \
+                                + _("Funds will not be accessible with non-SLP versions of Electron Cash.")))
+
+        vbox.addWidget(QLabel(_("To avoid losing SLP tokens, you should avoid opening a wallet on") + '\n' \
+                                + _("wallet software not aware of SLP tokens.")))
+                                
         vbox.addWidget(QLabel(_("For more information visit: <a href=\"https://SimpleLedger.cash\">https://SimpleLedger.cash</a>")))
 
-
-        self.set_layout(vbox, title=_('Electron Cash wallet'))
+        self.set_layout(vbox, title=_('Electron Cash SLP wallet'))
 
         wallet_folder = os.path.dirname(self.storage.path)
 
@@ -206,7 +209,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
             if self.storage:
                 if not self.storage.file_exists():
                     msg =_("This file does not exist.") + '\n' \
-                          + _("Press 'Next' to create this wallet, or choose another file.")
+                          + _("Press 'Next' to create this SLP wallet, or choose another file.")
                     pw = False
                 elif self.storage.file_exists() and self.storage.is_encrypted():
                     msg = _("This file is encrypted.") + '\n' + _('Enter your password or choose another file.')
