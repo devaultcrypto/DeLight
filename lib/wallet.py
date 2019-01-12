@@ -317,14 +317,17 @@ class Abstract_Wallet(PrintError):
         # - Upon wallet startup once GUI is loaded, it checks config to see if SLP should be enabled.
         # - During wallet operation, SLP can be freely enabled/disabled by user.
         with self.transaction_lock:
-            if self._enable_slp:
-                return # ignore
+            #if self._enable_slp:
+                #return # ignore
             self._enable_slp = True
 
             for tx_hash, tti in self.tx_tokinfo.items():
                 # Fire up validation on unvalidated txes
-                tx = self.transactions[tx_hash]
-                self.slp_check_validation(tx_hash, tx)
+                try:
+                    tx = self.transactions[tx_hash]
+                    self.slp_check_validation(tx_hash, tx)
+                except KeyError:
+                    self.remove_transaction(tx_hash)
 
     def add_token_type(self, token_id, entry):
         with self.transaction_lock:
@@ -332,8 +335,11 @@ class Abstract_Wallet(PrintError):
             for tx_hash, tti in self.tx_tokinfo.items():
                 # Fire up validation on unvalidated txes of matching token_id
                 if tti['token_id'] == token_id:
-                    tx = self.transactions[tx_hash]
-                    self.slp_check_validation(tx_hash, tx)
+                    try:
+                        tx = self.transactions[tx_hash]
+                        self.slp_check_validation(tx_hash, tx)
+                    except KeyError:
+                        return # Should we Raise or show user a message here?
 
     def disable_slp(self):
         with self.transaction_lock:
@@ -1024,11 +1030,34 @@ class Abstract_Wallet(PrintError):
                         dd.pop(addr)
                     else:
                         dd[addr] = l
+
             try:
                 self.txi.pop(tx_hash)
+            except KeyError as e:
+                self.print_error("txn not in list", tx_hash)
+
+            try:
                 self.txo.pop(tx_hash)
-            except KeyError:
-                self.print_error("tx was not in history", tx_hash)
+            except KeyError as e:
+                self.print_error("txn not in list", tx_hash)      
+
+            try:
+                self.slpv1_validity.pop(tx_hash)
+            except KeyError as e:
+                self.print_error("txn not in list", tx_hash)    
+                
+            try:
+                self.tx_fees.pop(tx_hash)
+            except KeyError as e:
+                self.print_error("txn not in list", tx_hash)    
+
+            try:
+                for addr, addrdict in self._slp_txo.items():
+                    for txid, txdict in addrdict.items():
+                        if txid == tx_hash:
+                            self._slp_txo[addr][tx_hash] = {}
+            except KeyError as e:
+                self.print_error("txn not in list", tx_hash) 
 
     def receive_tx_callback(self, tx_hash, tx, tx_height):
         self.add_transaction(tx_hash, tx)
@@ -1341,6 +1370,7 @@ class Abstract_Wallet(PrintError):
         # Sort the inputs and outputs deterministically
         if not self._enable_slp:
             tx.BIP_LI01_sort()
+            
         # Timelock tx to current height.
         locktime = self.get_local_height()
         if locktime == -1: # We have no local height data (no headers synced).
