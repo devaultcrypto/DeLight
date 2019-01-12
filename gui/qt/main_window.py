@@ -858,7 +858,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 else:
                     bal = format_satoshis_nofloat(self.wallet.get_slp_token_balance(token_id)[0],
                                                   decimal_point=d['decimals'],)
-                    text += "Token Balance: %s; "%(bal,)
+                    text += "%s Token Balance: %s; "%(d['name'], bal)
                 c, u, x = self.wallet.get_balance()
                 text +=  _("BCH Balance" ) + ": %s "%(self.format_amount_and_units(c))
                 if u:
