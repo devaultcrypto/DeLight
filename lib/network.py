@@ -482,11 +482,12 @@ class Network(util.DaemonThread):
             self.socket_queue = queue.Queue()
 
     def set_parameters(self, host, port, protocol, proxy, auto_connect):
-        try:
-            self.save_parameters(host, port, protocol, proxy, auto_connect)
-        except ValueError:
-            return
-        self.load_parameters()
+        with self.interface_lock:
+            try:
+                self.save_parameters(host, port, protocol, proxy, auto_connect)
+            except ValueError:
+                return
+            self.load_parameters()
 
     def save_parameters(self, host, port, protocol, proxy, auto_connect):
         proxy_str = serialize_proxy(proxy)
@@ -753,9 +754,7 @@ class Network(util.DaemonThread):
         '''A connection to server either went down, or was never made.
         We distinguish by whether it is in self.interfaces.'''
         if blacklist:
-            self.blacklisted_servers.add(server)
-            # rt12 --- there might be a better place for this.
-            self.config.set_key("server_blacklist", list(self.blacklisted_servers), True)
+            self.server_set_blacklisted(server, True, True)
         else:
             self.disconnected_servers.add(server)
         if server == self.default_server:
@@ -1623,3 +1622,21 @@ class Network(util.DaemonThread):
             }
             return proxies
         return None
+
+    def server_set_blacklisted(self, server, flag, save=True):
+        if flag:
+            self.blacklisted_servers |= {server}
+            if server in self.interfaces:
+                self.connection_down(server, False)
+        else:
+            self.blacklisted_servers -= {server}
+        self.config.set_key("server_blacklist", list(self.blacklisted_servers), save)
+
+    def server_is_blacklisted(self, server): return server in self.blacklisted_servers
+    def server_get_blacklist(self): return self.blacklisted_servers.copy()
+
+    def server_is_default(self, server):
+        # TODO: save this in a real class variable, and compute it based on what they added/removed from the default list
+        if not hasattr(self, '_default_eligible_servers_'):
+            self._default_eligible_servers_ = frozenset(get_eligible_servers(NetworkConstants.HARDCODED_DEFAULT_SERVERS))
+        return server in self._default_eligible_servers_

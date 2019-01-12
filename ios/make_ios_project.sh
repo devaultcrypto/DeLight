@@ -172,7 +172,7 @@ git checkout send_super_fix
 gitexit2="$?"
 cd ..
 cd ..
-[ "$gitexit" != "0" -o "$gitexit2" != 0 ] && echo '*** Error crabbing the latest rubicon off of github' && exit 1
+[ "$gitexit" != "0" -o "$gitexit2" != 0 ] && echo '*** Error grabbing the latest rubicon off of github' && exit 1
 rm -fr iOS/app_packages/rubicon/objc
 cp -fpvr scratch/rubicon-objc/rubicon/objc iOS/app_packages/rubicon/ 
 [ "$?" != "0" ] && echo '*** Error copying rubicon files' && exit 1
