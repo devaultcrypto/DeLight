@@ -327,19 +327,19 @@ class Abstract_Wallet(PrintError):
                     tx = self.transactions[tx_hash]
                     self.slp_check_validation(tx_hash, tx)
                 except KeyError:
-                    self.remove_transaction(tx_hash)
+                    continue
 
     def add_token_type(self, token_id, entry):
         with self.transaction_lock:
             self.token_types[token_id] = dict(entry)
             for tx_hash, tti in self.tx_tokinfo.items():
                 # Fire up validation on unvalidated txes of matching token_id
-                if tti['token_id'] == token_id:
-                    try:
+                try:
+                    if tti['token_id'] == token_id:
                         tx = self.transactions[tx_hash]
                         self.slp_check_validation(tx_hash, tx)
-                    except KeyError:
-                        return # Should we Raise or show user a message here?
+                except KeyError: # This catches the case where tx_tokinfo was set to {}
+                    continue
 
     def disable_slp(self):
         with self.transaction_lock:
@@ -1031,33 +1031,22 @@ class Abstract_Wallet(PrintError):
                     else:
                         dd[addr] = l
 
-            try:
-                self.txi.pop(tx_hash)
-            except KeyError as e:
-                self.print_error("txn not in list", tx_hash)
+            self.txi.pop(tx_hash)
+            self.txo.pop(tx_hash)
+            self.tx_fees.pop(tx_hash)
 
             try:
-                self.txo.pop(tx_hash)
-            except KeyError as e:
-                self.print_error("txn not in list", tx_hash)      
+                self.tx_tokinfo[tx_hash] = {}
+            except KeyError:
+                pass  
 
-            try:
-                self.slpv1_validity.pop(tx_hash)
-            except KeyError as e:
-                self.print_error("txn not in list", tx_hash)    
-                
-            try:
-                self.tx_fees.pop(tx_hash)
-            except KeyError as e:
-                self.print_error("txn not in list", tx_hash)    
-
-            try:
-                for addr, addrdict in self._slp_txo.items():
-                    for txid, txdict in addrdict.items():
-                        if txid == tx_hash:
+            for addr, addrdict in self._slp_txo.items():
+                for txid, txdict in addrdict.items():
+                    if txid == tx_hash:
+                        try:
                             self._slp_txo[addr][tx_hash] = {}
-            except KeyError as e:
-                self.print_error("txn not in list", tx_hash) 
+                        except:
+                            continue
 
     def receive_tx_callback(self, tx_hash, tx, tx_height):
         self.add_transaction(tx_hash, tx)
