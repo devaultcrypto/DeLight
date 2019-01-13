@@ -60,7 +60,7 @@ if [ -d "~/.pyenv" ]; then
 else
   curl -L https://raw.githubusercontent.com/pyenv/pyenv-installer/master/bin/pyenv-installer | bash > /dev/null 2>&1
 fi
-PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install -s $PYTHON_VERSION && \
+PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install -v -s $PYTHON_VERSION && \
 pyenv global $PYTHON_VERSION && pyenv rehash || \
 fail "Unable to use Python $PYTHON_VERSION"
 

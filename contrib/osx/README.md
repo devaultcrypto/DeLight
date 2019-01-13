@@ -18,7 +18,7 @@ The above ensures that you pull in the OSX helper app, CalinsQRReader.
 ## 2. Use the provided script to begin building.
 
 
-    rm -fr /Users/<user-name>/.local/lib/python3.6/site-packages/Electron_Cash-3.4.3-py3.6.egg
+    rm -rf ~/Library/Python/3.6/lib/python/site-packages/Electron_Cash_SLP-3.X.X-py3.6.egg
     
     ./make_osx
     
