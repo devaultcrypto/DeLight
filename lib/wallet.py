@@ -1037,12 +1037,7 @@ class Abstract_Wallet(PrintError):
             self.tx_tokinfo[tx_hash] = {}
 
             for addr, addrdict in self._slp_txo.items():
-                for txid, txdict in addrdict.copy().items():
-                    if txid == tx_hash:
-                        try:
-                            addrdict[tx_hash] = {}
-                        except KeyError:
-                            continue
+                if tx_hash in addrdict: addrdict[tx_hash] = {}
 
     def receive_tx_callback(self, tx_hash, tx, tx_height):
         self.add_transaction(tx_hash, tx)
