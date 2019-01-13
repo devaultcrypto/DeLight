@@ -1031,21 +1031,17 @@ class Abstract_Wallet(PrintError):
                     else:
                         dd[addr] = l
 
-            self.txi.pop(tx_hash)
-            self.txo.pop(tx_hash)
-            self.tx_fees.pop(tx_hash)
-
-            try:
-                self.tx_tokinfo[tx_hash] = {}
-            except KeyError:
-                pass  
+            self.txi.pop(tx_hash, None)
+            self.txo.pop(tx_hash, None)
+            self.tx_fees.pop(tx_hash, None)
+            self.tx_tokinfo[tx_hash] = {}
 
             for addr, addrdict in self._slp_txo.items():
-                for txid, txdict in addrdict.items():
+                for txid, txdict in addrdict.copy().items():
                     if txid == tx_hash:
                         try:
-                            self._slp_txo[addr][tx_hash] = {}
-                        except:
+                            addrdict[tx_hash] = {}
+                        except KeyError:
                             continue
 
     def receive_tx_callback(self, tx_hash, tx, tx_height):
