@@ -103,9 +103,14 @@ def make_job(tx, wallet, network, debug=False, reset=False, callback_done=None, 
     """
     # This should probably be redone into a class, it is getting messy.
 
-    limit_dls   = config.get('slp_validator_download_limit', None)
-    limit_depth = config.get('slp_validator_depth_limit', None)
-    proxy_enable = config.get('slp_validator_proxy_enabled', False)
+    try:
+        limit_dls   = config.get('slp_validator_download_limit', None)
+        limit_depth = config.get('slp_validator_depth_limit', None)
+        proxy_enable = config.get('slp_validator_proxy_enabled', False)
+    except NameError: # in daemon mode (no GUI) 'config' is not defined
+        limit_dls = None
+        limit_depth = None
+        proxy_enable = False
 
     try:
         graph, jobmgr = setup_job(tx, reset=reset)
