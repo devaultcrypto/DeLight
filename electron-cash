@@ -168,8 +168,8 @@ def run_non_RPC(config):
     elif cmdname == 'create':
         password = password_dialog()
         passphrase = config.get('passphrase', '')
-        seed_type = 'standard'
-        seed = Mnemonic('en').make_seed(seed_type)
+        #seed_type = 'standard'  <--- This is no longer applicable with SLP version since it only uses BIP-39 
+        seed = Mnemonic('en').make_seed()
         k = keystore.from_seed(seed, passphrase, False)
         storage.put('keystore', k.dump())
         storage.put('wallet_type', 'standard')
