@@ -1,0 +1,13 @@
+[Unit]
+Description=SLP Token Validation Service
+After=network.target
+
+[Service]
+User=ubuntu
+ExecStartPre=/bin/sleep 2.0
+ExecStart=/home/ubuntu/Electron-Cash-SLP/electron-cash daemon -v
+ExecStartPost=/bin/sleep 2.0
+ExecStartPost=/home/ubuntu/Electron-Cash-SLP/electron-cash daemon load_wallet
+
+[Install]
+WantedBy=multi-user.target
