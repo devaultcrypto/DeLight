@@ -16,3 +16,4 @@ Electron Cash - SLP Token Edition
 - Merged code base with all recent Electron Cash updates and improvements
 - Add new options to BFP file upload tools
 - Added testnet support for SLP address format, using "slptest:" address prefix
+- Added new contrib module for SLP validation proxy service
