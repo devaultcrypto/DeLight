@@ -112,10 +112,7 @@ class PayToEdit(ScanQRTextEdit):
         if len(lines) == 1:
             data = lines[0]
             """ Since we want to show address URI type to show we need to avoid this infinte loop condition that occurs in the following elif statement """
-            # Since we want to address type to showTo avoid check to see if text contents were changed
-            if self.cached_lines == data:
-                return 
-            elif data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ":") or data.lower().startswith(NetworkConstants.SLPADDR_PREFIX + ":"):
+            if self.cached_lines != data and (data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ":") or data.lower().startswith(NetworkConstants.SLPADDR_PREFIX + ":")):
                 self.cached_lines = data
                 self.scan_f(data)
                 return
