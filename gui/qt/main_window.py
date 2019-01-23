@@ -1363,7 +1363,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.slp_max_button.setFixedWidth(140)
         grid.addWidget(self.slp_max_button, 6, 2)
 
-        msg = _('Amount to be sent.') + '\n\n' \
+        msg = _('Token Amount to be sent.') + '\n\n' \
+              + _("To enable make sure 'Address Mode' is set to SLP.") + '\n\n' \
               + _('The amount will be displayed in red if you do not have enough funds in your wallet.') + ' ' \
               + _('Note that if you have frozen some of your addresses, the available funds will be lower than your total balance.') + '\n\n' \
               + _('Keyboard shortcut: type "!" to send all your coins.')
@@ -1793,7 +1794,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         # if SLP address is provided but no tokens are selected warn the user.
         if self.payto_e.payto_address[1].FMT_UI == Address.FMT_SLPADDR and len(token_outputs) < 1:
-            self.show_error(_("No SLP token outputs selected. Use the 'Token Type' dropdown menu to select a token and then input a token quantity. \n\nIf you want to send BCH only without tokens you should convert the SLP address to cashAddress format using the Address Converter tab that can be enabled from the View menu."))
+            self.show_error(_("No SLP token outputs selected. \n\nUse the 'Token Type' dropdown menu to select a token and then input a token quantity. \n\nIf you want to send BCH only without tokens you should convert this SLP address to a cashAddress format using the 'Address Mode' button in the lower right corner of this window."))
             return
 
         if not outputs:
