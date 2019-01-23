@@ -2067,8 +2067,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if label and not message:
             message = label
         if address:
-            addr = Address.from_string(address)
-            self.payto_e.setText(addr.to_full_string(addr.FMT_UI))
+            self.payto_e.setText(addr.to_full_ui_string())
         if message:
             self.message_e.setText(message)
         if amount:
@@ -3251,18 +3250,29 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.config.set_key('addr_format', format)
         Address.show_cashaddr(format)
         self.setAddrFormatText(format)
+        if format == 2:
+            self.slp_amount_e.setEnabled(True)
+            self.token_type_combo.setEnabled(True)
+        else:
+            self.slp_amount_e.setEnabled(False)
+            self.token_type_combo.setCurrentIndex(0)
+            self.token_type_combo.setEnabled(False)
         for window in self.gui_object.windows:
             window.cashaddr_toggled_signal.emit()
 
     def setAddrFormatText(self, format):
         try:
             if format == 0:
-                self.addr_format_label.setText("Addresses: Legacy")
+                self.addr_format_label.setText("Address Mode: Legacy")
             elif format == 1:
-                self.addr_format_label.setText("Addresses: cashAddr")
+                self.addr_format_label.setText("Address Mode: cashAddr")
             else:
-                self.addr_format_label.setText("Addresses: SLP")
+                self.addr_format_label.setText("Address Mode: SLP")
         except AttributeError:
+            pass
+        try:
+            self.payto_e.setText(self.payto_e.payto_address[1].to_full_ui_string())
+        except:
             pass
 
     def settings_dialog(self):
