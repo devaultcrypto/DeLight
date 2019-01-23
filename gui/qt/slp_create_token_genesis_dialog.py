@@ -106,9 +106,12 @@ class SlpCreateTokenGenesisDialog(QDialog, MessageBoxMixin):
         msg = _('The \'simpleledger:\' formatted bitcoin address for the genesis receiver of all genesis tokens.')
         grid.addWidget(HelpLabel(_('Token Receiver Address:'), msg), row, 0)
         self.token_pay_to_e = ButtonsLineEdit()
-        self.token_pay_to_e.setText(self.wallet.get_unused_address().to_full_ui_string())
         self.token_pay_to_e.setFixedWidth(560)
         grid.addWidget(self.token_pay_to_e, row, 1)
+        try:
+            self.token_pay_to_e.setText(self.wallet.get_unused_address().to_full_ui_string())
+        except: 
+            pass
         row += 1
 
         self.token_fixed_supply_cb = cb = QCheckBox(_('Fixed Supply'))
