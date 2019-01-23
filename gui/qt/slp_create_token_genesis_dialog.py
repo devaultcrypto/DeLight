@@ -303,10 +303,10 @@ class SlpCreateTokenGenesisDialog(QDialog, MessageBoxMixin):
                     token_name = tx.txid()[0:10]
                 else:
                     token_name = self.token_name_e.text()[0:20]
-
+                decimals = int(self.token_ds_e.value())
                 ow = (token_name is not None)
                 ret = self.main_window.add_token_type('SLP1', token_id, token_name, decimals,
-                                                    error_callback = self.show_error, allow_overwrite=ow)
+                                                        error_callback = self.show_error, allow_overwrite=ow)
 
         self.main_window.sign_tx_with_password(tx, sign_done, password)
 
