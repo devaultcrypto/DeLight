@@ -1759,8 +1759,13 @@ class Abstract_Wallet(PrintError):
         out = copy.copy(r)
         addr_text = addr.to_ui_string()
         amount_text = format_satoshis(r['amount'])
-        out['URI'] = '{}:{}?amount={}'.format(NetworkConstants.CASHADDR_PREFIX,
-                                              addr_text, amount_text)
+        if addr.FMT_UI == addr.FMT_CASHADDR:
+            out['URI'] = '{}:{}?amount={}'.format(NetworkConstants.CASHADDR_PREFIX,
+                                                addr_text, amount_text)
+        elif addr.FMT_UI == addr.FMT_SLPADDR:
+            token_id = "<fill tokenId here>"
+            out['URI'] = '{}:{}?amount={}&token={}'.format(NetworkConstants.SLPADDR_PREFIX,
+                                                addr_text, amount_text, token_id)
         status, conf = self.get_request_status(addr)
         out['status'] = status
         if conf is not None:

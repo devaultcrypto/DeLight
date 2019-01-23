@@ -59,6 +59,7 @@ class PayToEdit(ScanQRTextEdit):
         self.scan_f = win.pay_to_URI
         self.update_size()
         self.payto_address = None
+        self.cached_lines = None
 
         self.previous_payto = ''
 
@@ -88,13 +89,9 @@ class PayToEdit(ScanQRTextEdit):
             return bitcoin.TYPE_SCRIPT, ScriptOutput.from_string(x)
 
     def parse_address(self, line):
-        slp_token_type_index=self.parent.token_type_combo.currentIndex()
         r = line.strip()
         m = re.match(RE_ALIAS, r)
         address = m.group(2) if m else r
-        if slp_token_type_index > 0:
-            if NetworkConstants.SLPADDR_PREFIX not in address:
-                address=NetworkConstants.SLPADDR_PREFIX + ":" + address
         return Address.from_string(address)
 
     def parse_amount(self, x):
@@ -114,7 +111,12 @@ class PayToEdit(ScanQRTextEdit):
         self.payto_address = None
         if len(lines) == 1:
             data = lines[0]
-            if data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ":"):
+            """ Since we want to show address URI type to show we need to avoid this infinte loop condition that occurs in the following elif statement """
+            # Since we want to address type to showTo avoid check to see if text contents were changed
+            if self.cached_lines == data:
+                return 
+            elif data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ":") or data.lower().startswith(NetworkConstants.SLPADDR_PREFIX + ":"):
+                self.cached_lines = data
                 self.scan_f(data)
                 return
             try:
@@ -258,7 +260,7 @@ class PayToEdit(ScanQRTextEdit):
 
     def qr_input(self):
         data = super(PayToEdit,self).qr_input()
-        if data and data.startswith("bitcoincash:"):
+        if data and (data.startswith(NetworkConstants.CASHADDR_PREFIX + ":") or data.startswith(NetworkConstants.SLPADDR_PREFIX + ":")):
             self.scan_f(data)
             # TODO: update fee
 

@@ -344,7 +344,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         if not data:
             return
         # if the user scanned a bitcoincash URI
-        if data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ':'):
+        if data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ':') or data.lower().startswith(NetworkConstants.SLPADDR_PREFIX + ':'):
             self.show_error(_("This is not a transaction."))
             return
         # else if the user scanned an offline signed tx

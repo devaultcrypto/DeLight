@@ -1791,8 +1791,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.show_error(str(e))
             return
 
+        # if SLP address is provided but no tokens are selected warn the user.
+        if self.payto_e.payto_address[1].FMT_UI == Address.FMT_SLPADDR and len(token_outputs) < 1:
+            self.show_error(_("No SLP token outputs selected. Use the 'Token Type' dropdown menu to select a token and then input a token quantity. \n\nIf you want to send BCH only without tokens you should convert the SLP address to cashAddress format using the Address Converter tab that can be enabled from the View menu."))
+            return
+
         if not outputs:
-            self.show_error(_('No outputs'))
+            self.show_error(_('No BCH outputs.'))
             return
 
         for _type, addr, amount in outputs:
@@ -1824,7 +1829,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.show_message(_("Insufficient funds"))
             return
         except NotEnoughFundsSlp:
-            self.show_message(_("Insufficient valid token funds"))
+            self.show_message(_("Insufficient valid SLP token funds"))
             return
         except ExcessiveFee:
             self.show_message(_("Your fee is too high.  Max is 50 sat/byte."))
@@ -2040,9 +2045,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
         try:
             out = web.parse_URI(URI, self.on_pr)
+        except web.DebuggerUriException:
+            return
         except Exception as e:
-            # THIS NEEDS TO BE COMMENTED OUT TO WORK WITH VSCODE DEBUGGER
-            #self.show_error(_('Invalid bitcoincash URI:') + '\n' + str(e))
+            self.show_error(_('Invalid bitcoincash or simpleledger URI:') + '\n' + str(e))
             return
         self.show_send_tab()
         r = out.get('r')
@@ -2060,7 +2066,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if label and not message:
             message = label
         if address:
-            self.payto_e.setText(address)
+            addr = Address.from_string(address)
+            self.payto_e.setText(addr.to_full_string(addr.FMT_UI))
         if message:
             self.message_e.setText(message)
         if amount:
@@ -2847,7 +2854,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if not data:
             return
         # if the user scanned a bitcoincash URI
-        if data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ':'):
+        if data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ':') or data.lower().startswith(NetworkConstants.SLPADDR_PREFIX + ':'):
             self.pay_to_URI(data)
             return
         # else if the user scanned an offline signed tx
