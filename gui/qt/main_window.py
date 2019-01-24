@@ -122,14 +122,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.gui_object = gui_object
         self.config = config = gui_object.config
 
-        # If using SLP for the first time, turn it on by default.
-        slp_in_config=self.config.get('enable_slp')
-        if slp_in_config is None or slp_in_config == "":
-            self.toggle_cashaddr(2, True)            
-            self.config.set_key('enable_slp', True)
-            self.config.set_key('show_slp_history_tab',True)
-            self.config.set_key('show_tokens_tab',True) 
-
         #self.setup_exception_hook()
         self.network = gui_object.daemon.network
         self.fx = gui_object.daemon.fx
@@ -151,7 +143,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.tx_notifications = []
         self.tl_windows = []
         self.tx_external_keypairs = {}
-        Address.show_cashaddr(config.get('addr_format', 0))
 
         self.create_status_bar()
         self.need_update = threading.Event()
@@ -446,6 +437,30 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.show()
         self.watching_only_changed()
         self.history_updated_signal.emit() # inform things like address_dialog that there's a new history
+        """ If using SLP for the first time, turn it on by default. """
+        slp_in_config = self.config.get('enable_slp')
+        if slp_in_config is None or slp_in_config == True:
+            self.config.set_key('enable_slp', True)
+            self.config.set_key('show_slp_history_tab',True)
+            self.config.set_key('show_tokens_tab',True)
+            self.toggle_cashaddr(2, True)
+            self.update_receive_address_widget()
+            self.toggle_tab(self.slp_mgt_tab, 1)
+            self.toggle_tab(self.slp_history_tab, 1)
+            Address.show_cashaddr(2)
+        else:
+            self.toggle_cashaddr(1, True)
+            self.slp_amount_e.setAmount(0)
+            self.slp_amount_e.setText("")
+            self.token_type_combo.setCurrentIndex(0)
+            self.toggle_tab(self.slp_mgt_tab, 2)
+            self.toggle_tab(self.slp_history_tab, 2)
+            Address.show_cashaddr(1)
+        self.address_list.update()
+        self.utxo_list.update()
+        self.slp_mgt_tab.update()
+        self.slp_history_tab.update()
+        self.update_cashaddr_icon()
         run_hook('load_wallet', wallet, self)
 
     def init_geometry(self):
@@ -890,7 +905,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         self.tray.setToolTip("%s (%s)" % (text, self.wallet.basename()))
         self.balance_label.setText(text)
-        addr_format = self.config.get('addr_format', 0)
+        addr_format = self.config.get('addr_format', 1)
         self.setAddrFormatText(addr_format)
         self.status_button.setIcon( icon )
         self.need_update.set() # will enqueue an _update_wallet() call in at most 0.5 seconds from now.
@@ -1801,8 +1816,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.show_error(str(e))
             return
 
-        # if SLP address is provided but no tokens are selected warn the user.
-        if self.payto_e.payto_address[1].FMT_UI == Address.FMT_SLPADDR and len(token_outputs) < 1:
+        """ if SLP address is provided but no tokens are selected warn the user. """
+        if Address.FMT_UI == Address.FMT_SLPADDR and len(token_outputs) < 1:
             self.show_error(_("No SLP token outputs selected. \n\nUse the 'Token Type' dropdown menu to select a token and then input a token quantity. \n\nIf you want to send BCH only without tokens you should convert this SLP address to a cashAddress format using the 'Address Mode' button in the lower right corner of this window."))
             return
 
@@ -3238,7 +3253,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.addr_converter_button.setIcon(self.cashaddr_icon())
 
     def toggle_cashaddr_status_bar(self):
-        self.toggle_cashaddr(self.config.get('addr_format', 0))
+        self.toggle_cashaddr(self.config.get('addr_format', 2))
 
     def toggle_cashaddr_settings(self,state):
         self.toggle_cashaddr(state, True)
@@ -3559,15 +3574,16 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.slp_amount_e.setAmount(0)
                 self.slp_amount_e.setText("")
                 self.token_type_combo.setCurrentIndex(0)
-                self.toggle_cashaddr(self.config.get('addr_format', 0) - 1)
+                self.toggle_cashaddr(1, True)
 
             wallet.enable_slp() if x else wallet.disable_slp()
 
             self.update_token_type_combo()
-
+            self.update_cashaddr_icon()
             self.update_tabs()
 
         enable_slp = bool(self.config.get('enable_slp'))
+        on_slptok_pref(enable_slp)
         slp_cb = QCheckBox(_('Enable SLP tokens'))
         slp_cb.setToolTip(_('Enable managing and sending SLP tokens.'))
         slp_cb.setChecked(enable_slp)
