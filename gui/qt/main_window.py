@@ -1740,6 +1740,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             elif self.wallet.send_slpTokenId is None:
                 pass
             elif self.config.get('enable_slp'):
+                """ Check that only a single address is provided (multi-SLP outputs are not supported). 
+                    payto_address is only set when a single valid address input into the 'Pay to' field """
+                if not self.payto_e.payto_address:
+                    self.show_error(_("The SLP address provided is not encoded properly.\n\nSending to a single SLP receiver is supported."))
+                    return
+                """ if SLP formatted address is not provided do not allow token sends. """
+                if self.payto_e.payto_address[1].FMT_UI != Address.FMT_SLPADDR:
+                    self.show_error(_("Address provided is not in SLP Address format.\n\nThe address should be encoded with the URI prefix 'simpleledger:' or 'slptest:'."))
+                    return
                 amt = self.slp_amount_e.get_amount()
                 token_outputs.append(amt)
                 token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0] - amt
@@ -1817,9 +1826,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
 
         """ if SLP address is provided but no tokens are selected warn the user. """
-        if Address.FMT_UI == Address.FMT_SLPADDR and len(token_outputs) < 1:
-            self.show_error(_("No SLP token outputs selected. \n\nUse the 'Token Type' dropdown menu to select a token and then input a token quantity. \n\nIf you want to send BCH only without tokens you should convert this SLP address to a cashAddress format using the 'Address Mode' button in the lower right corner of this window."))
-            return
+        # try:
+        #     if self.payto_e.payto_address[1].FMT_UI == Address.FMT_SLPADDR and len(token_outputs) < 1:
+        #         self.show_error(_("No SLP token outputs selected. \n\nUse the 'Token Type' dropdown menu to select a token. \n\nIf you want to send BCH only without tokens you should convert this SLP address to a cashAddress format using the 'Address Mode' button in the lower right corner of this window."))
+        #         return
+        # except:
+        #     pass
 
         if not outputs:
             self.show_error(_('No BCH outputs.'))
@@ -3277,7 +3289,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         else:
             self.slp_amount_e.setEnabled(False)
             self.token_type_combo.setCurrentIndex(0)
-            self.token_type_combo.setEnabled(False)
+            #self.token_type_combo.setEnabled(False)
         for window in self.gui_object.windows:
             window.cashaddr_toggled_signal.emit()
 
