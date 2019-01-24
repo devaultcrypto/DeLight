@@ -66,9 +66,6 @@ testnet_block_explorers = {
                        {'tx': 'tx', 'addr': 'address'}),
 }
 
-class DebuggerUriException(Exception):
-    '''Exception used for catching errors caused by debugger.'''
-
 def BE_info():
     if NetworkConstants.TESTNET:
         return testnet_block_explorers
@@ -121,14 +118,12 @@ def parse_URI(uri, on_pr=None):
         Address.from_string(uri)
         return {'address': uri}
 
+    if NetworkConstants.CASHADDR_PREFIX not in uri and NetworkConstants.SLPADDR_PREFIX not in uri:
+        raise Exception("Not a URI starting with '{}:' or '{}:'".format(NetworkConstants.CASHADDR_PREFIX, NetworkConstants.SLPADDR_PREFIX))
+
     u = urllib.parse.urlparse(uri)
     # The scheme always comes back in lower case
 
-    if u.scheme == 'file':
-        raise DebuggerUriException("Vscode debugger caused an internal error.")
-
-    if u.scheme != NetworkConstants.CASHADDR_PREFIX and u.scheme != NetworkConstants.SLPADDR_PREFIX:
-        raise Exception("Not a {} or {} URI".format(NetworkConstants.CASHADDR_PREFIX, NetworkConstants.SLPADDR_PREFIX))
     address = u.path
 
     # python for android fails to parse query

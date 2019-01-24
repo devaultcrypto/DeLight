@@ -2055,8 +2055,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
         try:
             out = web.parse_URI(URI, self.on_pr)
-        except web.DebuggerUriException:
-            return
         except Exception as e:
             self.show_error(_('Invalid bitcoincash or simpleledger URI:') + '\n' + str(e))
             return
