@@ -416,9 +416,12 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         if len(string) > 35:
             try:
                 try:
-                    return cls.from_slpaddr_string(string)
+                    addr = cls.from_slpaddr_string(string)
+                    cls.show_cashaddr(2)
                 except: 
-                    return cls.from_cashaddr_string(string)
+                    addr = cls.from_cashaddr_string(string)
+                    cls.show_cashaddr(1)
+                return addr
             except ValueError as e:
                 raise AddressError(str(e))
 

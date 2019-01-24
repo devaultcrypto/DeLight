@@ -118,9 +118,13 @@ class PayToEdit(ScanQRTextEdit):
                 else:
                     return
             try:
-                self.payto_address = self.parse_output(data)
+                self.parse_address(data)
             except Exception as e:
                 self.errors.append((0, str(e)))
+            try:
+                self.payto_address = self.parse_output(data)
+            except:
+                pass
             if self.payto_address:
                 self.win.lock_amount(False)
                 return
