@@ -41,7 +41,7 @@ import PyQt5.QtCore as QtCore
 from PyQt5.QtWidgets import *
 
 from electroncash import keystore
-from electroncash.address import Address, ScriptOutput
+from electroncash.address import Address, ScriptOutput, AddressError
 from electroncash.bitcoin import COIN, TYPE_ADDRESS, TYPE_SCRIPT
 from electroncash.networks import NetworkConstants
 from electroncash.plugins import run_hook
@@ -2056,8 +2056,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             out = web.parse_URI(URI, self.on_pr)
         except Exception as e:
-            self.show_error(_('Invalid bitcoincash or simpleledger URI:') + '\n' + str(e))
-            return
+            raise AddressError(_('Invalid Address URI:') + '\n' + str(e))
         self.show_send_tab()
         r = out.get('r')
         sig = out.get('sig')
@@ -2074,7 +2073,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if label and not message:
             message = label
         if address:
-            self.payto_e.setText(addr.to_full_ui_string())
+            self.payto_e.setText(URI.split('?')[0])
         if message:
             self.message_e.setText(message)
         if amount:

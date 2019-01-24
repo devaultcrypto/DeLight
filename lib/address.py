@@ -378,7 +378,7 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         prefix = NetworkConstants.CASHADDR_PREFIX
         if string.upper() == string:
             prefix = prefix.upper()
-        if not string.startswith(prefix + ':'):
+        if ':' not in string:
             string = ':'.join([prefix, string])
         addr_prefix, kind, addr_hash = cashaddr.decode(string)
         if addr_prefix != prefix:
@@ -397,7 +397,7 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         prefix = NetworkConstants.SLPADDR_PREFIX
         if string.upper() == string:
             prefix = prefix.upper()
-        if not string.startswith(prefix + ':'):
+        if ':' not in string:
             string = ':'.join([prefix, string])
         addr_prefix, kind, addr_hash = cashaddr.decode(string)
         if addr_prefix != prefix:

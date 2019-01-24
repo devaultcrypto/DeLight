@@ -31,7 +31,7 @@ from .qrtextedit import ScanQRTextEdit
 import re
 from decimal import Decimal
 from electroncash import bitcoin
-from electroncash.address import Address, ScriptOutput
+from electroncash.address import Address, ScriptOutput, AddressError
 from electroncash.networks import NetworkConstants
 
 from . import util
@@ -59,7 +59,6 @@ class PayToEdit(ScanQRTextEdit):
         self.scan_f = win.pay_to_URI
         self.update_size()
         self.payto_address = None
-        self.cached_lines = None
 
         self.previous_payto = ''
 
@@ -111,15 +110,17 @@ class PayToEdit(ScanQRTextEdit):
         self.payto_address = None
         if len(lines) == 1:
             data = lines[0]
-            """ Since we want to show address URI type to show we need to avoid this infinte loop condition that occurs in the following elif statement """
-            if self.cached_lines != data and (data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ":") or data.lower().startswith(NetworkConstants.SLPADDR_PREFIX + ":")):
-                self.cached_lines = data
-                self.scan_f(data)
-                return
+            if '?' in data and ':' in data:
+                try: 
+                    self.scan_f(data)
+                except AddressError as e:
+                    self.errors.append((0, str(e)))
+                else:
+                    return
             try:
                 self.payto_address = self.parse_output(data)
-            except:
-                pass
+            except Exception as e:
+                self.errors.append((0, str(e)))
             if self.payto_address:
                 self.win.lock_amount(False)
                 return
@@ -128,8 +129,9 @@ class PayToEdit(ScanQRTextEdit):
         for i, line in enumerate(lines):
             try:
                 _type, to_address, amount = self.parse_address_and_amount(line)
-            except:
-                self.errors.append((i, line.strip()))
+            except Exception as e:
+                if len(self.errors) < 1:
+                    self.errors.append((i, line.strip()))
                 continue
 
             outputs.append((_type, to_address, amount))
