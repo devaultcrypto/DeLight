@@ -288,8 +288,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.history_list.update()
             self.history_updated_signal.emit() # inform things like address_dialog that there's a new history
 
-    def toggle_tab(self, tab):
-        show = self.tabs.indexOf(tab) == -1
+    def toggle_tab(self, tab, forceStatus = 0):
+
+        # forceStatus = 0 , do nothing
+        # forceStatus = 1 , force Show
+        # forceStatus = 2 , force hide
+        if forceStatus==1:
+            show=True
+        elif forceStatus==2:
+            show=False
+        else:
+            show = not self.config.get('show_{}_tab'.format(tab.tab_name), False)
         self.config.set_key('show_{}_tab'.format(tab.tab_name), show)
         item_text = (_("Hide") if show else _("Show")) + " " + tab.tab_description
         tab.menu_action.setText(item_text)
