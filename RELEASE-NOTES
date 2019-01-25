@@ -1,6 +1,6 @@
 Electron Cash - SLP Token Edition
 
-3.4.2 Features
+3.4.2 Updates & Features
 -----
 - Simple Ledger Protocol (SLP) token transaction capability
 - Local DAG validation engine (limited to depth of X)
@@ -8,8 +8,7 @@ Electron Cash - SLP Token Edition
 - UI/UX for INIT / MINT batons
 - Added Bitcoin Files Protocol (BFP) Upload / Download Tools
 
-
-3.4.3 Features
+3.4.3 Updates & Features
 -----
 - New SLP wallets will use BIP-39/44 with path m/44'/245'/0' (SLP is registered as coin type 245 at https://github.com/satoshilabs/slips/blob/master/slip-0044.md)
 - Created a new wallet type, called "bip39-slp" to prevent from opening SLP wallet files with mainline Electron Cash.
@@ -17,3 +16,14 @@ Electron Cash - SLP Token Edition
 - Add new options to BFP file upload tools
 - Added testnet support for SLP address format, using "slptest:" address prefix
 - Added new contrib module for SLP validation proxy service
+
+3.4.4 Updates & Features
+-----
+- Always startup with SLP address format selected
+- Disable OP_RETURN tool when SLP is enabled
+- Improvements for Genesis/Add/Mint SLP Token dialogs
+- Improved URI parsing logic for single line addresses
+- Fixed URI parsing bug caused by VSCode Debugger
+- Added a prefix auto-fill for addresses pasted into PayTo field of send tab
+- Reworked code that requires SLP address to be provided when sending SLP tokens
+- Fixed bug in EC preferences menu
