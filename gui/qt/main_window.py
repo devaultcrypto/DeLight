@@ -440,6 +440,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         """ If using SLP for the first time, turn it on by default. """
         slp_in_config = self.config.get('enable_slp')
         if slp_in_config is None or slp_in_config == True:
+            self.config.set_key('enable_opreturn', False)
+            self.message_opreturn_e.setHidden(True)
+            self.opreturn_rawhex_cb.setHidden(True)
+            self.opreturn_label.setHidden(True)
             self.config.set_key('enable_slp', True)
             self.config.set_key('show_slp_history_tab',True)
             self.config.set_key('show_tokens_tab',True)
@@ -1397,7 +1401,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(self.token_type_combo, 7, 1)
 
 
-        if not self.config.get('enable_slp'):
+        if self.config.get('enable_slp') == False:
             self.slp_amount_label.setHidden(True)
             self.slp_token_type_label.setHidden(True)
             self.token_type_combo.setHidden(True)
@@ -1722,7 +1726,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         token_outputs = []
         opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
         try:
-            if self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
+            if self.wallet.send_slpTokenId == None and (opreturn_message != '' and opreturn_message != None):
                 if self.config.get('enable_slp'):
                     try:
                         slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
@@ -1813,20 +1817,23 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 """ end of logic copied from wallet.py """
                 change_addr = change_addrs[0]
                 outputs.append((TYPE_ADDRESS, change_addr, 546))
-        try:
-            # handle op_return if specified and enabled
-            opreturn_message = self.message_opreturn_e.text()
-            if opreturn_message:
-                if self.opreturn_rawhex_cb.isChecked():
-                    outputs.append(self.output_for_opreturn_rawhex(opreturn_message))
-                else:
-                    outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
-        except OPReturnTooLarge as e:
-            self.show_error(str(e))
-            return
-        except OPReturnError as e:
-            self.show_error(str(e))
-            return
+
+        """ Only Allow OP_RETURN if SLP is disabled. """
+        if not self.config.get('enable_slp'):
+            try:
+                # handle op_return if specified and enabled
+                opreturn_message = self.message_opreturn_e.text()
+                if opreturn_message:
+                    if self.opreturn_rawhex_cb.isChecked():
+                        outputs.append(self.output_for_opreturn_rawhex(opreturn_message))
+                    else:
+                        outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
+            except OPReturnTooLarge as e:
+                self.show_error(str(e))
+                return
+            except OPReturnError as e:
+                self.show_error(str(e))
+                return
 
         """ if SLP address is provided but no tokens are selected warn the user. """
         # try:
@@ -3561,6 +3568,22 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         ccy_combo = QComboBox()
         ex_combo = QComboBox()
 
+        def on_opret(x):
+            self.config.set_key('enable_opreturn', bool(x))
+            if not x:
+                self.message_opreturn_e.setText("")
+                self.op_return_toolong = False
+            self.message_opreturn_e.setHidden(not x)
+            self.opreturn_rawhex_cb.setHidden(not x)
+            self.opreturn_label.setHidden(not x)
+
+        enable_opreturn = bool(self.config.get('enable_opreturn'))
+        opret_cb = QCheckBox(_('Enable OP_RETURN output'))
+        opret_cb.setToolTip(_('Enable posting messages with OP_RETURN.'))
+        opret_cb.setChecked(enable_opreturn)
+        opret_cb.stateChanged.connect(on_opret)
+        tx_widgets.append((opret_cb,None))
+
         def on_slptok_pref(x):
             x = bool(x)
             self.config.set_key('enable_slp', x)
@@ -3577,11 +3600,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.toggle_tab(self.slp_mgt_tab, 1)
                 self.toggle_tab(self.slp_history_tab, 1)
                 opret_cb.setChecked(False)
+                opret_cb.setDisabled(True)
                 self.config.set_key('enable_opreturn',False)
                 self.toggle_cashaddr(2, True)
             else:
                 self.toggle_tab(self.slp_mgt_tab, 2)
                 self.toggle_tab(self.slp_history_tab, 2)
+                opret_cb.setEnabled(True)
                 self.slp_amount_e.setAmount(0)
                 self.slp_amount_e.setText("")
                 self.token_type_combo.setCurrentIndex(0)
@@ -3600,22 +3625,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         slp_cb.setChecked(enable_slp)
         slp_cb.stateChanged.connect(on_slptok_pref)
         tx_widgets.append((slp_cb, None))
-
-        def on_opret(x):
-            self.config.set_key('enable_opreturn', bool(x))
-            if not x:
-                self.message_opreturn_e.setText("")
-                self.op_return_toolong = False
-            self.message_opreturn_e.setHidden(not x)
-            self.opreturn_rawhex_cb.setHidden(not x)
-            self.opreturn_label.setHidden(not x)
-
-        enable_opreturn = bool(self.config.get('enable_opreturn'))
-        opret_cb = QCheckBox(_('Enable OP_RETURN output'))
-        opret_cb.setToolTip(_('Enable posting messages with OP_RETURN.'))
-        opret_cb.setChecked(enable_opreturn)
-        opret_cb.stateChanged.connect(on_opret)
-        tx_widgets.append((opret_cb,None))
 
         def update_currencies():
             if not self.fx: return
