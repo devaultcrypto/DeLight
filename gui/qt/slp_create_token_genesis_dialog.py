@@ -109,7 +109,8 @@ class SlpCreateTokenGenesisDialog(QDialog, MessageBoxMixin):
         self.token_pay_to_e.setFixedWidth(560)
         grid.addWidget(self.token_pay_to_e, row, 1)
         try:
-            self.token_pay_to_e.setText(self.wallet.get_unused_address().to_full_ui_string())
+            slpAddr = self.wallet.get_unused_address().to_slpaddr()
+            self.token_pay_to_e.setText(Address.prefix_from_address_string(slpAddr) + ":" + slpAddr)
         except: 
             pass
         row += 1

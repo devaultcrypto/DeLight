@@ -287,6 +287,8 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         self.newtoken_genesis_message = slpMsg
 
         self.add_button.setDisabled(False)
+        self.activateWindow()
+        self.raise_()
 
     def fail_genesis_info(self, message):
         self.token_info_e.setText(message)
