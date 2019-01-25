@@ -59,7 +59,7 @@ class PayToEdit(ScanQRTextEdit):
         self.scan_f = win.pay_to_URI
         self.update_size()
         self.payto_address = None
-
+        self.address_string_for_slp_check = ''
         self.previous_payto = ''
 
     def setFrozen(self, b):
@@ -110,21 +110,25 @@ class PayToEdit(ScanQRTextEdit):
         self.payto_address = None
         if len(lines) == 1:
             data = lines[0]
-            if '?' in data and ':' in data:
+            if ':' in data and '?' in data and len(data) > 35:
                 try: 
                     self.scan_f(data)
                 except AddressError as e:
                     self.errors.append((0, str(e)))
                 else:
                     return
+            elif ':' not in data and len(data) > 35:
+                self.setText(Address.prefix_from_address_string(data) + ':' + data)
+                return
             try:
                 self.parse_address(data)
             except Exception as e:
                 self.errors.append((0, str(e)))
             try:
                 self.payto_address = self.parse_output(data)
+                self.address_string_for_slp_check = data
             except:
-                pass
+                self.address_string_for_slp_check = ''
             if self.payto_address:
                 self.win.lock_amount(False)
                 return

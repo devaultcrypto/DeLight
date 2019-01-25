@@ -351,8 +351,8 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
     FMT_BITPAY = 2   # Supported temporarily only for compatibility
     FMT_SLPADDR = 3
 
-    # Default to CashAddr
-    FMT_UI = FMT_CASHADDR
+    # Default to CashAddr using 'simpleledger' or 'slptest' prefix
+    FMT_UI = FMT_SLPADDR
 
     def __new__(cls, hash160, kind):
         assert kind in (cls.ADDR_P2PKH, cls.ADDR_P2SH)
@@ -416,12 +416,9 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         if len(string) > 35:
             try:
                 try:
-                    addr = cls.from_slpaddr_string(string)
-                    cls.show_cashaddr(2)
+                    return cls.from_slpaddr_string(string)
                 except: 
-                    addr = cls.from_cashaddr_string(string)
-                    cls.show_cashaddr(1)
-                return addr
+                    return cls.from_cashaddr_string(string)
             except ValueError as e:
                 raise AddressError(str(e))
 
@@ -445,6 +442,22 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
             raise AddressError('unknown version byte: {}'.format(verbyte))
 
         return cls(hash160, kind)
+
+    @classmethod
+    def prefix_from_address_string(cls, string):
+        '''Get address prefix from address string which may be missing the prefix.'''
+        if len(string) > 35:
+            try:
+                cls.from_slpaddr_string(string)
+                return NetworkConstants.SLPADDR_PREFIX
+            except: 
+                pass
+            try:
+                cls.from_cashaddr_string(string)
+                return NetworkConstants.CASHADDR_PREFIX
+            except:
+                pass
+        return ''
 
     @classmethod
     def is_valid(cls, string):

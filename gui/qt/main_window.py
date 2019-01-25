@@ -1385,7 +1385,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         self.slp_max_button = EnterButton(_("Max"), self.slp_spend_max)
         self.slp_max_button.setFixedWidth(140)
-        grid.addWidget(self.slp_max_button, 6, 2)
+        grid.addWidget(self.slp_max_button, 6, 3)
 
         msg = _('Token Amount to be sent.') + '\n\n' \
               + _("To enable make sure 'Address Mode' is set to SLP.") + '\n\n' \
@@ -1740,14 +1740,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             elif self.wallet.send_slpTokenId is None:
                 pass
             elif self.config.get('enable_slp'):
-                """ Check that only a single address is provided (multi-SLP outputs are not supported). 
-                    payto_address is only set when a single valid address input into the 'Pay to' field """
-                if not self.payto_e.payto_address:
-                    self.show_error(_("The SLP address provided is not encoded properly.\n\nSending to a single SLP receiver is supported."))
+                """ Guard against multiline 'Pay To' field """
+                if self.payto_e.is_multiline():
+                    self.show_error(_("Too many receivers listed.\n\nCurrently this wallet only supports a single SLP token receiver."))
                     return
-                """ if SLP formatted address is not provided do not allow token sends. """
-                if self.payto_e.payto_address[1].FMT_UI != Address.FMT_SLPADDR:
-                    self.show_error(_("Address provided is not in SLP Address format.\n\nThe address should be encoded with the URI prefix 'simpleledger:' or 'slptest:'."))
+                """ Guard against bad address encoding """
+                if not self.payto_e.payto_address:
+                    self.show_error(_("The SLP address provided is not encoded properly."))
+                    return
+                """ Require SLPADDR prefix in 'Pay To' field. """
+                if NetworkConstants.SLPADDR_PREFIX not in self.payto_e.address_string_for_slp_check:
+                    self.show_error(_("Address provided is not in SLP Address format.\n\nThe address should be encoded using 'simpleledger:' or 'slptest:' URI prefix."))
                     return
                 amt = self.slp_amount_e.get_amount()
                 token_outputs.append(amt)
