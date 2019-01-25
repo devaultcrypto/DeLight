@@ -3296,16 +3296,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def setAddrFormatText(self, format):
         try:
             if format == 0:
-                self.addr_format_label.setText("Address Mode: Legacy")
+                self.addr_format_label.setText("Addr Format: Legacy")
             elif format == 1:
-                self.addr_format_label.setText("Address Mode: cashAddr")
+                self.addr_format_label.setText("Addr Format: Cash")
             else:
-                self.addr_format_label.setText("Address Mode: SLP")
+                self.addr_format_label.setText("Addr Format: SLP")
         except AttributeError:
-            pass
-        try:
-            self.payto_e.setText(self.payto_e.payto_address[1].to_full_ui_string())
-        except:
             pass
 
     def settings_dialog(self):
