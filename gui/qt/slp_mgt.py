@@ -83,26 +83,26 @@ class SlpMgt(MyTreeWidget):
         menu = QMenu()
         selected = self.selectedItems()
         current = self.currentItem()
-        if current:
-            token_id = current.data(0, Qt.UserRole)
-            menu.addAction(_("Details"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = token_id, token_name=current.text(1) ))
-        if selected:
+        if len(selected) == 1:
             names = [item.text(0) for item in selected]
             keys = [item.text(0) for item in selected]
+            try:
+                self.parent.wallet.get_slp_token_baton(keys[0])
+                menu.addAction(_("Mint more of this token"), lambda: SlpCreateTokenMintDialog(self.parent, keys[0]))
+            except SlpNoMintingBatonFound:
+                pass
             column = self.currentColumn()
             column_title = self.headerItem().text(column)
             column_data = '\n'.join([item.text(column) for item in selected])
             menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
             menu.addAction(_("Remove this token"), lambda: self.parent.delete_slp_token(keys))
+            if current:
+                token_id = current.data(0, Qt.UserRole)
+                menu.addAction(_("View Token Details"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = token_id, token_name=current.text(1) ))
+            menu.addSeparator()
+        
         menu.addAction(_("Add existing token"), lambda: SlpAddTokenDialog(self.parent,))
-
         menu.addAction(_("Create a new token"), lambda: SlpCreateTokenGenesisDialog(self.parent,))
-        if len(selected) == 1:
-            try:
-                self.parent.wallet.get_slp_token_baton(keys[0])
-                menu.addAction(_("Mint this token"), lambda: SlpCreateTokenMintDialog(self.parent, keys[0]))
-            except SlpNoMintingBatonFound:
-                pass
 
         run_hook('create_contact_menu', menu, selected)
         menu.exec_(self.viewport().mapToGlobal(position))
