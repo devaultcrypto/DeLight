@@ -32,7 +32,7 @@ import re
 from decimal import Decimal
 from electroncash import bitcoin
 from electroncash.address import Address, ScriptOutput, AddressError
-from electroncash.networks import NetworkConstants
+from electroncash import networks
 
 from . import util
 

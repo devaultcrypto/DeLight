@@ -27,11 +27,10 @@ from collections import namedtuple
 import hashlib
 import struct
 
-from . import cashaddr
+from . import cashaddr, networks
 from .enum import Enumeration
 from .bitcoin import EC_KEY, is_minikey, minikey_to_private_key
 from .util import cachedproperty
-from .networks import NetworkConstants
 
 _sha256 = hashlib.sha256
 _new_hash = hashlib.new
@@ -143,16 +142,17 @@ class PublicKey(namedtuple("PublicKeyTuple", "pubkey")):
         return cls(to_bytes(pubkey))
 
     @classmethod
-    def privkey_from_WIF_privkey(cls, WIF_privkey):
+    def privkey_from_WIF_privkey(cls, WIF_privkey, *, net=None):
         '''Given a WIF private key (or minikey), return the private key as
         binary and a boolean indicating whether it was encoded to
         indicate a compressed public key or not.
         '''
+        if net is None: net = networks.net
         if is_minikey(WIF_privkey):
             # The Casascius coins were uncompressed
             return minikey_to_private_key(WIF_privkey), False
         raw = Base58.decode_check(WIF_privkey)
-        if not raw or raw[0] != NetworkConstants.WIF_PREFIX:
+        if not raw or raw[0] != net.WIF_PREFIX:
             raise ValueError('private key has invalid WIF prefix')
         if len(raw) == 34 and raw[-1] == 1:
             return raw[1:33], True
@@ -359,7 +359,7 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         hash160 = to_bytes(hash160)
         assert len(hash160) == 20
         ret = super().__new__(cls, hash160, kind)
-        ret._addr2str_cache = [None for i in range(0,3)] # <-- range limit should be 1 + the last FMT_* above.
+        ret._addr2str_cache = [None for i in range(0,4)] # <-- range limit should be 1 + the last FMT_* above.
         return ret
 
     @classmethod
@@ -373,9 +373,10 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
 
 
     @classmethod
-    def from_cashaddr_string(cls, string):
+    def from_cashaddr_string(cls, string, *, net=None):
         '''Construct from a cashaddress string.'''
-        prefix = NetworkConstants.CASHADDR_PREFIX
+        if net is None: net = networks.net
+        prefix = net.CASHADDR_PREFIX
         if string.upper() == string:
             prefix = prefix.upper()
         if ':' not in string:
@@ -392,9 +393,10 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
             raise AddressError('address has unexpected kind {}'.format(kind))
 
     @classmethod
-    def from_slpaddr_string(cls, string):
+    def from_slpaddr_string(cls, string, *, net=None):
         '''Construct from a slpaddress string.'''
-        prefix = NetworkConstants.SLPADDR_PREFIX
+        if net is None: net = networks.net
+        prefix = net.SLPADDR_PREFIX
         if string.upper() == string:
             prefix = prefix.upper()
         if ':' not in string:
@@ -411,14 +413,15 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
             raise AddressError('address has unexpected kind {}'.format(kind))
 
     @classmethod
-    def from_string(cls, string):
+    def from_string(cls, string, *, net=None):
         '''Construct from an address string.'''
+        if net is None: net = networks.net
         if len(string) > 35:
             try:
                 try:
-                    return cls.from_slpaddr_string(string)
+                    return cls.from_slpaddr_string(string, net=net)
                 except: 
-                    return cls.from_cashaddr_string(string)
+                    return cls.from_cashaddr_string(string, net=net)
             except ValueError as e:
                 raise AddressError(str(e))
 
@@ -432,11 +435,11 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
             raise AddressError('invalid address: {}'.format(string))
 
         verbyte, hash160 = raw[0], raw[1:]
-        if verbyte in [NetworkConstants.ADDRTYPE_P2PKH,
-                       NetworkConstants.ADDRTYPE_P2PKH_BITPAY]:
+        if verbyte in [net.ADDRTYPE_P2PKH,
+                       net.ADDRTYPE_P2PKH_BITPAY]:
             kind = cls.ADDR_P2PKH
-        elif verbyte in [NetworkConstants.ADDRTYPE_P2SH,
-                         NetworkConstants.ADDRTYPE_P2SH_BITPAY]:
+        elif verbyte in [net.ADDRTYPE_P2SH,
+                         net.ADDRTYPE_P2SH_BITPAY]:
             kind = cls.ADDR_P2SH
         else:
             raise AddressError('unknown version byte: {}'.format(verbyte))
@@ -444,33 +447,36 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         return cls(hash160, kind)
 
     @classmethod
-    def prefix_from_address_string(cls, string):
+    def prefix_from_address_string(cls, string, *, net=None):
         '''Get address prefix from address string which may be missing the prefix.'''
+        if net is None: net = networks.net
         if len(string) > 35:
             try:
-                cls.from_slpaddr_string(string)
-                return NetworkConstants.SLPADDR_PREFIX
+                cls.from_slpaddr_string(string, net=net)
+                return net.SLPADDR_PREFIX
             except: 
                 pass
             try:
-                cls.from_cashaddr_string(string)
-                return NetworkConstants.CASHADDR_PREFIX
+                cls.from_cashaddr_string(string, net=net)
+                return net.CASHADDR_PREFIX
             except:
                 pass
         return ''
 
     @classmethod
-    def is_valid(cls, string):
+    def is_valid(cls, string, *, net=None):
+        if net is None: net = networks.net
         try:
-            cls.from_string(string)
+            cls.from_string(string, net=net)
             return True
         except Exception:
             return False
 
     @classmethod
-    def from_strings(cls, strings):
+    def from_strings(cls, strings, *, net=None):
         '''Construct a list from an iterable of strings.'''
-        return [cls.from_string(string) for string in strings]
+        if net is None: net = networks.net
+        return [cls.from_string(string, net=net) for string in strings]
 
     @classmethod
     def from_pubkey(cls, pubkey):
@@ -496,84 +502,95 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         return cls(hash160(script), cls.ADDR_P2SH)
 
     @classmethod
-    def to_strings(cls, fmt, addrs):
+    def to_strings(cls, fmt, addrs, *, net=None):
         '''Construct a list of strings from an iterable of Address objects.'''
-        return [addr.to_string(fmt) for addr in addrs]
+        if net is None: net = networks.net
+        return [addr.to_string(fmt, net=net) for addr in addrs]
 
-    def to_cashaddr(self):
+    def to_cashaddr(self, *, net=None):
+        if net is None: net = networks.net
         if self.kind == self.ADDR_P2PKH:
             kind  = cashaddr.PUBKEY_TYPE
         else:
             kind  = cashaddr.SCRIPT_TYPE
-        return cashaddr.encode(NetworkConstants.CASHADDR_PREFIX, kind,
-                               self.hash160)
-    def to_slpaddr(self):
+        return cashaddr.encode(net.CASHADDR_PREFIX, kind, self.hash160)
+
+    def to_slpaddr(self, *, net=None):
+        if net is None: net = networks.net
         if self.kind == self.ADDR_P2PKH:
             kind  = cashaddr.PUBKEY_TYPE
         else:
             kind  = cashaddr.SCRIPT_TYPE
-        return cashaddr.encode(NetworkConstants.SLPADDR_PREFIX, kind,
-                               self.hash160)
+        return cashaddr.encode(net.SLPADDR_PREFIX, kind, self.hash160)
 
-    def to_string(self, fmt):
+    def to_string(self, fmt, *, net=None):
         '''Converts to a string of the given format.'''
-        try:
-            cached = self._addr2str_cache[fmt]
-            if cached:
-                return cached
-        except IndexError:
-            pass
-        except TypeError:
-            raise AddressError('unrecognised format')
+        if net is None: net = networks.net
+        if net is networks.net:
+            try:
+                cached = self._addr2str_cache[fmt]
+                if cached:
+                    return cached
+            except (TypeError, IndexError):
+                raise AddressError('unrecognised format')
 
         if fmt == self.FMT_CASHADDR:
-            cached = self.to_cashaddr()
-            self._addr2str_cache[fmt] = cached
+            cached = self.to_cashaddr(net=net)
+            if net is networks.net:
+                self._addr2str_cache[fmt] = cached
             return cached
 
         if fmt == self.FMT_SLPADDR:
-            return self.to_slpaddr()
+            cached = self.to_slpaddr(net=net)
+            if net is networks.net:
+                self._addr2str_cache[fmt] = cached
+            return cached
 
         if fmt == self.FMT_LEGACY:
             if self.kind == self.ADDR_P2PKH:
-                verbyte = NetworkConstants.ADDRTYPE_P2PKH
+                verbyte = net.ADDRTYPE_P2PKH
             else:
-                verbyte = NetworkConstants.ADDRTYPE_P2SH
+                verbyte = net.ADDRTYPE_P2SH
         elif fmt == self.FMT_BITPAY:
             if self.kind == self.ADDR_P2PKH:
-                verbyte = NetworkConstants.ADDRTYPE_P2PKH_BITPAY
+                verbyte = net.ADDRTYPE_P2PKH_BITPAY
             else:
-                verbyte = NetworkConstants.ADDRTYPE_P2SH_BITPAY
+                verbyte = net.ADDRTYPE_P2SH_BITPAY
         else:
             # This should never be reached due to cache-lookup check above. But leaving it in as it's a harmless sanity check.
             raise AddressError('unrecognised format')
 
         cached = Base58.encode_check(bytes([verbyte]) + self.hash160)
-        self._addr2str_cache[fmt] = cached
+        if net is networks.net:
+            self._addr2str_cache[fmt] = cached
         return cached
 
-    def to_full_string(self, fmt):
+    def to_full_string(self, fmt, *, net=None):
         '''Convert to text, with a URI prefix for cashaddr format.'''
-        text = self.to_string(fmt)
+        if net is None: net = networks.net
+        text = self.to_string(fmt, net=net)
         if fmt == self.FMT_CASHADDR:
-            text = ':'.join([NetworkConstants.CASHADDR_PREFIX, text])
+            text = ':'.join([net.CASHADDR_PREFIX, text])
         if fmt == self.FMT_SLPADDR:
-            text = ':'.join([NetworkConstants.SLPADDR_PREFIX, text])
+            text = ':'.join([net.SLPADDR_PREFIX, text])
         return text
 
-    def to_ui_string(self):
+    def to_ui_string(self, *, net=None):
         '''Convert to text in the current UI format choice.'''
-        return self.to_string(self.FMT_UI)
+        if net is None: net = networks.net
+        return self.to_string(self.FMT_UI, net=net)
 
-    def to_full_ui_string(self):
+    def to_full_ui_string(self, *, net=None):
         '''Convert to text, with a URI prefix if cashaddr.'''
-        return self.to_full_string(self.FMT_UI)
+        if net is None: net = networks.net
+        return self.to_full_string(self.FMT_UI, net=net)
 
-    def to_URI_components(self):
+    def to_URI_components(self, *, net=None):
         '''Returns a (scheme, path) pair for building a URI.'''
-        scheme = NetworkConstants.CASHADDR_PREFIX
-        scheme2 = NetworkConstants.SLPADDR_PREFIX
-        path = self.to_ui_string()
+        if net is None: net = networks.net
+        scheme = net.CASHADDR_PREFIX
+        scheme2 = net.SLPADDR_PREFIX
+        path = self.to_ui_string(net=net)
         # Convert to upper case if CashAddr
         if self.FMT_UI == self.FMT_CASHADDR:
             scheme = scheme.upper()
@@ -583,9 +600,10 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
             path = path.upper()
         return scheme, path
 
-    def to_storage_string(self):
+    def to_storage_string(self, *, net=None):
         '''Convert to text in the storage format.'''
-        return self.to_string(self.FMT_LEGACY)
+        if net is None: net = networks.net
+        return self.to_string(self.FMT_LEGACY, net=net)
 
     def to_script(self):
         '''Return a binary script to pay to the address.'''
@@ -626,7 +644,7 @@ def _match_ops(ops, pattern):
     return True
 
 
-class Script(object):
+class Script:
 
     @classmethod
     def P2SH_script(cls, hash160):
@@ -718,7 +736,7 @@ class Base58Error(Exception):
     '''Exception used for Base58 errors.'''
 
 
-class Base58(object):
+class Base58:
     '''Class providing base 58 functionality.'''
 
     chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'

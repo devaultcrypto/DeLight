@@ -46,7 +46,7 @@ from .address import Address, Script, ScriptOutput, PublicKey
 from .bitcoin import *
 from .version import *
 from .keystore import load_keystore, Hardware_KeyStore, Imported_KeyStore, BIP32_KeyStore, xpubkey_to_address
-from .networks import NetworkConstants
+from . import networks
 from .storage import multisig_type
 
 from . import transaction
@@ -1760,12 +1760,12 @@ class Abstract_Wallet(PrintError):
         addr_text = addr.to_ui_string()
         amount_text = format_satoshis(r['amount'])
         if addr.FMT_UI == addr.FMT_CASHADDR:
-            out['URI'] = '{}:{}?amount={}'.format(NetworkConstants.CASHADDR_PREFIX,
-                                                addr_text, amount_text)
+            out['URI'] = '{}:{}?amount={}'.format(networks.net.CASHADDR_PREFIX,
+                                                  addr_text, amount_text)
         elif addr.FMT_UI == addr.FMT_SLPADDR:
             token_id = "<fill tokenId here>"
-            out['URI'] = '{}:{}?amount={}&token={}'.format(NetworkConstants.SLPADDR_PREFIX,
-                                                addr_text, amount_text, token_id)
+            out['URI'] = '{}:{}?amount={}&token={}'.format(networks.net.SLPADDR_PREFIX,
+                                                           addr_text, amount_text, token_id)
         status, conf = self.get_request_status(addr)
         out['status'] = status
         if conf is not None:
