@@ -1,8 +1,9 @@
 {
-     "3.3.5": {
-     	"bitcoincash:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "HPC+QnKXdxW/V6qeVFGjYKeP9YQ6DL16Y1SQznavG/G7FUEpMK1wnkAj5yO/RW440mvXxds1PpS35RaEMtvbgJw="
+    "3.4.4": {
+        "bitcoincash:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "HFhVLccxzK9lRgUMiGkHdHC1LHvRJmTiGcvZHoMhiAtQSILEcsGA4YWlsCU5nhMfCLomlF1P+6ve4QnBYNcOfWo="
      },
-     "3.3.4CS": {
-         "bitcoincash:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "HNkxAJzvWGP5/YPIJrZRQFK5btM1nd/NKCwWAlejc5oEJ6VNbzo6KfqOoIBpPTauK21Tp/qXY7SMmlO+6ssMPOA="
+    "9.9.9Sample_To_Illustrate_EC_Variant_Support": {
+        "bitcoincash:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "<Signature Goes Here>"
      }
 }
+
