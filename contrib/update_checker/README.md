@@ -1,12 +1,12 @@
-# Electron Cash Update Checker
+# Electron Cash SLP Update Checker
 ### (`releases.json`)
 
 This directory contains the `releases.json` file that the Electron Cash update checker uses to determine when a new version of Electron Cash is available.
 
 #### Update Checker Overview
-As of version 3.3.6 of Electron Cash, there is an update-checking facility built-in to the Qt desktop app. The facility basically functions as follows:
+As of version 3.4.5 of Electron Cash SLP, there is an update-checking facility built-in to the Qt desktop app. The facility basically functions as follows:
 
-1. When the user selects "Check for updates...", Electron Cash connects to the URL hard-coded in `gui/qt/update_checker.py` (currently: https://raw.github.com/Electron-Cash/Electron-Cash/master/contrib/update_checker/releases.json)
+1. When the user selects "Check for updates...", Electron Cash connects to the URL hard-coded in `gui/qt/update_checker.py` (currently: https://raw.github.com/simpleledger/Electron-Cash-SLP/master/contrib/update_checker/releases.json)
 2. It downloads `releases.json` (the file in this directory)
 3. It checks the versions seen in `releases.json` -- if they are newer than the version in the running app, and if the signed message is valid and is signed with one of the addresses hard-coded in `update_checker.py`, it then informs the user that an update is available.
 
@@ -26,7 +26,7 @@ This file contains a dictionary of:
     }
 ```
 - **"version string"** above is a version of the form MAJOR.MINOR.REV[variant], e.g. "3.3.5" or "3.3.5CS" (in the latter, 'CS' is the variant)
-- And empty/omitted variant means "Electron Cash Regular"
+- And empty/omitted variant means "Electron Cash SLP"
 - The variant must match the variant in `lib/version.py`.
     
 
