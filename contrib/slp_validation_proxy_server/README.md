@@ -2,7 +2,23 @@
 
 Electron-Cash-SLP can be run in daemon mode to serve token validation requests using the JSON RPC interface.  The following instructions explain how to set this service up using Ubuntu with nginx reverse proxy server. 
 
-## Initial Server Config Steps
+## Docker
+
+The validation server can be run as a docker container.  See the `docker` folder for Dockerfiles for both mainnet and testnet.
+
+For mainnet SLP validator use:
+- `docker build -t ec-slp .`
+- `docker run -d -p 5111:5111 --restart "always" ec-slp`
+- Test: `curl --data-binary '{"jsonrpc": "2.0", "id":"testing", "method": "slpvalidate", "params": ["2504b5b6a6ec42b040a71abce1acd71592f7e2a3e33ffa9c415f91a6b76deb45", false, false] }' -H 'content-type: text/plain;' 0.0.0.0:5111`
+
+For testnet SLP validator use:
+- `docker build -t ec-slp-testnet .`
+- `docker run -d -p 5112:5112 --restart "always" ec-slp-test`
+- Test: `curl --data-binary '{"jsonrpc": "2.0", "id":"testing", "method": "slpvalidate", "params": ["5e9454840d838c81ac0c41f0754df239f1c1012623161359fbf6e22599605c25", false, false] }' -H 'content-type: text/plain;' 0.0.0.0:5112`
+
+Skip steps 1 & 2 if you're using docker.
+
+## 1) Initial Server Config Steps
 
 1) Setup an Ubuntu vps.
 
@@ -14,7 +30,7 @@ Electron-Cash-SLP can be run in daemon mode to serve token validation requests u
 
 5) Run `./elctron-cash create` to create a new wallet file.  This wallet should not be used to store any funds, it is only used to store SLP validation data for cache purposes.
 
-## Creating a persistent service with systemd
+## 2) Creating a persistent service with systemd
 
 1) Copy the file named `slpvalidate.service` into `/lib/systemd/system/` directory.  Make sure the paths within the `slpvalidate.serice` file match the location of your Electron-Cash-SLP directory.
 
@@ -24,7 +40,7 @@ Electron-Cash-SLP can be run in daemon mode to serve token validation requests u
 
 4) Check that the service is running via `sudo systemctl status slpvalidate`
 
-## Setting up the reverse proxy server for this validation service.
+## 3) Setting up the reverse proxy server for this validation service.
 
 1) Setup an nginx server per these instructions: https://linuxize.com/post/how-to-install-nginx-on-ubuntu-18-04/
 
