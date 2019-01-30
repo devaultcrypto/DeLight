@@ -593,13 +593,8 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         scheme = net.CASHADDR_PREFIX
         scheme2 = net.SLPADDR_PREFIX
         path = self.to_ui_string(net=net)
-        # Convert to upper case if CashAddr
-        if self.FMT_UI == self.FMT_CASHADDR:
-            scheme = scheme.upper()
-            path = path.upper()
         if self.FMT_UI == self.FMT_SLPADDR:
-            scheme = scheme2.upper()
-            path = path.upper()
+            scheme = scheme2
         return scheme, path
 
     def to_storage_string(self, *, net=None):
