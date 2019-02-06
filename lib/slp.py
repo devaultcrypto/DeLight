@@ -304,6 +304,67 @@ def buildGenesisOpReturnOutput_V1(ticker: str, token_name: str, token_document_u
 
     return chunksToOpreturnOutput(chunks)
 
+# Type 1 Token GENESIS Message
+def buildGenesisOpReturnOutput_V2(ticker: str, token_name: str, token_document_url: str, token_document_hash_hex: str, decimals: int, baton_vout: int, initial_token_mint_quantity: int) -> tuple:
+    chunks = []
+    script = bytearray((0x6a,))  # OP_RETURN
+
+    # lokad id
+    chunks.append(lokad_id)
+
+    # token version/type
+    chunks.append(b'\x02')
+
+    # transaction type
+    chunks.append(b'GENESIS')
+
+    # ticker (can be None)
+    if ticker is None:
+        tickerb = b''
+    else:
+        tickerb = ticker.encode('utf-8')
+    chunks.append(tickerb)
+
+    # name (can be None)
+    if token_name is None:
+        chunks.append(b'')
+    else:
+        chunks.append(token_name.encode('utf-8'))
+
+    # doc_url (can be None)
+    if token_document_url is None:
+        chunks.append(b'')
+    else:
+        chunks.append(token_document_url.encode('ascii'))
+
+    # doc_hash (can be None)
+    if token_document_hash_hex is None:
+        chunks.append(b'')
+    else:
+        dochash = bytes.fromhex(token_document_hash_hex)
+        if len(dochash) not in (0,32):
+            raise SlpSerializingError()
+        chunks.append(dochash)
+
+    # decimals
+    decimals = int(decimals)
+    if decimals > 9 or decimals < 0:
+        raise SlpSerializingError()
+    chunks.append(bytes((decimals,)))
+
+    # baton vout
+    if baton_vout is None:
+        chunks.append(b'')
+    else:
+        if baton_vout < 2:
+            raise SlpSerializingError()
+        chunks.append(bytes((baton_vout,)))
+
+    # init quantity
+    qb = int(initial_token_mint_quantity).to_bytes(8,'big')
+    chunks.append(qb)
+
+    return chunksToOpreturnOutput(chunks)
 
 # Type 1 Token MINT Message
 def buildMintOpReturnOutput_V1(token_id_hex: str, baton_vout: int, token_mint_quantity: int) -> tuple:
@@ -338,6 +399,38 @@ def buildMintOpReturnOutput_V1(token_id_hex: str, baton_vout: int, token_mint_qu
 
     return chunksToOpreturnOutput(chunks)
 
+# Type 2 Token MINT Message
+def buildMintOpReturnOutput_V2(token_id_hex: str, baton_vout: int, token_mint_quantity: int) -> tuple:
+    chunks = []
+
+    # lokad id
+    chunks.append(lokad_id)
+
+    # token version/type
+    chunks.append(b'\x02')
+
+    # transaction type
+    chunks.append(b'MINT')
+
+    # token id
+    tokenId = bytes.fromhex(token_id_hex)
+    if len(tokenId) != 32:
+        raise SlpSerializingError()
+    chunks.append(tokenId)
+
+    # baton vout
+    if baton_vout is None:
+        chunks.append(b'')
+    else:
+        if baton_vout < 2:
+            raise SlpSerializingError()
+        chunks.append(bytes((baton_vout,)))
+
+    # init quantity
+    qb = int(token_mint_quantity).to_bytes(8,'big')
+    chunks.append(qb)
+
+    return chunksToOpreturnOutput(chunks)
 
 # Type 1 Token SEND Message
 def buildSendOpReturnOutput_V1(token_id_hex: str, output_qty_array: [int]) -> tuple:
@@ -348,6 +441,36 @@ def buildSendOpReturnOutput_V1(token_id_hex: str, output_qty_array: [int]) -> tu
 
     # token version/type
     chunks.append(b'\x01')
+
+    # transaction type
+    chunks.append(b'SEND')
+
+    # token id
+    tokenId = bytes.fromhex(token_id_hex)
+    if len(tokenId) != 32:
+        raise SlpSerializingError()
+    chunks.append(tokenId)
+
+    # output quantities
+    if len(output_qty_array) < 1:
+        raise SlpSerializingError("Cannot have less than 1 SLP Token output.")
+    if len(output_qty_array) > 19:
+        raise SlpSerializingError("Cannot have more than 19 SLP Token outputs.")
+    for qty in output_qty_array:
+        qb = int(qty).to_bytes(8,'big')
+        chunks.append(qb)
+
+    return chunksToOpreturnOutput(chunks)
+
+# Type 2 Token SEND Message
+def buildSendOpReturnOutput_V2(token_id_hex: str, output_qty_array: [int]) -> tuple:
+    chunks = []
+
+    # lokad id
+    chunks.append(lokad_id)
+
+    # token version/type
+    chunks.append(b'\x02')
 
     # transaction type
     chunks.append(b'SEND')
