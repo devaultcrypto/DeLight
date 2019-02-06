@@ -16,10 +16,10 @@ import requests
 import os
 
 scripttests_local = os.path.abspath('../slp-unit-test-data/script_tests.json')
-scripttests_url = 'https://simpleledger.cash/slp-unit-test-data/script_tests.json'
+scripttests_url = 'https://raw.githubusercontent.com/simpleledger/slp-unit-test-data/master/script_tests.json' #https://simpleledger.cash/slp-unit-test-data/script_tests.json'
 
 txintests_local = os.path.abspath('../slp-unit-test-data/tx_input_tests.json')
-txintests_url = 'https://simpleledger.cash/slp-unit-test-data/tx_input_tests.json'
+txintests_url = 'https://raw.githubusercontent.com/simpleledger/slp-unit-test-data/master/tx_input_tests.json' #'https://simpleledger.cash/slp-unit-test-data/tx_input_tests.json'
 
 errorcodes = {
     # no-error maps to None
