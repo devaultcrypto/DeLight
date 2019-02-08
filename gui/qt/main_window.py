@@ -48,7 +48,8 @@ from electroncash.util import (format_time, format_satoshis, PrintError,
                                format_satoshis_plain, format_satoshis_plain_nofloat,
                                NotEnoughFunds, NotEnoughFundsSlp, ExcessiveFee,
                                UserCancelled, InvalidPassword, bh2u, bfh,
-                               format_fee_satoshis, Weak, print_error)
+                               format_fee_satoshis, Weak, print_error,
+                               get_new_wallet_name)
 import electroncash.web as web
 from electroncash import Transaction
 from electroncash import util, bitcoin, commands
@@ -570,13 +571,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         except FileNotFoundError as e:
             self.show_error(str(e))
             return
-        i = 1
-        while True:
-            filename = "wallet_%d" % i
-            if filename in os.listdir(wallet_folder):
-                i += 1
-            else:
-                break
+        filename = get_new_wallet_name(wallet_folder)
         full_path = os.path.join(wallet_folder, filename)
         self.gui_object.start_new_window(full_path, None)
 
