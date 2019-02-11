@@ -10,6 +10,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+from electroncash import networks
 from electroncash.address import Address, PublicKey
 from electroncash.bitcoin import base_encode
 from electroncash.i18n import _
@@ -21,7 +22,6 @@ from .util import *
 from electroncash.util import format_satoshis_nofloat
 from electroncash.transaction import Transaction
 from electroncash.slp import SlpMessage, SlpUnsupportedSlpTokenType, SlpInvalidOutputMessage
-
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
@@ -346,7 +346,7 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         if not data:
             return
         # if the user scanned a bitcoincash URI
-        if data.lower().startswith(NetworkConstants.CASHADDR_PREFIX + ':') or data.lower().startswith(NetworkConstants.SLPADDR_PREFIX + ':'):
+        if data.lower().startswith(networks.net.CASHADDR_PREFIX + ':') or data.lower().startswith(networks.net.SLPADDR_PREFIX + ':'):
             self.show_error(_("This is not a transaction."))
             return
         # else if the user scanned an offline signed tx

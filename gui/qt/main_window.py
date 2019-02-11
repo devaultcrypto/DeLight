@@ -1750,7 +1750,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     self.show_error(_("The SLP address provided is not encoded properly."))
                     return
                 """ Require SLPADDR prefix in 'Pay To' field. """
-                if networks.NetworkConstants.SLPADDR_PREFIX not in self.payto_e.address_string_for_slp_check:
+                if networks.net.SLPADDR_PREFIX not in self.payto_e.address_string_for_slp_check:
                     self.show_error(_("Address provided is not in SLP Address format.\n\nThe address should be encoded using 'simpleledger:' or 'slptest:' URI prefix."))
                     return
                 amt = self.slp_amount_e.get_amount()

@@ -267,7 +267,7 @@ class PayToEdit(ScanQRTextEdit):
 
     def qr_input(self):
         data = super(PayToEdit,self).qr_input()
-        if data and (data.startswith(NetworkConstants.CASHADDR_PREFIX + ":") or data.startswith(NetworkConstants.SLPADDR_PREFIX + ":")):
+        if data and (data.startswith(networks.net.CASHADDR_PREFIX + ":") or data.startswith(networks.net.SLPADDR_PREFIX + ":")):
             self.scan_f(data)
             # TODO: update fee
 
