@@ -42,9 +42,10 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         self.handle_genesis_tx(tx)
 
     def __init__(self, main_window, token_id_hex=None, token_name=None):
-        self.provided_token_name = token_name
         # We want to be a top-level window
         QDialog.__init__(self, parent=None)
+
+        self.provided_token_name = token_name
 
         self.main_window = main_window
         self.wallet = main_window.wallet
@@ -156,12 +157,14 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         self.token_name_e.setFocus()
 
     def closeEvent(self, event):
-        #if (self.prompt_if_unsaved and not self.saved
-            #and not self.question(_('This transaction is not saved. Close anyway?'), title=_("Warning"))):
-            #event.ignore()
-        #else:
-            event.accept()
-            dialogs.remove(self)
+        super().closeEvent(event)
+        if event.isAccepted():
+            try: self.got_network_response_sig.disconnect()  # prevent future asynch responses from doing anything if we are closed.
+            except TypeError: pass  # not connected
+            def remove_self():
+                try: dialogs.remove(self)
+                except ValueError: pass  # wasn't in list.
+            QTimer.singleShot(100, remove_self)  # need to do this some time later. Doing it from within this function causes crashes. See #35
 
     def download_info(self):
         txid = self.token_id_e.text()
@@ -312,10 +315,6 @@ class SlpAddTokenDialog(QDialog, MessageBoxMixin):
         else:
             # couldn't add for some reason...
             pass
-
-    def update(self):
-        return
-
 
 
     ### Ripped and modified from main_window.py --- load transaction manually!
