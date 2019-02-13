@@ -192,7 +192,7 @@ class HistoryList(MyTreeWidget):
         if not wallet:
             return
         status, status_str = wallet.get_tx_status(tx_hash, height, conf, timestamp)
-        items = self._allitems.get(itx_hash, [])
+        items = self._allitems.get(tx_hash, [])
         for item in items:
             item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
             item.setText(2, status_str)

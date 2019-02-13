@@ -142,8 +142,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.tx_notifications = []
         self.tl_windows = []
         self.tx_external_keypairs = {}
-        self._txs_verified = []
-        self._txs_verified_ts = 0.0
+        self._txs_verified_clear()
+        self.history_updated_signal.connect(self._txs_verified_clear, Qt.DirectConnection)  # immediately clear txs_verified on history update because it would be redundant to keep the verify queue around after a history list update
 
         self.create_status_bar()
         self.need_update = threading.Event()
@@ -223,7 +223,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.network:
             self.network_signal.connect(self.on_network_qt)
             interests = ['updated', 'new_transaction', 'status',
-                         'banner', 'verified', 'fee']
+                         'banner', 'verified2', 'fee']
             # To avoid leaking references to "self" that prevent the
             # window from being GC-ed when closed, callbacks should be
             # methods of this class only, and specifically not be
@@ -359,7 +359,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if wallet == self.wallet: # filter out tx's not for this wallet
                 self.tx_notifications.append(tx)
                 self.notify_transactions_signal.emit()
-        elif event in ['status', 'banner', 'verified', 'fee']:
+        elif event in ['status', 'banner', 'verified2', 'fee']:
             # Handle in GUI thread
             self.network_signal.emit(event, args)
         else:
@@ -372,8 +372,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.update_status()
         elif event == 'banner':
             self.console.showMessage(args[0])
-        elif event == 'verified':
-            self._txs_verified.append(args)
+        elif event == 'verified2':  # verified2 args = [wallet, tx_hash, height, conf, timestamp]
+            # does this tx match our wallet?
+            if args[0] is getattr(self, 'wallet', None):  # self.wallet is not defined at startup
+                self._txs_verified.append(args[1:])
         elif event == 'fee':
             pass
         else:
@@ -789,17 +791,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.do_update_fee()
             self.require_fee_update = False
 
-        # update history list as tx's become verified, but limit the GUI update
-        # rate to 1.0 per second
-        if self._txs_verified and time.time() - self._txs_verified_ts > 1.0:
-            update_items = self._txs_verified
-            self._txs_verified = []
-            self.history_list.setUpdatesEnabled(False)
-            for item in update_items:
-                self.history_list.update_item(*item)
-                self.slp_history_list.update_item_netupdate(*item)
-            self.history_list.setUpdatesEnabled(True)
-            self._txs_verified_ts = time.time()
+        self._txs_verified_do_updates()  # this runs at most once per second and only if self._txs_verified is not empty
 
     def format_amount(self, x, is_diff=False, whitespaces=False):
         return format_satoshis(x, self.num_zeros, self.decimal_point, is_diff=is_diff, whitespaces=whitespaces)
@@ -928,6 +920,24 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.update_status()
         if self.wallet.up_to_date or not self.network or not self.network.is_connected():
             self.update_tabs()
+
+    def _txs_verified_clear(self):
+        ''' Clears the _txs_verified queue and updates the timestamp.
+        This is also called from the history_updated_signal as well as the
+        below _txs_verified_do_updates '''
+        self._txs_verified = []
+        self._txs_verified_ts = time.time() if hasattr(self, '_txs_verified_ts') else 0.0
+
+    def _txs_verified_do_updates(self):
+        ''' Update history list with tx's from _txs_verified, but limit the GUI
+        update rate to once per second. '''
+        if self._txs_verified and time.time() - self._txs_verified_ts > 1.0:
+            self.history_list.setUpdatesEnabled(False)
+            for item in self._txs_verified:
+                self.history_list.update_item(*item)
+                self.slp_history_list.update_item_netupdate(*item)
+            self.history_list.setUpdatesEnabled(True)
+            self._txs_verified_clear()
 
     @rate_limited(1.0, classlevel=True) # Limit tab updates to no more than 1 per second, app-wide. Multiple calls across instances will be collated into 1 deferred series of calls (1 call per extant instance)
     def update_tabs(self):
