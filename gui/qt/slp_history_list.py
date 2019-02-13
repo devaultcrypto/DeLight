@@ -35,6 +35,7 @@ from electroncash.util import format_satoshis_nofloat
 from .slp_add_token_dialog import SlpAddTokenDialog
 
 from locale import localeconv
+from collections import defaultdict
 
 TX_ICONS = [
     "warning.png",
@@ -64,9 +65,9 @@ class HistoryList(MyTreeWidget):
         else:
             # If validator found 'valid' then the balances are OK, so just
             # update the relevant items (note: may be multiple matches.).
-            for tx_hash,item in self.allitems:
-                if tx_hash == txid:
-                    self.update_item_state(item)
+            items = self._allitems.get(txid, [])
+            for item in items:
+                self.update_item_state(item)
 
     def __init__(self, parent=None):
         MyTreeWidget.__init__(self, parent, self.create_menu, [], 4)
@@ -77,7 +78,7 @@ class HistoryList(MyTreeWidget):
         self.setColumnHidden(1, True)
         self.setSortingEnabled(True)
         self.sortByColumn(0, Qt.AscendingOrder)
-        self.allitems = []
+        self._allitems = defaultdict(list)
 
     def refresh_headers(self):
         headers = [ '', '',_('Date'), _('Amount'), _('Token') ]
@@ -98,7 +99,7 @@ class HistoryList(MyTreeWidget):
         current_tx = item.data(0, Qt.UserRole) if item else None
         self.clear()
 
-        self.allitems = []
+        self._allitems.clear()
         for h_item in slp_history:
             tx_hash, height, conf, timestamp, delta, token_id = h_item
             status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
@@ -119,7 +120,7 @@ class HistoryList(MyTreeWidget):
             if current_tx == tx_hash:
                 self.setCurrentItem(item)
 
-            self.allitems.append((tx_hash,item))
+            self._allitems[tx_hash].append(item)
 
     def on_doubleclick(self, item, column):
         tx_hash = item.data(0, Qt.UserRole)
@@ -191,11 +192,11 @@ class HistoryList(MyTreeWidget):
         if not wallet:
             return
         status, status_str = wallet.get_tx_status(tx_hash, height, conf, timestamp)
-        for itx_hash,item in self.allitems:
-            if itx_hash == tx_hash:
-                item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
-                item.setText(2, status_str)
-                self.update_item_state(item)
+        items = self._allitems.get(itx_hash, [])
+        for item in items:
+            item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
+            item.setText(2, status_str)
+            self.update_item_state(item)
 
     def create_menu(self, position):
         self.selectedIndexes()
