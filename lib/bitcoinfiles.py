@@ -33,8 +33,6 @@ class BfpUnsupportedBfpMsgType(BfpParsingError):
 class BfpOpreturnError(Exception):
     pass
 
-class BfpInvalidOutput(BfpParsingError):
-    pass
 
 # Exceptions during creation of SLP message.
 class BfpSerializingError(Exception):
@@ -190,7 +188,7 @@ def parseChunkToInt(intBytes: bytes, minByteLen: int, maxByteLen: int, raise_on_
         return int.from_bytes(intBytes, 'big', signed=False)
     if len(intBytes) == 0 and not raise_on_Null:
         return None
-    raise BfpInvalidOutput('Field has wrong length')
+    raise BfpInvalidOutputMessage('File is not stored on the blockchain, or field has wrong length in BFP message.')
 
 def getUploadTxn(wallet, prev_tx, chunk_index, chunk_count, chunk_data, config, metadata, file_receiver: Address):
     """
