@@ -27,3 +27,10 @@ Electron Cash - SLP Token Edition
 - Added a prefix auto-fill for addresses pasted into PayTo field of send tab
 - Reworked code that requires SLP address to be provided when sending SLP tokens
 - Fixed bug in EC preferences menu
+
+3.4.5 Updates & Features
+-----
+- Added optional auto-update-notification feature (user must opt-out)
+- Added note about BIP38 keys on sweep dialog
+- Ported many bug fixes from mainline Electron Cash
+- Fixed bug in Bitcoin Files download dialog with off-chain files
