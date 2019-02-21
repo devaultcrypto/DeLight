@@ -35,20 +35,20 @@ This file contains a dictionary of:
   1. Release Electron Cash as normal, updating the version in `lib/version.py`.
   2. After release, or in tandem with releasing, edit `releases.json`
   3. Make sure to replace the entry for the old version with a new entry. 
-  4. So for example if you were on verson "3.3.4" before and you are now releasing "3.3.5", look for "3.3.4" in `releases.json`, and update it to "3.3.5"
-  5. Sign the text "3.3.5" with one of the bitcoin addresses listed in `gui/qt/update_checker.py`.  Paste this address and the signed message (replacing the old address and signed message) into the dictionary entry for "3.3.5" in `releases.json`.
+  4. So for example if you were on version "3.4.5" before and you are now releasing "3.4.6", look for "3.4.5" in `releases.json`, and update it to "3.4.6"
+  5. Sign the text "3.4.6" with one of the bitcoin addresses listed in `gui/qt/update_checker.py`.  Paste this address and the signed message (replacing the old address and signed message) into the dictionary entry for "3.4.6" in `releases.json`.
   6. Push the new commit with the updated `releases.json` to master. (Since currently the `update_checker.py` code looks for this file in master on github).
   
 ##### Example
 *The old entry:*
 
-     "3.3.4": {
+     "3.4.5": {
      	"bitcoincash:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "G8lW9Wh2/sa2I7Sd0jdAlit+lYwrXFwjG7ZDUEDngSwyPAT29YMKP68hqeaW7+mp4gClY1+qPIAQsFqzPtoMbTw="
      }
 
 *Gets replaced with:*
 
-    "3.3.5": {
+    "3.4.6": {
      	"bitcoincash:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "HPC+QnKXdxW/V6qeVFGjYKeP9YQ6DL16Y1SQznavG/G7FUEpMK1wnkAj5yO/RW440mvXxds1PpS35RaEMtvbgJw="
      }
 
@@ -58,7 +58,7 @@ Notice how the version string is different, the signing address happened to rema
 
 - Make sure you control one of the bitcoin addresses listed in `gui/qt/update_checker.py`.  (If you do not, modify this file before release to include one of your addresses!)
 -  Open up Electron Cash and go to that address in the "Addresses" tab and right click on it, selecting **"Sign/Verify Message"**
--  The message to be signed is the version string you will put into the JSON, so for example the simple string `3.3.5` in the example above.
+-  The message to be signed is the version string you will put into the JSON, so for example the simple string `3.4.6` in the example above.
 -  Hit **sign**, and paste the signature text into the JSON (and signing address, of course, if it's changed).
 
 #### Feedback / Questions
