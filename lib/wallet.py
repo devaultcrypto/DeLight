@@ -695,7 +695,7 @@ class Abstract_Wallet(PrintError):
                     if txo['qty'] == 'MINT_BATON' and txo['token_id'] == slpTokenId:
                         try:
                             coins = self.get_utxos(domain = None, exclude_frozen = False, mature = False, confirmed_only = False, get_all = True)
-                            baton_utxo = [ utxo for utxo in coins if utxo['prevout_hash'] == txid and utxo['prevout_n'] == idx ][0]
+                            baton_utxo = [ utxo for utxo in coins if utxo['prevout_hash'] == txid and utxo['prevout_n'] == idx and self.tx_tokinfo[txid]['validity'] == 1][0]
                         except IndexError:
                             continue
                         return baton_utxo
