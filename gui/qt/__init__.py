@@ -211,7 +211,8 @@ class ElectrumGui(QObject, PrintError):
                 if wallet and self._slp_warn_if_wallet_not_compat(wallet):
                     # force wizard to kick in below...
                     wallet = None
-                    path = get_new_wallet_name(os.path.dirname(path))  # pick a brand new path for wizard below
+                    folder = os.path.dirname(path)
+                    path = os.path.join(folder, get_new_wallet_name(folder))  # pick a brand new path for wizard below
                 if not wallet:
                     storage = WalletStorage(path, manual_upgrades=True)
                     wizard = InstallWizard(self.config, self.app, self.plugins, storage, 'New/Restore Wallet')
