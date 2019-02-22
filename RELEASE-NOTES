@@ -34,3 +34,5 @@ Electron Cash - SLP Token Edition
 - Added note about BIP38 keys on sweep dialog
 - Ported many bug fixes from mainline Electron Cash
 - Fixed bug in Bitcoin Files download dialog with off-chain files
+- Disabled 'Sweep' dialog -- it's dangerous to use with SLP wallets. We will re-enabled it next release with better logic.
+- Disallow Hardware Wallets -- they are incompatible with SLP anyway due to vendor firmware limiations.
