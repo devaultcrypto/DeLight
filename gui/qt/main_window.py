@@ -466,6 +466,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.slp_mgt_tab.update()
         self.slp_history_tab.update()
         self.update_cashaddr_icon()
+        self._warn_slp_prefers_slp_wallets_if_not_slp_wallet()
         run_hook('load_wallet', wallet, self)
 
     def init_geometry(self):
@@ -532,6 +533,18 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             ])
             self.show_critical(msg, title=_('Invalid Master Key'), rich_text=True)
         return is_old_bad
+
+    def _warn_slp_prefers_slp_wallets_if_not_slp_wallet(self):
+        if self.wallet.storage.get('wallet_type', '') != 'bip39-slp':
+            msg = '\n\n'.join([
+                _("WARNING: This wallet is compatible with other wallets that may not be aware of SLP tokens.") + " "
+                + _("If you use this wallet's seed phrase with another Bitcoin Cash wallet that is not aware of SLP, you may burn your SLP tokens."),
+                _("Since version 3.4.3 all newly created Electron Cash SLP wallet files use the HD path m/44'/245' to reduce the risk of burning SLP tokens."),
+                _('''If you're wondering "what do I have to do?":'''),
+                _("The answer is nothing. You can continue to use this old wallet type.") + " "
+                + _("However, we do recommend that if practical, you create a new wallet using the latest version of this software for all future use.")
+            ])
+            self.show_warning(msg, title=_("Non-SLP Wallet"))
 
     def open_wallet(self):
         try:
