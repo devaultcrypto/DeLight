@@ -639,7 +639,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.password_menu = wallet_menu.addAction(_("&Password"), self.change_password_dialog)
         self.seed_menu = wallet_menu.addAction(_("&Seed"), self.show_seed_dialog)
         self.private_keys_menu = wallet_menu.addMenu(_("&Private keys"))
-        self.private_keys_menu.addAction(_("&Sweep"), self.sweep_key_dialog)
+        pk_sweep_action = self.private_keys_menu.addAction(_("&Sweep"), self.sweep_key_dialog)
+        pk_sweep_action.setEnabled(False)  # alwqays disable for SLP for now.
         self.import_privkey_menu = self.private_keys_menu.addAction(_("&Import"), self.do_import_privkey)
         self.export_menu = self.private_keys_menu.addAction(_("&Export"), self.export_privkeys_dialog)
         self.import_address_menu = wallet_menu.addAction(_("Import addresses"), self.import_addresses)
