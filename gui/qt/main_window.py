@@ -249,8 +249,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             for token_id,i in sorted_items:
                 self.token_type_combo.addItem(QIcon(':icons/tab_slp_icon.png'),i['name'], token_id)
 
-    def on_history(self, b):
-        self.new_fx_history_signal.emit()
+    def on_history(self, event, *args):
+        # NB: event should always be 'history'
+        if not args or args[0] is self.wallet:
+            self.new_fx_history_signal.emit()
 
     @rate_limited(3.0) # Rate limit to no more than once every 3 seconds
     def on_fx_history(self):
