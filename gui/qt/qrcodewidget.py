@@ -3,14 +3,15 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import PyQt5.QtGui as QtGui
 from PyQt5.QtWidgets import (
-    QApplication, QVBoxLayout, QTextEdit, QHBoxLayout, QPushButton, QWidget)
+    QApplication, QVBoxLayout, QTextEdit, QHBoxLayout, QPushButton, QWidget,
+    QSizePolicy)
 
 import os
 import qrcode
 
-from electroncash import get_config, util
+from electroncash import util
 from electroncash.i18n import _
-from .util import WindowModalDialog
+from .util import WindowModalDialog, MessageBoxMixin
 
 
 class QRCodeWidget(QWidget, util.PrintError):
@@ -19,9 +20,11 @@ class QRCodeWidget(QWidget, util.PrintError):
         QWidget.__init__(self)
         self.data = None
         self.qr = None
-        self.fixedSize=fixedSize
+        self.fixedSize = fixedSize
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         if fixedSize:
             self.setFixedSize(fixedSize, fixedSize)
+            self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.setData(data)
 
 
@@ -35,6 +38,7 @@ class QRCodeWidget(QWidget, util.PrintError):
                 if not self.fixedSize:
                     k = len(self.qr.get_matrix())
                     self.setMinimumSize(k*5,k*5)
+                    self.updateGeometry()
             except qrcode.exceptions.DataOverflowError:
                 self._bad_data(data)  # sets self.qr = None
         else:
@@ -94,6 +98,21 @@ class QRCodeWidget(QWidget, util.PrintError):
         qp.end(); del qp
 
 
+def save_to_file(qrw, parent):
+    from .main_window import ElectrumWindow
+    p = qrw and qrw.grab()
+    if p and not p.isNull():
+        filename = ElectrumWindow.static_getSaveFileName(title=_("Save QR Image"), filename="qrcode.png", parent=parent, filter="*.png")
+        if filename:
+            p.save(filename, 'png')
+            isinstance(parent, MessageBoxMixin) and parent.show_message(_("QR code saved to file") + " " + filename)
+
+def copy_to_clipboard(qrw, parent):
+    p = qrw and qrw.grab()
+    if p and not p.isNull():
+        QApplication.clipboard().setPixmap(p)
+        isinstance(parent, MessageBoxMixin) and parent.show_message(_("QR code copied to clipboard"))
+
 
 class QRDialog(WindowModalDialog):
 
@@ -102,7 +121,6 @@ class QRDialog(WindowModalDialog):
 
         vbox = QVBoxLayout()
         qrw = QRCodeWidget(data)
-        qscreen = QApplication.primaryScreen()
         vbox.addWidget(qrw, 1)
         if show_text:
             text = QTextEdit()
@@ -112,27 +130,16 @@ class QRDialog(WindowModalDialog):
         hbox = QHBoxLayout()
         hbox.addStretch(1)
 
-        config = get_config()
-        if config:
-            filename = os.path.join(config.path, "qrcode.png")
+        weakSelf = util.Weak.ref(self)  # Qt & Python GC hygeine: don't hold references to self in non-method slots as it appears Qt+Python GC don't like this too much and may leak memory in that case.
+        weakQ = util.Weak.ref(qrw)
 
-            def print_qr():
-                p = qscreen.grabWindow(qrw.winId())
-                p.save(filename, 'png')
-                self.show_message(_("QR code saved to file") + " " + filename)
+        b = QPushButton(_("Copy"))
+        hbox.addWidget(b)
+        b.clicked.connect(lambda: copy_to_clipboard(weakQ(), weakSelf()))
 
-            def copy_to_clipboard():
-                p = qscreen.grabWindow(qrw.winId())
-                QApplication.clipboard().setPixmap(p)
-                self.show_message(_("QR code copied to clipboard"))
-
-            b = QPushButton(_("Copy"))
-            hbox.addWidget(b)
-            b.clicked.connect(copy_to_clipboard)
-
-            b = QPushButton(_("Save"))
-            hbox.addWidget(b)
-            b.clicked.connect(print_qr)
+        b = QPushButton(_("Save"))
+        hbox.addWidget(b)
+        b.clicked.connect(lambda: save_to_file(weakQ(), weakSelf()))
 
         b = QPushButton(_("Close"))
         hbox.addWidget(b)
