@@ -199,7 +199,6 @@ class HistoryList(MyTreeWidget):
             self.update_item_state(item)
 
     def create_menu(self, position):
-        self.selectedIndexes()
         item = self.currentItem()
         if not item:
             return
