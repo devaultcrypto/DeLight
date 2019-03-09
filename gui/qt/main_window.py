@@ -120,6 +120,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         QMainWindow.__init__(self)
 
         self.gui_object = gui_object
+        self.wallet = wallet
         self.config = config = gui_object.config
 
         self.network = gui_object.daemon.network
@@ -216,7 +217,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.fee_slider.update()
         self.load_wallet(wallet)
 
-        # At this point self.wallet is defined, so register network callbacks
         if self.network:
             self.network_signal.connect(self.on_network_qt)
             interests = ['updated', 'new_transaction', 'status',
@@ -323,8 +323,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return self.top_level_window_recurse(override)
 
     def diagnostic_name(self):
-        return "%s%s" % (PrintError.diagnostic_name(self),
-                         ("/"+self.wallet.basename()) if getattr(self, 'wallet', None) else "")
+        return "%s/%s" % (PrintError.diagnostic_name(self), self.wallet.basename())
 
     def is_hidden(self):
         return self.isMinimized() or self.isHidden()
@@ -392,7 +391,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             t.setDaemon(True)
             t.start()
 
-    def close_wallet(self):
+    def _close_wallet(self):
         if self.wallet:
             self.print_error('close_wallet', self.wallet.storage.path)
             self.wallet.thread = None
@@ -401,7 +400,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def load_wallet(self, wallet):
         wallet.thread = TaskThread(self, self.on_error)
-        self.wallet = wallet
         self.wallet.ui_emit_validity_updated = self.slp_validity_signal.emit
         self.update_recently_visited(wallet.storage.path)
         # address used to create a dummy transaction and estimate transaction fee
@@ -3854,7 +3852,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.clean_up()
         event.accept()
 
-    def is_alive(self): return bool(not getattr(self, 'cleaned_up', True) and getattr(self, 'wallet', None))
+    def is_alive(self): return bool(not self.cleaned_up)
 
     def clean_up_connections(self):
         def disconnect_signals():
@@ -3918,7 +3916,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.qr_window:
             self.qr_window.close()
             self.qr_window = None # force GC sooner rather than later.
-        self.close_wallet()
+        self._close_wallet()
 
 
         try: self.gui_object.timer.timeout.disconnect(self.timer_actions)
@@ -4161,7 +4159,7 @@ class TxUpdateMgr(QObject, PrintError):
     def verif_add(self, args):
         # args: [wallet, tx_hash, height, conf, timestamp]
         # filter out tx's not for this wallet
-        if args[0] is getattr(self.parent(), 'wallet', None):  # parent().wallet is not always defined when starting up
+        if args[0] is self.parent().wallet:
             with self.lock:
                 self.verif_q.append(args[1:])
                 self.need_process_v = True
@@ -4169,7 +4167,7 @@ class TxUpdateMgr(QObject, PrintError):
     def notif_add(self, args):
         tx, wallet = args
         # filter out tx's not for this wallet
-        if wallet is getattr(self.parent(), 'wallet', None):  # parent().wallet is not always defined when starting up
+        if wallet is self.parent().wallet:
             with self.lock:
                 self.notif_q.append(tx)
                 self.need_process_n = True

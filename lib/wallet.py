@@ -169,6 +169,7 @@ class Abstract_Wallet(PrintError):
 
         self.electrum_version = PACKAGE_VERSION
         self.storage = storage
+        self.thread = None  # this is used by the qt main_window to store a QThread. We just make sure it's always defined as an attribute here.
         self.network = None
         # verifier (SPV) and synchronizer are started in start_threads
         self.synchronizer = None
