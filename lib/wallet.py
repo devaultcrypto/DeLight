@@ -1139,7 +1139,7 @@ class Abstract_Wallet(PrintError):
 
         return histories
 
-    def get_history(self, domain=None):
+    def get_history(self, domain=None, *, reverse=False):
         # get domain
         if domain is None:
             domain = self.get_addresses()
@@ -1173,7 +1173,8 @@ class Abstract_Wallet(PrintError):
                 balance = None
             else:
                 balance -= delta
-        h2.reverse()
+        if not reverse:
+            h2.reverse()
 
         return h2
 
@@ -1354,7 +1355,7 @@ class Abstract_Wallet(PrintError):
         # Sort the inputs and outputs deterministically
         if not self._enable_slp:
             tx.BIP_LI01_sort()
-            
+
         # Timelock tx to current height.
         locktime = self.get_local_height()
         if locktime == -1: # We have no local height data (no headers synced).
