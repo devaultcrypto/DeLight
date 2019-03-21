@@ -422,7 +422,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         # Set up SLP proxy here -- needs to be done before wallet.enable_slp is called.
         slp_validator_0x01.setup_config(self.config)
 
-        if self.config.get('enable_slp'):
+        if self.config.get('enable_slp', True):
             self.wallet.enable_slp()
             self.slp_history_list.update()
             self.token_list.update()
@@ -443,8 +443,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.watching_only_changed()
         self.history_updated_signal.emit() # inform things like address_dialog that there's a new history
         """ If using SLP for the first time, turn it on by default. """
-        slp_in_config = self.config.get('enable_slp')
-        if slp_in_config is None or slp_in_config == True:
+        if self.config.get('enable_slp', True):
             self.config.set_key('enable_opreturn', False)
             self.message_opreturn_e.setHidden(True)
             self.opreturn_rawhex_cb.setHidden(True)
@@ -968,7 +967,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.contact_list.update()
         self.invoice_list.update()
         self.update_completions()
-        if self.config.get('enable_slp'):
+        if self.config.get('enable_slp', True):
             self.slp_history_list.update()
             self.token_list.update()
         self.history_updated_signal.emit() # inform things like address_dialog that there's a new history, also clears self.tx_update_mgr.verif_q
@@ -1484,7 +1483,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(self.token_type_combo, 7, 1)
 
 
-        if self.config.get('enable_slp') == False:
+        if not self.config.get('enable_slp', True):
             self.slp_amount_label.setHidden(True)
             self.slp_token_type_label.setHidden(True)
             self.token_type_combo.setHidden(True)
@@ -1695,7 +1694,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                         outputs.insert(0, self.output_for_opreturn_stringdata(opreturn_message))
                 elif self.wallet.send_slpTokenId is None:
                     pass
-                elif self.config.get('enable_slp'):
+                elif self.config.get('enable_slp', True):
                     amt = self.slp_amount_e.get_amount()
                     if self.slp_amount_e.text() == '!':
                         self.slp_amount_e.setAmount(self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0])
@@ -1812,7 +1811,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
         try:
             if self.wallet.send_slpTokenId == None and (opreturn_message != '' and opreturn_message != None):
-                if self.config.get('enable_slp'):
+                if self.config.get('enable_slp', True):
                     try:
                         slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
                         if slpMsg.transaction_type == 'SEND' and not preview:
@@ -1828,7 +1827,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 #outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
             elif self.wallet.send_slpTokenId is None:
                 pass
-            elif self.config.get('enable_slp'):
+            elif self.config.get('enable_slp', True):
                 """ Guard against multiline 'Pay To' field """
                 if self.payto_e.is_multiline():
                     self.show_error(_("Too many receivers listed.\n\nCurrently this wallet only supports a single SLP token receiver."))
@@ -1884,7 +1883,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         """ SLP: Add an additional token change output """
         change_addr = None
-        if self.config.get('enable_slp'):
+        if self.config.get('enable_slp', True):
             if len(token_outputs) > 1 and len(outputs) - 1 < len(token_outputs):
                 """ start of logic copied from wallet.py """
                 addrs = self.wallet.get_change_addresses()[-self.wallet.gap_limit_for_change:]
@@ -1904,7 +1903,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 outputs.append((TYPE_ADDRESS, change_addr, 546))
 
         """ Only Allow OP_RETURN if SLP is disabled. """
-        if not self.config.get('enable_slp'):
+        if not self.config.get('enable_slp', True):
             try:
                 # handle op_return if specified and enabled
                 opreturn_message = self.message_opreturn_e.text()
@@ -1947,7 +1946,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def do_send(self, preview = False):
         if run_hook('abort_send', self):
             return
-        if self.config.get('enable_slp') and self.token_type_combo.currentData():
+        if self.config.get('enable_slp', True) and self.token_type_combo.currentData():
             if self.slp_amount_e.get_amount() == 0 or self.slp_amount_e.get_amount() is None:
                 self.show_message(_("No SLP token amount provided."))
                 return
@@ -3398,7 +3397,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def toggle_cashaddr(self, format, specified = False):
         #Gui toggle should just increment, if "specified" is True it is being set from preferences, so leave the value as is.
         if specified==False:
-            if self.config.get('enable_slp'):
+            if self.config.get('enable_slp', True):
                 max_format=2
             else:
                 max_format=1
@@ -3766,7 +3765,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.update_cashaddr_icon()
             self.update_tabs()
 
-        enable_slp = bool(self.config.get('enable_slp'))
+        enable_slp = bool(self.config.get('enable_slp', True))
         on_slptok_pref(enable_slp)
         slp_cb = QCheckBox(_('Enable SLP tokens'))
         slp_cb.setToolTip(_('Enable managing and sending SLP tokens.'))
