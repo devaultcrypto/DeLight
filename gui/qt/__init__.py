@@ -38,8 +38,9 @@ from electroncash.i18n import _, set_language
 from electroncash.plugins import run_hook
 from electroncash import WalletStorage
 from electroncash.util import (UserCancelled, PrintError, print_error,
-                               standardize_path, get_new_wallet_name,
-                               finalization_print_error)
+                               standardize_path, finalization_print_error,
+                               get_new_wallet_name)
+from electroncash.wallet import UnknownWalletType
 
 from .installwizard import InstallWizard, GoBack
 
@@ -241,6 +242,17 @@ class ElectrumGui(QObject, PrintError):
         run_hook('on_new_window', w)
         return w
 
+    def get_wallet_folder(self):
+        ''' may raise FileNotFoundError '''
+        return os.path.dirname(os.path.abspath(self.config.get_wallet_path()))
+
+    def get_new_wallet_path(self):
+        ''' may raise FileNotFoundError '''
+        wallet_folder = self.get_wallet_folder()
+        filename = get_new_wallet_name(wallet_folder)
+        full_path = os.path.join(wallet_folder, filename)
+        return full_path
+
     def start_new_window(self, path, uri):
         '''Raises the window for the wallet if it is open.  Otherwise
         opens the wallet and creates a new window for it.'''
@@ -251,12 +263,18 @@ class ElectrumGui(QObject, PrintError):
                 break
         else:
             try:
-                wallet = self.daemon.load_wallet(path, None)
-                if wallet and self._slp_warn_if_wallet_not_compat(wallet):
-                    # force wizard to kick in below...
-                    wallet = None
-                    folder = os.path.dirname(path)
-                    path = os.path.join(folder, get_new_wallet_name(folder))  # pick a brand new path for wizard below
+
+                try:
+                    wallet = self.daemon.load_wallet(path, None)
+                    if wallet and self._slp_warn_if_wallet_not_compat(wallet):
+                        # trigger exception catch which forces the wizard to kick in below
+                        raise UnknownWalletType("User doesn't want to use this wallet")
+                except (ValueError, UnknownWalletType, OSError, TypeError) as e:
+                    # Bad or corrupt wallet or unknown type of wallet,
+                    # proceed to wizard with a default wallet name/path combo.
+                    self.print_error(repr(e))
+                    path = self.get_new_wallet_path()  # give up on this unknown wallet and try a new name.. note if things get really bad this will raise FileNotFoundError and the app aborts here.
+                    wallet = None  # fall thru to wizard
                 if not wallet:
                     storage = WalletStorage(path, manual_upgrades=True)
                     wizard = InstallWizard(self.config, self.app, self.plugins, storage, 'New/Restore Wallet')
@@ -282,7 +300,7 @@ class ElectrumGui(QObject, PrintError):
                 if '2fa' in str(e):
                     self.warning(title=_('Error'), message = '2FA wallets for Bitcoin Cash are currently unsupported by <a href="https://api.trustedcoin.com/#/">TrustedCoin</a>. Follow <a href="https://github.com/Electron-Cash/Electron-Cash/issues/41#issuecomment-357468208">this guide</a> in order to recover your funds.')
                 else:
-                    self.warning(title=_('Error'), message = 'Cannot load wallet:\n' + str(e))
+                    self.warning(title=_('Error'), message = 'Cannot load wallet:\n' + str(e), icon=QMessageBox.Critical)
                 return
             w = self.create_window_for_wallet(wallet)
         if uri:
@@ -376,11 +394,13 @@ class ElectrumGui(QObject, PrintError):
         return False
 
     def warning(self, title, message, icon = QMessageBox.Warning, parent = None):
+        if not isinstance(icon, QMessageBox.Icon):
+            icon = QMessageBox.Warning
         if isinstance(parent, MessageBoxMixin):
             parent.msg_box(title=title, text=message, icon=icon, parent=None)
         else:
             parent = parent if isinstance(parent, QWidget) else None
-            d = QMessageBoxMixin(QMessageBox.Warning, title, message, QMessageBox.Ok, parent)
+            d = QMessageBoxMixin(icon, title, message, QMessageBox.Ok, parent)
             d.setWindowModality(Qt.WindowModal if parent else Qt.ApplicationModal)
             d.exec_()
             d.setParent(None)

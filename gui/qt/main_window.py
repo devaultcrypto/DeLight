@@ -47,8 +47,7 @@ from electroncash.util import (format_time, format_satoshis, PrintError,
                                format_satoshis_plain, format_satoshis_plain_nofloat,
                                NotEnoughFunds, NotEnoughFundsSlp, ExcessiveFee,
                                UserCancelled, InvalidPassword, bh2u, bfh,
-                               format_fee_satoshis, Weak, print_error,
-                               get_new_wallet_name)
+                               format_fee_satoshis, Weak, print_error)
 import electroncash.web as web
 from electroncash import Transaction
 from electroncash import util, bitcoin, commands
@@ -612,16 +611,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.recently_visited_menu.setEnabled(len(recent))
 
     def get_wallet_folder(self):
-        return os.path.dirname(os.path.abspath(self.config.get_wallet_path()))
+        return self.gui_object.get_wallet_folder()
 
     def new_wallet(self):
         try:
-            wallet_folder = self.get_wallet_folder()
+            full_path = self.gui_object.get_new_wallet_path()
         except FileNotFoundError as e:
             self.show_error(str(e))
             return
-        filename = get_new_wallet_name(wallet_folder)
-        full_path = os.path.join(wallet_folder, filename)
         self.gui_object.start_new_window(full_path, None)
 
     def init_menubar(self):
