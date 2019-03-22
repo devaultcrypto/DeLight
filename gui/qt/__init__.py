@@ -40,8 +40,6 @@ from electroncash import WalletStorage
 from electroncash.util import (UserCancelled, PrintError, print_error,
                                standardize_path, finalization_print_error,
                                get_new_wallet_name)
-from electroncash.wallet import UnknownWalletType
-from electroncash.address import AddressError
 
 from .installwizard import InstallWizard, GoBack
 
@@ -269,12 +267,17 @@ class ElectrumGui(QObject, PrintError):
                     wallet = self.daemon.load_wallet(path, None)
                     if wallet and self._slp_warn_if_wallet_not_compat(wallet):
                         # trigger exception catch which forces the wizard to kick in below
-                        raise UnknownWalletType("User doesn't want to use this wallet")
-                except (ValueError, UnknownWalletType, OSError, TypeError,
-                        AddressError) as e:
-                    # Bad or corrupt wallet or unknown type of wallet,
-                    # proceed to wizard with a default wallet name/path combo.
+                        raise RuntimeWarning("User doesn't want to use this wallet")
+                except BaseException as e:
                     self.print_error(repr(e))
+                    if self.windows:
+                        # *Not* starting up. Propagate exception out to present
+                        # error message box to user.
+                        raise e
+                    # We're just starting up, so we are tolerant of bad wallets
+                    # and just want to proceed to the InstallWizard so the user
+                    # can either specify a different wallet or create a new one.
+                    # (See issue #1189 where before they would get stuck)
                     path = self.get_new_wallet_path()  # give up on this unknown wallet and try a new name.. note if things get really bad this will raise FileNotFoundError and the app aborts here.
                     wallet = None  # fall thru to wizard
                 if not wallet:
