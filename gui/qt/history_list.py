@@ -50,7 +50,7 @@ class HistoryList(MyTreeWidget):
     statusIcons = {}
 
     def __init__(self, parent=None):
-        super().__init__(parent, self.create_menu, [], 3)
+        super().__init__(parent, self.create_menu, [], 3, deferred_updates=True)
         self.refresh_headers()
         self.setColumnHidden(1, True)
         self.setSortingEnabled(True)
@@ -162,6 +162,8 @@ class HistoryList(MyTreeWidget):
                 self.parent.show_transaction(tx, label)
 
     def update_labels(self):
+        if self.should_defer_update_incr():
+            return
         root = self.invisibleRootItem()
         child_count = root.childCount()
         for i in range(child_count):
@@ -179,6 +181,8 @@ class HistoryList(MyTreeWidget):
             if icon: item.setIcon(0, icon)
             item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
             item.setText(2, status_str)
+        elif self.should_defer_update_incr():
+            return False
         return bool(item)  # indicate to client code whether an actual update occurred
 
     def create_menu(self, position):
