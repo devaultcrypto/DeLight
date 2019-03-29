@@ -111,7 +111,7 @@ class SlpMgt(MyTreeWidget):
     def get_balance_from_token_id(self,slpTokenId):
         # implement by looking at UTXO for this token!
         # for now return dummy value.
-        bal,dummy1,dummy2=self.parent.wallet.get_slp_token_balance(slpTokenId)
+        bal,dummy1,dummy2,unfrozen=self.parent.wallet.get_slp_token_balance(slpTokenId)
         return bal
 
     def on_update(self):

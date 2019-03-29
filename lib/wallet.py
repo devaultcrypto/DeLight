@@ -841,6 +841,7 @@ class Abstract_Wallet(PrintError):
         valid_token_bal = 0
         unvalidated_token_bal = 0
         invalid_token_bal = 0
+        unfrozen_valid_token_bal = 0
         for addr, addrdict in self._slp_txo.items():
             _, spent = self.get_addr_io(addr)
             for txid, txdict in addrdict.items():
@@ -855,11 +856,13 @@ class Abstract_Wallet(PrintError):
                         validity = self.tx_tokinfo[txid]['validity']
                         if validity == 1: # Valid DAG
                             valid_token_bal += txo['qty']
+                            if addr not in self.frozen_addresses:
+                                unfrozen_valid_token_bal += txo['qty']
                         elif validity == 2 or validity == 3: # Invalid DAG (2=bad slpmessage, 3=inputs lack enough tokens / missing mint baton)
                             invalid_token_bal += txo['qty']
                         elif validity == 0: # Unknown DAG status (should be in processing queue)
                             unvalidated_token_bal += txo['qty']
-        return (valid_token_bal, unvalidated_token_bal, invalid_token_bal)
+        return (valid_token_bal, unvalidated_token_bal, invalid_token_bal, unfrozen_valid_token_bal)
 
     def get_utxos(self, domain = None, exclude_frozen = False, mature = False, confirmed_only = False, get_all = False):
         ''' Note that exclude_frozen = True checks for BOTH address-level and coin-level frozen status. '''
@@ -1371,8 +1374,11 @@ class Abstract_Wallet(PrintError):
             if slpMsg.transaction_type == 'SEND':
                 total_token_out = sum(slpMsg.op_return_fields['token_output'])
                 valid_token_balance = self.get_slp_token_balance(slpMsg.op_return_fields['token_id_hex'])[0]
+                valid_unfrozen_token_balance = self.get_slp_token_balance(slpMsg.op_return_fields['token_id_hex'])[3]
                 if total_token_out > valid_token_balance:
                     raise NotEnoughFundsSlp()
+                elif total_token_out > valid_unfrozen_token_balance:
+                    raise NotEnoughUnfrozenFundsSlp()
 
         if fixed_fee is None and config.fee_per_kb() is None:
             raise BaseException('Dynamic fee estimates not available')
@@ -1458,14 +1464,6 @@ class Abstract_Wallet(PrintError):
         if not inputs:
             raise NotEnoughFunds()
 
-        # SLP: make sure SLP token spending is not greater than valid balance
-        if self._enable_slp and self.send_slpTokenId is not None:
-            slpMsg = SlpMessage.parseSlpOutputScript(outputs[0][1])
-            if slpMsg.transaction_type == 'SEND':
-                total_token_out = sum(slpMsg.op_return_fields['token_output'])
-                valid_token_balance = self.get_slp_token_balance(slpMsg.op_return_fields['token_id_hex'])[0]
-                if total_token_out > valid_token_balance:
-                    raise NotEnoughFundsSlp()
 
         if fixed_fee is None and config.fee_per_kb() is None:
             raise BaseException('Dynamic fee estimates not available')

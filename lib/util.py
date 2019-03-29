@@ -50,6 +50,8 @@ class NotEnoughFunds(Exception): pass
 
 class NotEnoughFundsSlp(Exception): pass
 
+class NotEnoughUnfrozenFundsSlp(Exception): pass
+
 class ExcessiveFee(Exception): pass
 
 class InvalidPassword(Exception):
