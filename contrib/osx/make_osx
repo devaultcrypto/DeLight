@@ -1,23 +1,36 @@
 #!/bin/bash
 
 build_dir=$(dirname "$0")
-test -n "$build_dir" -a -d "$build_dir" || exit
+test -n "$build_dir" -a -d "$build_dir" || (echo "Cannot determine build dir. FIXME!" && exit 1)
 
-. "$build_dir"/base.sh # functions we use below
+. "$build_dir"/../base.sh # functions we use below
+
+function DoCodeSignMaybe { # ARGS: infoName fileOrDirName codesignIdentity
+    infoName="$1"
+    file="$2"
+    identity="$3"
+    deep=""
+    if [ -z "$identity" ]; then
+        # we are ok with them not passing anything; master script calls us unconditionally even if no identity is specified
+        return
+    fi
+    if [ -d "$file" ]; then
+        deep="--deep"
+    fi
+    if [ -z "$infoName" ] || [ -z "$file" ] || [ -z "$identity" ] || [ ! -e "$file" ]; then
+        fail "Argument error to internal function DoCodeSignMaybe()"
+    fi
+    info "Code signing ${infoName}..."
+    codesign -f -v $deep -s "$identity" --preserve-metadata=requirements,entitlements "$file" || fail "Could not code sign ${infoName}"
+}
 
 cd $build_dir/../..
 
-
-export PYTHONHASHSEED=22
 VERSION=`git describe --tags`
 
 # Paramterize
-PYTHON_VERSION=3.6.8
 BUILDDIR=/tmp/electron-cash-build
-PACKAGE=Electron-Cash-SLP
-GIT_REPO_ACCT=https://github.com/simpleledger
-GIT_REPO=$GIT_REPO_ACCT/Electron-Cash-SLP
-LIBSECP_VERSION="b408c6a8b287003d1ade5709e6f7bc3c7f1d5be7"
+LIBSECP_VERSION="9896f7062e67e05f9a1aa7163099fb2e052db9e8"  # According to Mark B. Lundeberg, using a commit hash guarantees no repository man-in-the-middle funny business as git is secure when verifying hashes.
 # Compute major.minor Python version from above using Bash array magic
 MAJ_MIN=(${PYTHON_VERSION//./ })
 MAJ_MIN=${MAJ_MIN[0]}.${MAJ_MIN[1]}
@@ -56,7 +69,7 @@ if [ -n "$have_brew" ]; then
     done
 fi
 
-info "Installing Python $PYTHON_VERSION"
+info "Installing Python $PYTHON_VERSION"  # NB: $PYTHON_VERSION comes from ../base.sh
 export PATH=~/.pyenv/bin:~/.pyenv/versions/${PYTHON_VERSION}/bin:~/.pyenv/shims:~/Library/Python/${MAJ_MIN}/bin:"$PATH"
 if [ -d "~/.pyenv" ]; then
   pyenv update
@@ -71,7 +84,7 @@ fail "Unable to use Python $PYTHON_VERSION"
 info "Installing PyInstaller"
 python3 -m pip install https://github.com/cculianu/pyinstaller/releases/download/3.4AppleEventsCodeSign/PyInstaller_3.4+AppleEvents+CodeSign.zip -I --user && pyenv rehash || fail "Could not install PyInstaller"
 
-info "Using these versions for building $PACKAGE:"
+info "Using these versions for building $PACKAGE:"  # NB: PACKAGE var comes from ../base.sh
 sw_vers
 python3 --version
 echo -n "Pyinstaller "
@@ -97,15 +110,24 @@ tar xz --directory $BUILDDIR
 cp -fp $BUILDDIR/libusb/1.0.21/lib/libusb-1.0.dylib contrib/osx
 
 info "Building libsecp256k1"
-git clone https://github.com/bitcoin-core/secp256k1 $BUILDDIR/secp256k1
-pushd $BUILDDIR/secp256k1
-git reset --hard $LIBSECP_VERSION
+pushd contrib/secp256k1 || fail "Could not chdir to contrib/secp256k1"
+git checkout $LIBSECP_VERSION || fail "Could not check out secp256k1 $LIBSECP_VERSION"
 git clean -f -x -q
-./autogen.sh
-./configure --enable-module-recovery --enable-experimental --enable-module-ecdh --disable-jni --with-bignum=no
-make
+./autogen.sh || fail "Could not run autogen for secp256k1"
+./configure \
+    --enable-module-recovery \
+    --enable-experimental \
+    --enable-module-ecdh \
+    --disable-jni \
+    --with-bignum=no \
+    --enable-module-schnorr \
+    --disable-tests \
+    --disable-static \
+    --enable-shared || fail "Could not configure for secp256k1"
+make -j4 || fail "Could not build secp256k1"
+git checkout master  # Undo the previous explicit checkout to this hash
 popd
-cp -fp $BUILDDIR/secp256k1/.libs/libsecp256k1.0.dylib contrib/osx
+cp -fp contrib/secp256k1/.libs/libsecp256k1.0.dylib contrib/osx || fail "Could not copy secp256k1 binary to its destination"
 
 info "Building CalinsQRReader..."
 d=contrib/osx/CalinsQRReader

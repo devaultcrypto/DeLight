@@ -12,7 +12,7 @@ from ctypes import (
 
 import ecdsa
 
-from .util import print_stderr, print_error
+from .util import print_stderr, print_error, print_msg
 
 
 SECP256K1_FLAGS_TYPE_MASK = ((1 << 8) - 1)
@@ -34,15 +34,24 @@ SECP256K1_EC_UNCOMPRESSED = (SECP256K1_FLAGS_TYPE_COMPRESSION)
 
 def load_library():
     if sys.platform == 'darwin':
-        library_path = 'libsecp256k1.0.dylib'
+        library_paths = ('libsecp256k1.0.dylib',  # on Mac it's in the pyinstaller top level folder, which is in libpath
+                         os.path.join(os.path.dirname(__file__), 'libsecp256k1.0.dylib'))  # fall back to "running from source" mode lib/ folder
     elif sys.platform in ('windows', 'win32'):
-        library_path = 'libsecp256k1.dll'
+        library_paths = ('libsecp256k1.dll',  # on Windows it's in the pyinstaller top level folder, which is in the path
+                         os.path.join(os.path.dirname(__file__), 'libsecp256k1.dll'))  # does running from source even make sense on Windows? Enquiring minds want to know.
     elif 'ANDROID_DATA' in os.environ:
-        library_path = 'libsecp256k1.so'
+        library_paths = 'libsecp256k1.so',
     else:
-        library_path = 'libsecp256k1.so.0'
+        library_paths = (os.path.join(os.path.dirname(__file__), 'libsecp256k1.so.0'),  # on linux we install it alongside the python scripts.
+                         'libsecp256k1.so.0')  # fall back to system lib, if any
 
-    secp256k1 = ctypes.cdll.LoadLibrary(library_path)
+    for lp in library_paths:
+        try:
+            secp256k1 = ctypes.cdll.LoadLibrary(lp)
+        except:
+            continue
+        if secp256k1:
+            break
     if not secp256k1:
         print_stderr('[ecc] warning: libsecp256k1 library failed to load')
         return None
@@ -185,8 +194,10 @@ def _prepare_monkey_patching_of_python_ecdsa_internals_with_libsecp256k1():
 def do_monkey_patching_of_python_ecdsa_internals_with_libsecp256k1():
     if not _libsecp256k1:
         # FIXME print_error will always print as 'verbosity' is not yet initialised
-        print_error('[ecc] info: libsecp256k1 library not available, falling back to python-ecdsa. '
-                    'This means signing operations will be slower.')
+        print_msg('[ecc] info: libsecp256k1 library not available, falling back to python-ecdsa. '
+                  'This means signing operations will be slower. '
+                  'Try running:\n\n  $  contrib/make_secp\n\n(You need to be running from the git sources for contrib/make_secp to be available)'
+                  )
         return
     if not _patched_functions.prepared_to_patch:
         raise Exception("can't patch python-ecdsa without preparations")

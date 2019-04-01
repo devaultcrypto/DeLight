@@ -2,12 +2,13 @@
 ;Include Modern UI
   !include "TextFunc.nsh" ;Needed for the $GetSize fuction. I know, doesn't sound logical, it isn't.
   !include "MUI2.nsh"
-  
+
 ;--------------------------------
 ;Variables
 
-  !define PRODUCT_NAME "Electron Cash"
-  !define PRODUCT_WEB_SITE "https://github.com/Electron-Cash/Electron-Cash"
+  !define PRODUCT_NAME "Electron Cash SLP"
+  !define INTERNAL_NAME "Electron-Cash-SLP"
+  !define PRODUCT_WEB_SITE "https://github.com/simpleledger/Electron-Cash-SLP"
   !define PRODUCT_PUBLISHER "Electron Cash LLC"
   !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 
@@ -16,7 +17,7 @@
 
   ;Name and file
   Name "${PRODUCT_NAME}"
-  OutFile "dist/Electron-Cash-setup.exe"
+  OutFile "dist/${INTERNAL_NAME}-setup.exe"
 
   ;Default installation folder
   InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
@@ -29,31 +30,31 @@
 
   ;Specifies whether or not the installer will perform a CRC on itself before allowing an install
   CRCCheck on
-  
+
   ;Sets whether or not the details of the install are shown. Can be 'hide' (the default) to hide the details by default, allowing the user to view them, or 'show' to show them by default, or 'nevershow', to prevent the user from ever seeing them.
   ShowInstDetails show
-  
+
   ;Sets whether or not the details of the uninstall  are shown. Can be 'hide' (the default) to hide the details by default, allowing the user to view them, or 'show' to show them by default, or 'nevershow', to prevent the user from ever seeing them.
   ShowUninstDetails show
-  
+
   ;Sets the colors to use for the install info screen (the default is 00FF00 000000. Use the form RRGGBB (in hexadecimal, as in HTML, only minus the leading '#', since # can be used for comments). Note that if "/windows" is specified as the only parameter, the default windows colors will be used.
   InstallColors /windows
-  
+
   ;This command sets the compression algorithm used to compress files/data in the installer. (http://nsis.sourceforge.net/Reference/SetCompressor)
   SetCompressor /SOLID lzma
-  
+
   ;Sets the dictionary size in megabytes (MB) used by the LZMA compressor (default is 8 MB).
   SetCompressorDictSize 64
-  
+
   ;Sets the text that is shown (by default it is 'Nullsoft Install System vX.XX') in the bottom of the install window. Setting this to an empty string ("") uses the default; to set the string to blank, use " " (a space).
-  BrandingText "${PRODUCT_NAME} Installer v${PRODUCT_VERSION}" 
-  
+  BrandingText "${PRODUCT_NAME} Installer v${PRODUCT_VERSION}"
+
   ;Sets what the titlebars of the installer will display. By default, it is 'Name Setup', where Name is specified with the Name command. You can, however, override it with 'MyApp Installer' or whatever. If you specify an empty string (""), the default will be used (you can however specify " " to achieve a blank string)
   Caption "${PRODUCT_NAME}"
 
   ;Adds the Product Version on top of the Version Tab in the Properties of the file.
   VIProductVersion 1.0.0.0
-  
+
   ;VIAddVersionKey - Adds a field in the Version Tab of the File Properties. This can either be a field provided by the system or a user defined field.
   VIAddVersionKey ProductName "${PRODUCT_NAME} Installer"
   VIAddVersionKey Comments "The installer for ${PRODUCT_NAME}"
@@ -63,7 +64,7 @@
   VIAddVersionKey FileVersion ${PRODUCT_VERSION}
   VIAddVersionKey ProductVersion ${PRODUCT_VERSION}
   VIAddVersionKey InternalName "${PRODUCT_NAME} Installer"
-  VIAddVersionKey LegalTrademarks "${PRODUCT_NAME} is a trademark of ${PRODUCT_PUBLISHER}" 
+  VIAddVersionKey LegalTrademarks "${PRODUCT_NAME} is a trademark of ${PRODUCT_PUBLISHER}"
   VIAddVersionKey OriginalFilename "${PRODUCT_NAME}.exe"
 
 ;--------------------------------
@@ -71,9 +72,9 @@
 
   !define MUI_ABORTWARNING
   !define MUI_ABORTWARNING_TEXT "Are you sure you wish to abort the installation of ${PRODUCT_NAME}?"
-  
-  !define MUI_ICON "tmp\electrum\icons\electron.ico"
-  
+
+  !define MUI_ICON "\electroncash\icons\electron.ico"
+
 ;--------------------------------
 ;Pages
 
@@ -108,9 +109,9 @@ Section
   RMDir /r "$INSTDIR\*.*"
   Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\*.*"
-  
+
   ;Files to pack into the installer
-  File /r "dist\electrum\*.*"
+  File /r "dist\electroncash\*.*"
   File "..\..\icons\electron.ico"
 
   ;Store installation folder
@@ -122,25 +123,25 @@ Section
 
   ;Create desktop shortcut
   DetailPrint "Creating desktop shortcut..."
-  CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\Electron-Cash-${PRODUCT_VERSION}.exe" ""
+  CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe" ""
 
   ;Create start-menu items
   DetailPrint "Creating start-menu items..."
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\Electron-Cash-${PRODUCT_VERSION}.exe" "" "$INSTDIR\Electron-Cash-${PRODUCT_VERSION}.exe" 0
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} Testnet.lnk" "$INSTDIR\Electron-Cash-${PRODUCT_VERSION}.exe" "--testnet" "$INSTDIR\Electron-Cash-${PRODUCT_VERSION}.exe" 0
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe" "" "$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe" 0
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} Testnet.lnk" "$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe" "--testnet" "$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe" 0
 
 
   ;Links bitcoincash: URI's to Electron Cash
   WriteRegStr HKCU "Software\Classes\bitcoincash" "" "URL:bitcoincash Protocol"
   WriteRegStr HKCU "Software\Classes\bitcoincash" "URL Protocol" ""
   WriteRegStr HKCU "Software\Classes\bitcoincash" "DefaultIcon" "$\"$INSTDIR\electron.ico, 0$\""
-  WriteRegStr HKCU "Software\Classes\bitcoincash\shell\open\command" "" "$\"$INSTDIR\Electron-Cash-${PRODUCT_VERSION}.exe$\" $\"%1$\""
+  WriteRegStr HKCU "Software\Classes\bitcoincash\shell\open\command" "" "$\"$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe$\" $\"%1$\""
   WriteRegStr HKCU "Software\Classes\simpleledger" "" "URL:simpleledger Protocol"
   WriteRegStr HKCU "Software\Classes\simpleledger" "URL Protocol" ""
   WriteRegStr HKCU "Software\Classes\simpleledger" "DefaultIcon" "$\"$INSTDIR\electron.ico, 0$\""
-  WriteRegStr HKCU "Software\Classes\simpleledger\shell\open\command" "" "$\"$INSTDIR\Electron-Cash-${PRODUCT_VERSION}.exe$\" $\"%1$\""
+  WriteRegStr HKCU "Software\Classes\simpleledger\shell\open\command" "" "$\"$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe$\" $\"%1$\""
 
   ;Adds an uninstaller possibilty to Windows Uninstall or change a program section
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
@@ -170,10 +171,9 @@ Section "Uninstall"
   Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\*.*"
   RMDir  "$SMPROGRAMS\${PRODUCT_NAME}"
-  
+
   DeleteRegKey HKCU "Software\Classes\bitcoincash"
   DeleteRegKey HKCU "Software\Classes\simpleledger"
   DeleteRegKey HKCU "Software\${PRODUCT_NAME}"
   DeleteRegKey HKCU "${PRODUCT_UNINST_KEY}"
 SectionEnd
-

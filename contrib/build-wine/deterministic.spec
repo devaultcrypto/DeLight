@@ -11,7 +11,7 @@ else:
     raise BaseException('no name')
 
 
-home = 'C:\\electrum\\'
+home = 'C:\\electroncash\\'
 
 # see https://github.com/pyinstaller/pyinstaller/issues/2005
 hiddenimports = []
@@ -21,8 +21,9 @@ hiddenimports += collect_submodules('btchip')
 hiddenimports += collect_submodules('keepkeylib')
 
 # Add libusb binary
-binaries = [("c:/python3.5.4/libusb-1.0.dll", ".")]
+binaries = [("c:/tmp/libusb-1.0.dll", ".")]
 
+# Add secp library
 binaries += [('C:/tmp/libsecp256k1.dll', '.')]
 
 # Workaround for "Retro Look":
@@ -69,7 +70,7 @@ a = Analysis([home+'electron-cash',
 
 # http://stackoverflow.com/questions/19055089/pyinstaller-onefile-warning-pyconfig-h-when-importing-scipy-or-scipy-signal
 for d in a.datas:
-    if 'pyconfig' in d[0]: 
+    if 'pyconfig' in d[0]:
         a.datas.remove(d)
         break
 
@@ -105,8 +106,8 @@ exe_standalone = EXE(
     pyz,
     a.scripts,
     a.binaries,
-    a.datas,  
-    name=os.path.join('build\\pyi.win32\\electrum', cmdline_name + ".exe"),
+    a.datas,
+    name=os.path.join('build\\pyi.win32\\electroncash', cmdline_name + ".exe"),
     debug=False,
     strip=None,
     upx=False,
@@ -119,7 +120,7 @@ exe_portable = EXE(
     a.scripts,
     a.binaries,
     a.datas + [ ('is_portable', 'README.md', 'DATA' ) ],
-    name=os.path.join('build\\pyi.win32\\electrum', cmdline_name + "-portable.exe"),
+    name=os.path.join('build\\pyi.win32\\electroncash', cmdline_name + "-portable.exe"),
     debug=False,
     strip=None,
     upx=False,
@@ -133,7 +134,7 @@ exe_dependent = EXE(
     pyz,
     a.scripts,
     exclude_binaries=True,
-    name=os.path.join('build\\pyi.win32\\electrum', cmdline_name),
+    name=os.path.join('build\\pyi.win32\\electroncash', cmdline_name),
     debug=False,
     strip=None,
     upx=False,
@@ -150,4 +151,4 @@ coll = COLLECT(
     debug=False,
     icon=home+'icons/electron.ico',
     console=False,
-    name=os.path.join('dist', 'electrum'))
+    name=os.path.join('dist', 'electroncash'))
