@@ -95,6 +95,7 @@ setup(
             'currencies.json',
             'www/index.html',
             'wordlist/*.txt',
+            'libsecp256k1*',
             'locale/*/LC_MESSAGES/electron-cash.mo',
         ]
     },
