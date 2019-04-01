@@ -36,3 +36,13 @@ Electron Cash - SLP Token Edition
 - Fixed bug in Bitcoin Files download dialog with off-chain files
 - Disabled 'Sweep' dialog -- it's dangerous to use with SLP wallets. We will re-enabled it next release with better logic.
 - Disallow Hardware Wallets -- they are incompatible with SLP anyway due to vendor firmware limiations.
+
+3.4.6 Updates & Features
+-----
+- Ported many bug fixes from mainline Electron Cash 4.0.0
+  ( see: https://github.com/simpleledger/Electron-Cash-SLP/compare/3.4.5...master )
+- Patch address level freezing
+- Fixed an issue where on new wallets the token balance doesn't update until restart.
+- Electron Cash and SLP Edition now can be installed on the same machine and they won't step on each others' toes.
+  This was especially a problem if running the installable of Electron Cash Regular and SLP on the same Windows machine.
+
