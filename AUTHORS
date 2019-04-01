@@ -19,3 +19,4 @@ Mark Lundeberg - Windows zbar, SLP (Tokens) work, various miscellanity
 Jochen Hoenicke - Trezor, Ledger, and other miscellaneous fixes
 Jonas Lundqvist - BIP70 fix, currency exchanges
 Marcel O'Neil - Miscellaneous + packaging fixups
+James Cramer - SLP Edition
