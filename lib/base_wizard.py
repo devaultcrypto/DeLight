@@ -115,7 +115,7 @@ class BaseWizard(object):
                 ('restore_from_seed', _('I already have a seed')),
                 ('restore_from_key', _('Use public or private keys')),
             ]
-            # Disabled for SLP 
+            # Disabled for SLP
             # if not self.is_kivy:
             #     choices.append(('choose_hw_device',  _('Use a hardware device')))
         else:
@@ -124,7 +124,7 @@ class BaseWizard(object):
                 ('restore_from_key', _('Enter cosigner key')),
                 ('restore_from_seed', _('Enter cosigner seed')),
             ]
-            # Disabled for SLP 
+            # Disabled for SLP
             # if not self.is_kivy:
             #     choices.append(('choose_hw_device',  _('Cosign with hardware device')))
 
