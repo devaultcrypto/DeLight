@@ -46,3 +46,6 @@ Electron Cash - SLP Token Edition
 - Electron Cash and SLP Edition now can be installed on the same machine and they won't step on each others' toes.
   This was especially a problem if running the installable of Electron Cash Regular and SLP on the same Windows machine.
 
+3.4.7 Updates & Features
+-----
+- Patch to diallow importing of electrum seeds, only allow BIP-39 with valid checksum
