@@ -1521,6 +1521,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 c, u, x = self.wallet.get_frozen_balance()
                 if c+u+x:
                     text += ' (' + self.format_amount(c+u+x).strip() + ' ' + self.base_unit() + ' ' +_("are frozen") + ')'
+                slp = self.wallet.get_slp_locked_balance()
+                if slp > 0:
+                    text += " (" + self.format_amount(slp).strip() + " locked in SLP)"
+                extra = run_hook("not_enough_funds_extra", self)
+                if isinstance(extra, str) and extra:
+                    text += " ({})".format(extra)
 
             elif self.fee_e.isModified():
                 amt_color, fee_color = ColorScheme.DEFAULT, ColorScheme.DEFAULT

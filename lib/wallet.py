@@ -888,6 +888,21 @@ class Abstract_Wallet(PrintError):
         cc_all, uu_all, xx_all = self.get_balance(None, exclude_frozen_coins = False, exclude_frozen_addresses = False)
         return (cc_all-cc_no_f), (uu_all-uu_no_f), (xx_all-xx_no_f)
 
+    def get_slp_locked_balance(self):
+        bch = 0
+        for addr, addrdict in self._slp_txo.copy().items():
+            _, spent = self.get_addr_io(addr)
+            for txid, txdict in addrdict.copy().items():
+                for idx, txo in txdict.copy().items():
+                    if not isinstance(txo.get('qty',None), int): # Ignore baton / non-inputs
+                        continue
+                    if (txid + ":" + str(idx)) in spent:
+                        continue
+                    for i, a, _ in self.txo[txid][addr]:
+                        if i == idx:
+                            bch+=a
+        return bch
+
     def get_balance(self, domain=None, exclude_frozen_coins=False, exclude_frozen_addresses=False):
         if domain is None:
             domain = self.get_addresses()
