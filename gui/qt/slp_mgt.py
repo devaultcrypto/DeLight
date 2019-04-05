@@ -82,7 +82,6 @@ class SlpMgt(MyTreeWidget):
     def create_menu(self, position):
         menu = QMenu()
         selected = self.selectedItems()
-        current = self.currentItem()
         if len(selected) == 1:
             names = [item.text(0) for item in selected]
             keys = [item.text(0) for item in selected]
@@ -96,9 +95,8 @@ class SlpMgt(MyTreeWidget):
             column_data = '\n'.join([item.text(column) for item in selected])
             menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
             menu.addAction(_("Remove this token"), lambda: self.parent.delete_slp_token(keys))
-            if current:
-                token_id = current.data(0, Qt.UserRole)
-                menu.addAction(_("View Token Details"), lambda: SlpAddTokenDialog(self.parent, token_id_hex = token_id, token_name=current.text(1) ))
+            if self.currentItem():
+                menu.addAction(_("View Token Details"), lambda: self.onViewTokenDetails())
             menu.addSeparator()
         
         menu.addAction(_("Add existing token"), lambda: SlpAddTokenDialog(self.parent,))
@@ -107,6 +105,11 @@ class SlpMgt(MyTreeWidget):
         run_hook('create_contact_menu', menu, selected)
         menu.exec_(self.viewport().mapToGlobal(position))
 
+
+    def onViewTokenDetails(self):
+        current = self.currentItem()
+        if current:
+            SlpAddTokenDialog(self.parent, token_id_hex = current.data(0, Qt.UserRole), token_name=current.text(1) )
 
     def get_balance_from_token_id(self,slpTokenId):
         # implement by looking at UTXO for this token!
