@@ -4,7 +4,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules, coll
 import sys, os
 
 PACKAGE='Electron-Cash-SLP'
-BUNDLE_IDENTIFIER='io.simpleledger.' + PACKAGE # Used for info.plist 
+BUNDLE_IDENTIFIER='io.simpleledger.' + PACKAGE # Used for info.plist
 PYPKG='electroncash'
 MAIN_SCRIPT='electron-cash'
 ICONS_FILE='electron.icns'
@@ -77,12 +77,30 @@ for d in a.datas:
         break
 # Remove QtWeb and other stuff that we know we never use.
 # This is a hack of sorts that works to keep the binary file size reasonable.
-bins2remove=('qtweb', 'qt3d', 'qtgame', 'qtdesigner', 'qtquick', 'qtlocation', 'qttest', 'qtxml')
-files2remove=('libqsqlmysql.dylib', 'libdeclarative_multimedia.dylib', 'libqtquickscene2dplugin.dylib', 'libqtquickscene3dplugin.dylib')
+bins2remove=('qtweb', 'qt3d', 'qtgame', 'qtdesigner', 'qtquick', 'qtlocation',
+             'qttest', 'qtxml', 'qtqml', 'qtsql', 'qtserialport', 'qtsensors',
+             'qtpositioning', 'qtnfc', 'qthelp', 'qtbluetooth', 'qtmultimedia',
+             'pyqt5/qt/qml', 'pyqt5/qt/plugins/position',
+             'pyqt5/qt/plugins/mediaservice', 'pyqt5/qt/plugins/audio',
+             'pyqt5/qt/plugins/sqldrivers', )
+files2remove=('libqsqlmysql.dylib', 'libdeclarative_multimedia.dylib',
+              'libqtquickscene2dplugin.dylib', 'libqtquickscene3dplugin.dylib',
+              'libqtquickcontrols2imaginestyleplugin.dylib', 'libqwebgl.dylib',
+              'libqtquickextrasflatplugin.dylib', 'ibqtcanvas3d.dylib',
+              'libqtquickcontrolsplugin.dylib', 'libqtquicktemplates2plugin.dylib',
+              'libqtlabsplatformplugin.dylib', 'libdeclarative_sensors.dylib',
+              'libdeclarative_location.dylib', )
 print("Removing", *(bins2remove + files2remove))
 for x in a.binaries.copy():
+    item = x[0].lower()
+    fn = x[1].lower()
+    if os.path.basename(fn) in files2remove:
+        a.binaries.remove(x)
+        print('----> Removed:', x)
+        continue
     for r in bins2remove:
-        if x[0].lower().startswith(r) or os.path.basename(x[1].lower()) in files2remove:
+        pyqt5_r = 'pyqt5.' + r
+        if item.startswith(r) or item.startswith(pyqt5_r):
             a.binaries.remove(x)
             print('----> Removed:', x)
             break # break from inner loop
