@@ -96,19 +96,19 @@ See `contrib/build-linux/README.md <contrib/build-linux/README.md>`_.
 Mac OS X / macOS
 --------
 
-See `contrib/osx/`.
+See `contrib/osx/ <contrib/osx/>`_.
 
 Windows
 -------
 
-See `contrib/build-wine/`.
+See `contrib/build-wine/ <contrib/build-wine/>`_.
 
 Android
 -------
 
-See `gui/kivy/Readme.txt` file.
+See `gui/kivy/Readme.txt <gui/kivy/Readme.txt>`_ file.
 
 iOS
 -------
 
-See `ios/`.
+See `ios/ <ios/>`_.
