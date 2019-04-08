@@ -88,25 +88,10 @@ the mapped import paths work correctly.
 Creating Binaries
 =================
 
+Linux AppImage & Source Tarball
+--------------
 
-To create binaries, create the 'packages/' directory::
-
-    ./contrib/make_packages
-
-This directory contains the python dependencies used by Electron Cash.
-
-The `make_packages` command may fail with some Ubuntu-packaged versions of
-pip ("can't combine user with prefix."). To solve this, it is necessary to
-upgrade your pip to the official version::
-
-    pip install pip --user
-
-Linux (source with packages)
-----------------------------
-
-Run the following to create the release tarball under `dist/`::
-
-    ./setup.py sdist
+See `contrib/build-linux/README.md <contrib/build-linux/README.md>`_.
 
 Mac OS X / macOS
 --------
