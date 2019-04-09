@@ -306,9 +306,9 @@ class BitcoinFilesUploadDialog(QDialog, MessageBoxMixin):
                 else:
                     addr = self.parent.wallet.get_unused_address()
 
-                # IMPORTANT: set wallet.send_slpTokenId to None to guard tokens during this transaction
+                # # IMPORTANT: set wallet.send_slpTokenId to None to guard tokens during this transaction
                 self.main_window.token_type_combo.setCurrentIndex(0)
-                assert self.main_window.wallet.send_slpTokenId == None
+                assert self.main_window.slp_token_id == None
 
                 try:
                     self.tx_batch.append(getFundingTxn(self.parent.wallet, addr, cost, self.parent.config))

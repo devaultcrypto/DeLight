@@ -163,10 +163,6 @@ class Abstract_Wallet(PrintError):
     max_change_outputs = 3
 
     def __init__(self, storage):
-        # SLP stuff
-        self._enable_slp = False
-        self.send_slpTokenId = None
-
         self.electrum_version = PACKAGE_VERSION
         self.storage = storage
         self.thread = None  # this is used by the qt main_window to store a QThread. We just make sure it's always defined as an attribute here.
@@ -329,15 +325,11 @@ class Abstract_Wallet(PrintError):
             if write:
                 self.storage.write()
 
-    def enable_slp(self):
+    def activate_slp(self):
         # This gets called in two situations:
         # - Upon wallet startup once GUI is loaded, it checks config to see if SLP should be enabled.
         # - During wallet operation, SLP can be freely enabled/disabled by user.
         with self.transaction_lock:
-            #if self._enable_slp:
-                #return # ignore
-            self._enable_slp = True
-
             for tx_hash, tti in self.tx_tokinfo.items():
                 # Fire up validation on unvalidated txes
                 try:
@@ -357,13 +349,6 @@ class Abstract_Wallet(PrintError):
                         self.slp_check_validation(tx_hash, tx)
                 except KeyError: # This catches the case where tx_tokinfo was set to {}
                     continue
-
-    def disable_slp(self):
-        with self.transaction_lock:
-            if not self._enable_slp:
-                return # ignore
-            self._enable_slp = False
-
 
     def save_verified_tx(self, write=False):
         with self.lock:
@@ -724,7 +709,7 @@ class Abstract_Wallet(PrintError):
                 for idx, txo in txdict.items():
                     if txo['qty'] == 'MINT_BATON' and txo['token_id'] == slpTokenId:
                         try:
-                            coins = self.get_utxos(domain = None, exclude_frozen = False, mature = False, confirmed_only = False, get_all = True)
+                            coins = self.get_utxos(domain = None, exclude_frozen = False, mature = False, confirmed_only = False, slpTokenId=slpTokenId)
                             baton_utxo = [ utxo for utxo in coins if utxo['prevout_hash'] == txid and utxo['prevout_n'] == idx and self.tx_tokinfo[txid]['validity'] == 1][0]
                         except IndexError:
                             continue
@@ -733,7 +718,7 @@ class Abstract_Wallet(PrintError):
 
     # This method is updated for SLP to prevent tokens from being spent
     # in normal txn or txns with token_id other than the one specified
-    def get_addr_utxo(self, address, slpTokenId=None, get_all=False):
+    def get_addr_utxo(self, address, *, slpTokenId=None):
         coins, spent = self.get_addr_io(address)
         # removes spent coins
         for txi in spent:
@@ -744,12 +729,12 @@ class Abstract_Wallet(PrintError):
 
         ### SLP stuff
         # removes token that are either unrelated, or unvalidated
-        if not get_all:
-            addrdict = self._slp_txo.get(address,{})
-            for txid, txdict in addrdict.items():
-                for idx, txo in txdict.items():
-                    if not isinstance(txo['qty'], int) or slpTokenId is None or txo['token_id'] != slpTokenId or self.tx_tokinfo[txid]['validity'] != 1:
-                        coins.pop(txid + ":" + str(idx), None)
+        addrdict = self._slp_txo.get(address,{})
+        for txid, txdict in addrdict.items():
+            for idx, txo in txdict.items():
+                if not isinstance(txo['qty'], int) or slpTokenId is None or txo['token_id'] != slpTokenId or self.tx_tokinfo[txid]['validity'] != 1:
+                    coins.pop(txid + ":" + str(idx), None)
+
         out = {}
         for txo, v in coins.items():
             tx_height, value, is_cb = v
@@ -834,11 +819,11 @@ class Abstract_Wallet(PrintError):
             self._addr_bal_cache[address] = result
         return result
 
-    def get_spendable_coins(self, domain, config, isInvoice = False):
+    def get_spendable_coins(self, domain, config, isInvoice = False, *, slpTokenId=None):
         confirmed_only = config.get('confirmed_only', False)
         if (isInvoice):
             confirmed_only = True
-        return self.get_utxos(domain, exclude_frozen=True, mature=True, confirmed_only=confirmed_only)
+        return self.get_utxos(domain, exclude_frozen=True, mature=True, confirmed_only=confirmed_only, slpTokenId=slpTokenId)
 
     def get_slp_token_balance(self, slpTokenId):
         valid_token_bal = 0
@@ -867,7 +852,7 @@ class Abstract_Wallet(PrintError):
                             unvalidated_token_bal += txo['qty']
         return (valid_token_bal, unvalidated_token_bal, invalid_token_bal, unfrozen_valid_token_bal)
 
-    def get_utxos(self, domain = None, exclude_frozen = False, mature = False, confirmed_only = False, get_all = False):
+    def get_utxos(self, domain = None, exclude_frozen = False, mature = False, confirmed_only = False, *, slpTokenId = None):
         ''' Note that exclude_frozen = True checks for BOTH address-level and coin-level frozen status. '''
         coins = []
         if domain is None:
@@ -875,7 +860,7 @@ class Abstract_Wallet(PrintError):
         if exclude_frozen:
             domain = set(domain) - self.frozen_addresses
         for addr in domain:
-            utxos = self.get_addr_utxo(addr, slpTokenId = self.send_slpTokenId, get_all = get_all)
+            utxos = self.get_addr_utxo(addr, slpTokenId = slpTokenId)
             for x in utxos.values():
                 if exclude_frozen and x['is_frozen_coin']:
                     continue
@@ -966,8 +951,6 @@ class Abstract_Wallet(PrintError):
             self.transactions[tx_hash] = tx
 
             ### SLP: Handle incoming SLP transaction outputs here
-            #if self._enable_slp:
-            # Always handle and parse SLP
             self.handleSlpTransaction(tx_hash, tx)
 
     def handleSlpTransaction(self, tx_hash, tx):
@@ -1058,7 +1041,7 @@ class Abstract_Wallet(PrintError):
                 }
         self.tx_tokinfo[tx_hash] = tti
 
-        if self._enable_slp: # Only start up validation if SLP enabled
+        if self.storage.get('wallet_type', '') in [ 'bip39-slp' ]: # Only start up validation if SLP enabled
             self.slp_check_validation(tx_hash, tx)
 
     def slp_check_validation(self, tx_hash, tx):
@@ -1365,7 +1348,7 @@ class Abstract_Wallet(PrintError):
     def dust_threshold(self):
         return dust_threshold(self.network)
 
-    def make_unsigned_transaction(self, inputs, outputs, config, fixed_fee=None, change_addr=None):
+    def make_unsigned_transaction(self, inputs, outputs, config, fixed_fee=None, change_addr=None, *, slpTokenId=None):
         # check outputs
         i_max = None
         for i, o in enumerate(outputs):
@@ -1380,7 +1363,7 @@ class Abstract_Wallet(PrintError):
             raise NotEnoughFunds()
 
         # SLP: make sure SLP token spending is not greater than valid balance
-        if self._enable_slp and self.send_slpTokenId is not None:
+        if self.storage.get('wallet_type', '') in [ 'bip39-slp' ] and slpTokenId is not None:
             slpMsg = SlpMessage.parseSlpOutputScript(outputs[0][1])
             if slpMsg.transaction_type == 'SEND':
                 total_token_out = sum(slpMsg.op_return_fields['token_output'])
@@ -1427,7 +1410,7 @@ class Abstract_Wallet(PrintError):
             coin_chooser = coinchooser.CoinChooserPrivacy()
             # determine if this transaction should utilize all available inputs
             sweep = False
-            if self._enable_slp and self.send_slpTokenId is not None and self.send_slpTokenId != '0':
+            if self.storage.get('wallet_type', '') in [ 'bip39-slp' ] and slpTokenId is not None and slpTokenId != '0':
                 sweep = True
             tx = coin_chooser.make_tx(inputs, outputs, change_addrs[:max_change],
                                       fee_estimator, self.dust_threshold(), slp_sweep=sweep)
@@ -1450,7 +1433,7 @@ class Abstract_Wallet(PrintError):
             return
 
         # Sort the inputs and outputs deterministically
-        if not self._enable_slp:
+        if not self.storage.get('wallet_type', '') in [ 'bip39-slp' ]:
             tx.BIP_LI01_sort()
 
         # Timelock tx to current height.
@@ -1533,7 +1516,7 @@ class Abstract_Wallet(PrintError):
             return
 
         # Sort the inputs and outputs deterministically
-        if not self._enable_slp:
+        if not self.storage.get('wallet_type', '') in [ 'bip39-slp' ]:
             tx.BIP_LI01_sort()
         # Timelock tx to current height.
         locktime = self.get_local_height()

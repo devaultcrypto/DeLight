@@ -256,7 +256,7 @@ class SlpCreateTokenGenesisDialog(QDialog, MessageBoxMixin):
 
         # IMPORTANT: set wallet.sedn_slpTokenId to None to guard tokens during this transaction
         self.main_window.token_type_combo.setCurrentIndex(0)
-        assert self.main_window.wallet.send_slpTokenId == None
+        assert self.main_window.slp_token_id == None
 
         coins = self.main_window.get_coins()
         fee = None

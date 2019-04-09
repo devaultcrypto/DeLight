@@ -61,7 +61,7 @@ class UTXOList(MyTreeWidget):
         self.clear()
         self.wallet = self.parent.wallet
         if not self.wallet: return
-        self.utxos = self.wallet.get_utxos(get_all=True)
+        self.utxos = self.wallet.get_utxos()
         for x in self.utxos:
             address = x['address']
             address_text = address.to_ui_string()

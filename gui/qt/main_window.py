@@ -168,6 +168,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.slp_mgt_tab = self.create_slp_mgt_tab()
         self.converter_tab = self.create_converter_tab()
         self.slp_history_tab = self.create_slp_history_tab()
+        self.slp_token_id = None
         tabs.addTab(self.create_history_tab(), QIcon(":icons/tab_history.png"), _('History'))
         tabs.addTab(self.send_tab, QIcon(":icons/tab_send.png"), _('Send'))
         tabs.addTab(self.receive_tab, QIcon(":icons/tab_receive.png"), _('Receive'))
@@ -419,15 +420,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.clear_receive_tab()
         self.request_list.update()
 
-        # Set up SLP proxy here -- needs to be done before wallet.enable_slp is called.
+        # Set up SLP proxy here -- needs to be done before wallet.activate_slp is called.
         slp_validator_0x01.setup_config(self.config)
 
-        if self.config.get('enable_slp', True):
-            self.wallet.enable_slp()
+        if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+            self.wallet.activate_slp()
             self.slp_history_list.update()
             self.token_list.update()
-        else:
-            self.wallet.disable_slp()
         self.update_token_type_combo()
 
         self.tabs.show()
@@ -443,12 +442,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.watching_only_changed()
         self.history_updated_signal.emit() # inform things like address_dialog that there's a new history
         """ If using SLP for the first time, turn it on by default. """
-        if self.config.get('enable_slp', True):
+        if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
             self.config.set_key('enable_opreturn', False)
             self.message_opreturn_e.setHidden(True)
             self.opreturn_rawhex_cb.setHidden(True)
             self.opreturn_label.setHidden(True)
-            self.config.set_key('enable_slp', True)
             self.config.set_key('show_slp_history_tab',True)
             self.config.set_key('show_tokens_tab',True)
             self.toggle_cashaddr(2, True)
@@ -902,7 +900,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 icon = icon_dict["status_lagging"] if num_chains <= 1 else icon_dict["status_lagging_fork"]
             else:
                 text = ""
-                token_id = self.wallet.send_slpTokenId
+                token_id = self.slp_token_id
                 try:
                     d = self.wallet.token_types[token_id]
                 except (AttributeError, KeyError):
@@ -960,7 +958,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.contact_list.update()
         self.invoice_list.update()
         self.update_completions()
-        if self.config.get('enable_slp', True):
+        if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
             self.slp_history_list.update()
             self.token_list.update()
         self.history_updated_signal.emit() # inform things like address_dialog that there's a new history, also clears self.tx_update_mgr.verif_q
@@ -1305,10 +1303,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
 
     def on_slptok(self):
-        token_id = self.token_type_combo.currentData()
-        self.wallet.send_slpTokenId = token_id
+        self.slp_token_id = self.token_type_combo.currentData()
         self.payto_e.check_text()
-        if token_id is None:
+        if self.slp_token_id is None:
             self.amount_e.setAmount(0)
             self.amount_e.setText("")
             self.max_button.setEnabled(True)
@@ -1326,7 +1323,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.slp_amount_e.setHidden(False)
             self.slp_max_button.setHidden(False)
             self.slp_amount_label.setHidden(False)
-            tok = self.wallet.token_types[self.wallet.send_slpTokenId]
+            tok = self.wallet.token_types[self.slp_token_id]
             self.slp_amount_e.set_token(tok['name'],tok['decimals'])
             self.slp_amount_changed()
         self.update_status()
@@ -1476,7 +1473,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(self.token_type_combo, 7, 1)
 
 
-        if not self.config.get('enable_slp', True):
+        if not self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
             self.slp_amount_label.setHidden(True)
             self.slp_token_type_label.setHidden(True)
             self.token_type_combo.setHidden(True)
@@ -1573,12 +1570,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def slp_amount_changed(self):
         not_enough_funds_slp = False
         not_enough_unfrozen_funds_slp = False
-        if self.wallet.send_slpTokenId is not None:
+        if self.slp_token_id is not None:
             try:
                 total_token_out = self.slp_amount_e.get_amount()
-                if total_token_out is not None and total_token_out > self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[0]:
+                if total_token_out is not None and total_token_out > self.wallet.get_slp_token_balance(self.slp_token_id)[0]:
                     not_enough_funds_slp = True
-                elif total_token_out is not None and total_token_out > self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[3]:
+                elif total_token_out is not None and total_token_out > self.wallet.get_slp_token_balance(self.slp_token_id)[3]:
                     not_enough_unfrozen_funds_slp = True
             except ValueError:
                 pass
@@ -1599,7 +1596,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             if self.slp_amount_e.get_amount() > (2 ** 64) - 1:
                 amt_color, fee_color = ColorScheme.RED, ColorScheme.RED
-                maxqty = format_satoshis_plain_nofloat((2 ** 64) - 1, self.wallet.token_types.get(self.wallet.send_slpTokenId)['decimals'])
+                maxqty = format_satoshis_plain_nofloat((2 ** 64) - 1, self.wallet.token_types.get(self.slp_token_id)['decimals'])
                 text = _("Token output quantity is too large. Maximum %s.")%(maxqty,)
         except TypeError:
             pass
@@ -1612,7 +1609,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.do_update_fee()
 
     def slp_spend_max(self):
-        self.slp_amount_e.setAmount(self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[3])
+        self.slp_amount_e.setAmount(self.wallet.get_slp_token_balance(self.slp_token_id)[3])
 
     def update_fee(self):
         self.require_fee_update = True
@@ -1686,26 +1683,26 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 outputs = [(_type, addr, amount)]
             try:
                 opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
-                if self.wallet.send_slpTokenId is None and (opreturn_message != '' and opreturn_message is not None):
+                if self.slp_token_id is None and (opreturn_message != '' and opreturn_message is not None):
                     if self.opreturn_rawhex_cb.isChecked():
                         outputs.insert(0, self.output_for_opreturn_rawhex(opreturn_message))
                     else:
                         outputs.insert(0, self.output_for_opreturn_stringdata(opreturn_message))
-                elif self.wallet.send_slpTokenId is None:
+                elif self.slp_token_id is None:
                     pass
-                elif self.config.get('enable_slp', True):
+                elif self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
                     amt = self.slp_amount_e.get_amount()
                     if self.slp_amount_e.text() == '!':
-                        self.slp_amount_e.setAmount(self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[3])
+                        self.slp_amount_e.setAmount(self.wallet.get_slp_token_balance(self.slp_token_id)[3])
                     token_outputs = [ amt ]
-                    token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[3] - amt
+                    token_change = self.wallet.get_slp_token_balance(self.slp_token_id)[3] - amt
                     if token_change > 0:
                         token_outputs.append(token_change)
                         _type, addr = self.get_payto_or_dummy()
                         outputs.append((_type, addr, 546))
-                    slp_op_return_msg = slp.buildSendOpReturnOutput_V1(self.wallet.send_slpTokenId, token_outputs)
+                    slp_op_return_msg = slp.buildSendOpReturnOutput_V1(self.slp_token_id, token_outputs)
                     outputs.insert(0, slp_op_return_msg)
-                tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False), outputs, self.config, fee)
+                tx = self.wallet.make_unsigned_transaction(self.get_coins(isInvoice = False), outputs, self.config, fee, slpTokenId=self.slp_token_id)
                 self.not_enough_funds = False
                 self.not_enough_funds_slp = False
                 self.not_enough_unfrozen_funds_slp = False
@@ -1818,12 +1815,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         token_outputs = []
         opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
         try:
-            if self.wallet.send_slpTokenId == None and (opreturn_message != '' and opreturn_message != None):
-                if self.config.get('enable_slp', True):
+            if self.slp_token_id == None and (opreturn_message != '' and opreturn_message != None):
+                if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
                     try:
                         slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
                         if slpMsg.transaction_type == 'SEND' and not preview:
-                            self.wallet.send_slpTokenId = slpMsg.op_return_fields['token_id_hex']
+                            self.slp_token_id = slpMsg.op_return_fields['token_id_hex']
                     except OPReturnTooLarge as e:
                         self.show_error(str(e))
                         return
@@ -1833,9 +1830,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     except:
                         pass
                 #outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
-            elif self.wallet.send_slpTokenId is None:
+            elif self.slp_token_id is None:
                 pass
-            elif self.config.get('enable_slp', True):
+            elif self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
                 """ Guard against multiline 'Pay To' field """
                 if self.payto_e.is_multiline():
                     self.show_error(_("Too many receivers listed.\n\nCurrently this wallet only supports a single SLP token receiver."))
@@ -1850,10 +1847,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     return
                 amt = self.slp_amount_e.get_amount()
                 token_outputs.append(amt)
-                token_change = self.wallet.get_slp_token_balance(self.wallet.send_slpTokenId)[3] - amt
+                token_change = self.wallet.get_slp_token_balance(self.slp_token_id)[3] - amt
                 if token_change > 0:
                     token_outputs.append(token_change)
-                slp_op_return_msg = slp.buildSendOpReturnOutput_V1(self.wallet.send_slpTokenId, token_outputs)
+                slp_op_return_msg = slp.buildSendOpReturnOutput_V1(self.slp_token_id, token_outputs)
                 outputs.append(slp_op_return_msg)
         except OPReturnTooLarge as e:
             self.show_error(str(e))
@@ -1887,11 +1884,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 if not self.question(msg):
                     return
 
-        coins = self.get_coins(isInvoice=isInvoice)
+        coins = self.get_coins(isInvoice=isInvoice, slpTokenId=self.slp_token_id)
 
         """ SLP: Add an additional token change output """
         change_addr = None
-        if self.config.get('enable_slp', True):
+        if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
             if len(token_outputs) > 1 and len(outputs) - 1 < len(token_outputs):
                 """ start of logic copied from wallet.py """
                 addrs = self.wallet.get_change_addresses()[-self.wallet.gap_limit_for_change:]
@@ -1911,7 +1908,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 outputs.append((TYPE_ADDRESS, change_addr, 546))
 
         """ Only Allow OP_RETURN if SLP is disabled. """
-        if not self.config.get('enable_slp', True):
+        if not self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
             try:
                 # handle op_return if specified and enabled
                 opreturn_message = self.message_opreturn_e.text()
@@ -1954,7 +1951,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def do_send(self, preview = False):
         if run_hook('abort_send', self):
             return
-        if self.config.get('enable_slp', True) and self.token_type_combo.currentData():
+        if self.wallet.storage.get('wallet_type', '') in ['bip39-slp'] and self.token_type_combo.currentData():
             if self.slp_amount_e.get_amount() == 0 or self.slp_amount_e.get_amount() is None:
                 self.show_message(_("No SLP token amount provided."))
                 return
@@ -1963,7 +1960,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
         outputs, fee, tx_desc, coins, change_addrs = r
         try:
-            tx = self.wallet.make_unsigned_transaction(coins, outputs, self.config, fee, change_addrs)
+            tx = self.wallet.make_unsigned_transaction(coins, outputs, self.config, fee, change_addrs, slpTokenId=self.slp_token_id)
         except NotEnoughFunds:
             self.show_message(_("Insufficient funds"))
             return
@@ -2414,11 +2411,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.update_status()
             self.clear_receive_tab()
 
-    def get_coins(self, isInvoice = False):
+    def get_coins(self, isInvoice = False, *, slpTokenId = None):
         if self.pay_from:
             return self.pay_from
         else:
-            return self.wallet.get_spendable_coins(None, self.config, isInvoice)
+            return self.wallet.get_spendable_coins(None, self.config, isInvoice, slpTokenId=self.slp_token_id)
 
     def spend_coins(self, coins):
         self.set_pay_from(coins)
@@ -3407,7 +3404,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def toggle_cashaddr(self, format, specified = False):
         #Gui toggle should just increment, if "specified" is True it is being set from preferences, so leave the value as is.
         if specified==False:
-            if self.config.get('enable_slp', True):
+            if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
                 max_format=2
             else:
                 max_format=1
@@ -3423,7 +3420,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         else:
             self.slp_amount_e.setEnabled(False)
             self.token_type_combo.setCurrentIndex(0)
-            #self.token_type_combo.setEnabled(False)
         for window in self.gui_object.windows:
             window.cashaddr_toggled_signal.emit()
 
@@ -3740,7 +3736,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         def on_slptok_pref(x):
             x = bool(x)
-            self.config.set_key('enable_slp', x)
 
             wallet = self.wallet
 
@@ -3766,19 +3761,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.token_type_combo.setCurrentIndex(0)
                 self.toggle_cashaddr(1, True)
 
-            wallet.enable_slp() if x else wallet.disable_slp()
+            wallet.activate_slp() if x else pass
 
             self.update_token_type_combo()
             self.update_cashaddr_icon()
             self.update_tabs()
 
-        enable_slp = bool(self.config.get('enable_slp', True))
-        on_slptok_pref(enable_slp)
-        slp_cb = QCheckBox(_('Enable SLP tokens'))
-        slp_cb.setToolTip(_('Enable managing and sending SLP tokens.'))
-        slp_cb.setChecked(enable_slp)
-        slp_cb.stateChanged.connect(on_slptok_pref)
-        tx_widgets.append((slp_cb, None))
 
         def update_currencies():
             if not self.fx: return
@@ -4299,7 +4287,7 @@ class TxUpdateMgr(QObject, PrintError):
                         if is_relevant:
                             total_amount += v
                             n_ok += 1
-                        if parent.config.get('enable_slp'):
+                        if parent.wallet.storage.get('wallet_type', '') in [ 'bip39-slp' ]:
                             try:
                                 tti = parent.wallet.tx_tokinfo[tx.txid()]
                                 tokens_included.add(parent.wallet.token_types.get(tti['token_id'],{}).get('name','unknown'))
