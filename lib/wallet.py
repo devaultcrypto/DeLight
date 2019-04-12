@@ -1410,11 +1410,11 @@ class Abstract_Wallet(PrintError):
             max_change = self.max_change_outputs if self.multiple_change else 1
             coin_chooser = coinchooser.CoinChooserPrivacy()
             # determine if this transaction should utilize all available inputs
-            sweep = False
+            is_slp = False
             if self.storage.get('wallet_type', '') in [ 'bip39-slp' ] and slpTokenId is not None and slpTokenId != '0':
-                sweep = True
+                is_slp = True
             tx = coin_chooser.make_tx(inputs, outputs, change_addrs[:max_change],
-                                      fee_estimator, self.dust_threshold(), is_slp=sweep)
+                                      fee_estimator, self.dust_threshold(), is_slp=is_slp)
         else:
             sendable = sum(map(lambda x:x['value'], inputs))
             _type, data, value = outputs[i_max]
@@ -1434,7 +1434,7 @@ class Abstract_Wallet(PrintError):
             return
 
         # Sort the inputs and outputs deterministically
-        if not self.storage.get('wallet_type', '') in [ 'bip39-slp' ]:
+        if not self.storage.get('wallet_type', '') in [ 'bip39-slp' ] and is_slp:
             tx.BIP_LI01_sort()
 
         # Timelock tx to current height.
@@ -1495,9 +1495,8 @@ class Abstract_Wallet(PrintError):
             max_change = self.max_change_outputs if self.multiple_change else 1
             coin_chooser = coinchooser.CoinChooserPrivacy()
             # determine if this transaction should utilize all available inputs
-            sweep = True
             tx = coin_chooser.make_tx(inputs, outputs, change_addrs[:max_change],
-                                      fee_estimator, self.dust_threshold(), is_slp = sweep)
+                                      fee_estimator, self.dust_threshold())
         else:
             sendable = sum(map(lambda x:x['value'], inputs))
             _type, data, value = outputs[i_max]
@@ -1516,9 +1515,6 @@ class Abstract_Wallet(PrintError):
             raise ExcessiveFee()
             return
 
-        # Sort the inputs and outputs deterministically
-        if not self.storage.get('wallet_type', '') in [ 'bip39-slp' ]:
-            tx.BIP_LI01_sort()
         # Timelock tx to current height.
         locktime = self.get_local_height()
         if locktime == -1: # We have no local height data (no headers synced).
