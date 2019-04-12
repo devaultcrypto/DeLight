@@ -166,7 +166,7 @@ class CoinChooserBase(PrintError):
         return change, dust
 
     def make_tx(self, coins, outputs, change_addrs, fee_estimator,
-                dust_threshold, slp_sweep=False):
+                dust_threshold, *, is_slp=False):
         '''Select unspent coins to spend to pay outputs.  If the change is
         greater than dust_threshold (after adding the change output to
         the transaction) it is kept, otherwise none is sent and it is
@@ -191,7 +191,9 @@ class CoinChooserBase(PrintError):
 
         # Collect the coins into buckets, choose a subset of the buckets
         buckets = self.bucketize_coins(coins)
-        if not slp_sweep:
+        if is_slp:
+            pass
+        else: 
             buckets = self.choose_buckets(buckets, sufficient_funds,
                                       self.penalty_func(tx))
 

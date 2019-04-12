@@ -704,9 +704,9 @@ class Abstract_Wallet(PrintError):
 
     def get_slp_token_baton(self, slpTokenId):
         # look for our minting baton
-        for addr, addrdict in self._slp_txo.items():
-            for txid, txdict in addrdict.items():
-                for idx, txo in txdict.items():
+        for addr, addrdict in self._slp_txo.copy().items():
+            for txid, txdict in addrdict.copy().items():
+                for idx, txo in txdict.copy().items():
                     if txo['qty'] == 'MINT_BATON' and txo['token_id'] == slpTokenId:
                         try:
                             coins = self.get_utxos(domain = None, exclude_frozen = False, mature = False, confirmed_only = False, slpTokenId=slpTokenId)
@@ -718,7 +718,7 @@ class Abstract_Wallet(PrintError):
 
     # This method is updated for SLP to prevent tokens from being spent
     # in normal txn or txns with token_id other than the one specified
-    def get_addr_utxo(self, address, *, slpTokenId=None):
+    def get_addr_utxo(self, address, *, slpTokenId = None, exclude_slp = True):
         coins, spent = self.get_addr_io(address)
         # removes spent coins
         for txi in spent:
@@ -729,11 +729,12 @@ class Abstract_Wallet(PrintError):
 
         ### SLP stuff
         # removes token that are either unrelated, or unvalidated
-        addrdict = self._slp_txo.get(address,{})
-        for txid, txdict in addrdict.items():
-            for idx, txo in txdict.items():
-                if not isinstance(txo['qty'], int) or slpTokenId is None or txo['token_id'] != slpTokenId or self.tx_tokinfo[txid]['validity'] != 1:
-                    coins.pop(txid + ":" + str(idx), None)
+        if(exclude_slp):
+            addrdict = self._slp_txo.get(address,{})
+            for txid, txdict in addrdict.items():
+                for idx, txo in txdict.items():
+                    if not isinstance(txo['qty'], int) or slpTokenId is None or txo['token_id'] != slpTokenId or self.tx_tokinfo[txid]['validity'] != 1:
+                        coins.pop(txid + ":" + str(idx), None)
 
         out = {}
         for txo, v in coins.items():
@@ -823,17 +824,17 @@ class Abstract_Wallet(PrintError):
         confirmed_only = config.get('confirmed_only', False)
         if (isInvoice):
             confirmed_only = True
-        return self.get_utxos(domain, exclude_frozen=True, mature=True, confirmed_only=confirmed_only, slpTokenId=slpTokenId)
+        return self.get_utxos(domain=domain, exclude_frozen=True, mature=True, confirmed_only=confirmed_only, slpTokenId=slpTokenId)
 
     def get_slp_token_balance(self, slpTokenId):
         valid_token_bal = 0
         unvalidated_token_bal = 0
         invalid_token_bal = 0
         unfrozen_valid_token_bal = 0
-        for addr, addrdict in self._slp_txo.items():
+        for addr, addrdict in self._slp_txo.copy().items():
             _, spent = self.get_addr_io(addr)
-            for txid, txdict in addrdict.items():
-                for idx, txo in txdict.items():
+            for txid, txdict in addrdict.copy().items():
+                for idx, txo in txdict.copy().items():
                     if not isinstance(txo.get('qty',None), int): # Ignore baton / non-inputs
                         continue
                     # ignore spent txos
@@ -852,7 +853,7 @@ class Abstract_Wallet(PrintError):
                             unvalidated_token_bal += txo['qty']
         return (valid_token_bal, unvalidated_token_bal, invalid_token_bal, unfrozen_valid_token_bal)
 
-    def get_utxos(self, domain = None, exclude_frozen = False, mature = False, confirmed_only = False, *, slpTokenId = None):
+    def get_utxos(self, *, domain = None, exclude_frozen = False, mature = False, confirmed_only = False, slpTokenId = None, exclude_slp = True):
         ''' Note that exclude_frozen = True checks for BOTH address-level and coin-level frozen status. '''
         coins = []
         if domain is None:
@@ -860,7 +861,7 @@ class Abstract_Wallet(PrintError):
         if exclude_frozen:
             domain = set(domain) - self.frozen_addresses
         for addr in domain:
-            utxos = self.get_addr_utxo(addr, slpTokenId = slpTokenId)
+            utxos = self.get_addr_utxo(addr, slpTokenId=slpTokenId, exclude_slp=exclude_slp)
             for x in utxos.values():
                 if exclude_frozen and x['is_frozen_coin']:
                     continue
@@ -1413,7 +1414,7 @@ class Abstract_Wallet(PrintError):
             if self.storage.get('wallet_type', '') in [ 'bip39-slp' ] and slpTokenId is not None and slpTokenId != '0':
                 sweep = True
             tx = coin_chooser.make_tx(inputs, outputs, change_addrs[:max_change],
-                                      fee_estimator, self.dust_threshold(), slp_sweep=sweep)
+                                      fee_estimator, self.dust_threshold(), is_slp=sweep)
         else:
             sendable = sum(map(lambda x:x['value'], inputs))
             _type, data, value = outputs[i_max]
@@ -1496,7 +1497,7 @@ class Abstract_Wallet(PrintError):
             # determine if this transaction should utilize all available inputs
             sweep = True
             tx = coin_chooser.make_tx(inputs, outputs, change_addrs[:max_change],
-                                      fee_estimator, self.dust_threshold(), slp_sweep=sweep)
+                                      fee_estimator, self.dust_threshold(), is_slp = sweep)
         else:
             sendable = sum(map(lambda x:x['value'], inputs))
             _type, data, value = outputs[i_max]

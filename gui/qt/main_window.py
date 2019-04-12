@@ -3761,7 +3761,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.token_type_combo.setCurrentIndex(0)
                 self.toggle_cashaddr(1, True)
 
-            wallet.activate_slp() if x else pass
+            if x: wallet.activate_slp()
 
             self.update_token_type_combo()
             self.update_cashaddr_icon()
