@@ -4295,7 +4295,7 @@ class TxUpdateMgr(QObject, PrintError):
                             n_ok += 1
                         if parent.wallet.storage.get('wallet_type', '') in [ 'bip39-slp' ]:
                             try:
-                                tti = parent.wallet.tx_tokinfo[tx.txid()]
+                                tti = parent.wallet.get_slp_token_info(tx.txid())
                                 tokens_included.add(parent.wallet.token_types.get(tti['token_id'],{}).get('name','unknown'))
                             except KeyError:
                                 pass

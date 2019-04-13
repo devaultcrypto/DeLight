@@ -134,7 +134,7 @@ class HistoryList(MyTreeWidget):
         delta = item.data(3, Qt.UserRole)
 
         try:
-            validity = self.wallet.tx_tokinfo[tx_hash]['validity']
+            validity = self.wallet.get_slp_token_info(tx_hash)['validity']
         except KeyError: # Can happen if non-token tx (if burning tokens)
             validity = None
 
