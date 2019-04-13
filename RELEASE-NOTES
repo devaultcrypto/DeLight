@@ -48,4 +48,5 @@ Electron Cash - SLP Token Edition
 
 3.4.7 Updates & Features
 -----
-- Patch to disallow importing of electrum seeds, only allow BIP-39 with valid checksum
+- Patch to disallow importing wallets from electrum seeds, only allow BIP-39 with valid checksum
+- Various other minor patches
