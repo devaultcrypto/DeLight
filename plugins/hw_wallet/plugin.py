@@ -26,7 +26,7 @@
 
 from electroncash.plugins import BasePlugin, hook
 from electroncash.i18n import _
-
+from electroncash import Transaction
 
 class HW_PluginBase(BasePlugin):
     # Derived classes provide:
