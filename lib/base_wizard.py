@@ -79,39 +79,39 @@ class BaseWizard(object):
             _("What kind of wallet do you want to create?")
         ])
         wallet_kinds = [
-            ('standard',  _("Standard wallet")),
-            ('multisig',  _("Multi-signature wallet")),
-            ('imported',  _("Import Bitcoin Cash addresses or private keys")),
+            ('slp_standard',  _("Standard wallet (SLP-enabled)")),
+            ('slp_multisig',  _("Multi-signature wallet (SLP-enabled)")),
+            ('slp_imported',  _("Import Bitcoin Cash addresses or private keys")),
         ]
         choices = [pair for pair in wallet_kinds if pair[0] in wallet_types]
         self.choice_dialog(title=title, message=message, choices=choices, run_next=self.on_wallet_type)
 
     def on_wallet_type(self, choice):
         self.wallet_type = choice
-        if choice == 'standard':
+        if choice == 'slp_standard':
             action = 'choose_keystore'
-        elif choice == 'multisig':
+        elif choice == 'slp_multisig':
             action = 'choose_multisig'
-        elif choice == 'imported':
+        elif choice == 'slp_imported':
             action = 'import_addresses_or_keys'
         self.run(action)
 
     def choose_multisig(self):
         def on_multisig(m, n):
-            self.multisig_type = "%dof%d"%(m, n)
+            self.multisig_type = "slp_%dof%d"%(m, n)
             self.storage.put('wallet_type', self.multisig_type)
             self.n = n
             self.run('choose_keystore')
         self.multisig_dialog(run_next=on_multisig)
 
     def choose_keystore(self):
-        assert self.wallet_type in ['standard', 'multisig']
+        assert self.wallet_type in ['slp_standard', 'slp_multisig']
         i = len(self.keystores)
-        title = _('Add cosigner') + ' (%d of %d)'%(i+1, self.n) if self.wallet_type=='multisig' else _('Keystore')
-        if self.wallet_type =='standard' or i==0:
+        title = _('Add cosigner') + ' (%d of %d)'%(i+1, self.n) if self.wallet_type=='slp_multisig' else _('Keystore')
+        if self.wallet_type =='slp_standard' or i==0:
             message = _('Do you want to create a new seed, or to restore a wallet using an existing seed?')
             choices = [
-                ('create_standard_seed', _('Create a new seed')),
+                ('create_bip39_seed', _('Create a new seed')),
                 ('restore_from_seed', _('I already have a seed')),
                 ('restore_from_key', _('Use public or private keys')),
             ]
@@ -277,7 +277,7 @@ class BaseWizard(object):
     def restore_from_seed(self):
         self.opt_bip39 = True
         self.opt_ext = True
-        test = bitcoin.is_seed if self.wallet_type == 'standard' else bitcoin.is_new_seed
+        test = bitcoin.is_seed if self.wallet_type == 'slp_standard' else bitcoin.is_new_seed
         self.restore_seed_dialog(run_next=self.on_restore_seed, test=test)
 
     def on_restore_seed(self, seed, is_bip39, is_ext):
@@ -298,7 +298,7 @@ class BaseWizard(object):
         self.derivation_dialog(f, bip44_derivation_245(0))
 
     def create_keystore(self, seed, passphrase):
-        k = keystore.from_seed(seed, passphrase, self.wallet_type == 'multisig')
+        k = keystore.from_seed(seed, passphrase, self.wallet_type == 'slp_multisig')
         self.on_keystore(k)
 
     def on_bip44(self, seed, passphrase, derivation):
@@ -310,14 +310,14 @@ class BaseWizard(object):
         if has_xpub:
             from .bitcoin import xpub_type
             t1 = xpub_type(k.xpub)
-        if self.wallet_type == 'standard':
+        if self.wallet_type == 'slp_standard':
             if has_xpub and t1 not in ['standard']:
                 self.show_error(_('Wrong key type') + ' %s'%t1)
                 self.run('choose_keystore')
                 return
             self.keystores.append(k)
             self.run('create_wallet')
-        elif self.wallet_type == 'multisig':
+        elif self.wallet_type == 'slp_multisig':
             assert has_xpub
             if t1 not in ['standard']:
                 self.show_error(_('Wrong key type') + ' %s'%t1)
@@ -354,19 +354,19 @@ class BaseWizard(object):
         for k in self.keystores:
             if k.may_have_password():
                 k.update_password(None, password)
-        if self.wallet_type == 'standard':
+        if self.wallet_type == 'slp_standard':
             self.storage.put('seed_type', self.seed_type)
             keys = self.keystores[0].dump()
             self.storage.put('keystore', keys)
             self.wallet = Standard_Wallet(self.storage)
             self.run('create_addresses')
-        elif self.wallet_type == 'multisig':
+        elif self.wallet_type == 'slp_multisig':
             for i, k in enumerate(self.keystores):
                 self.storage.put('x%d/'%(i+1), k.dump())
             self.storage.write()
             self.wallet = Multisig_Wallet(self.storage)
             self.run('create_addresses')
-        elif self.wallet_type == 'imported':
+        elif self.wallet_type == 'slp_imported':
             self.wallet.save_keystore()
 
     def show_xpub_and_add_cosigners(self, xpub):
@@ -376,7 +376,7 @@ class BaseWizard(object):
         k = keystore.from_master_key(text, password)
         self.on_keystore(k)
 
-    def create_standard_seed(self): self.create_seed('bip39')
+    def create_bip39_seed(self): self.create_seed('bip39')
 
     def create_seed(self, seed_type):
         from . import mnemonic

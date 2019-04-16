@@ -1074,7 +1074,7 @@ class Abstract_Wallet(PrintError):
                     }
             self.tx_tokinfo[tx_hash] = tti
 
-        if self.storage.get('wallet_type', '') in [ 'bip39-slp' ]: # Only start up validation if SLP enabled
+        if "slp_" in self.storage.get('wallet_type', ''): # Only start up validation if SLP enabled
             self.slp_check_validation(tx_hash, tx)
 
     def slp_check_validation(self, tx_hash, tx):
@@ -1399,7 +1399,7 @@ class Abstract_Wallet(PrintError):
             raise NotEnoughFunds()
 
         # Make sure SLP token spending is not greater than valid token balance
-        if self.storage.get('wallet_type', '') in [ 'bip39-slp' ] and slpTokenId is not None:
+        if "slp_" in self.storage.get('wallet_type', '') and slpTokenId is not None:
             slpMsg = SlpMessage.parseSlpOutputScript(outputs[0][1])
             if slpMsg.transaction_type == 'SEND':
                 total_token_out = sum(slpMsg.op_return_fields['token_output'])
@@ -1446,7 +1446,7 @@ class Abstract_Wallet(PrintError):
             coin_chooser = coinchooser.CoinChooserPrivacy()
             # determine if this transaction should utilize all available inputs
             is_slp = False
-            if self.storage.get('wallet_type', '') in [ 'bip39-slp' ] and slpTokenId is not None and slpTokenId != '0':
+            if "slp_" in self.storage.get('wallet_type', '') and slpTokenId is not None and slpTokenId != '0':
                 is_slp = True
             tx = coin_chooser.make_tx(inputs, outputs, change_addrs[:max_change],
                                       fee_estimator, self.dust_threshold(), is_slp=is_slp)
@@ -1469,7 +1469,7 @@ class Abstract_Wallet(PrintError):
             return
 
         # Sort the inputs and outputs deterministically
-        if not self.storage.get('wallet_type', '') in [ 'bip39-slp' ] and slp_coins:
+        if "slp_" not in self.storage.get('wallet_type', '') and not is_slp:
             tx.BIP_LI01_sort()
 
         # Timelock tx to current height.
@@ -2540,7 +2540,7 @@ class Simple_Deterministic_Wallet(Simple_Wallet, Deterministic_Wallet):
 
 
 class Standard_Wallet(Simple_Deterministic_Wallet):
-    wallet_type = 'bip39-slp'
+    wallet_type = 'slp_standard'
 
     def pubkeys_to_address(self, pubkey):
         return Address.from_pubkey(pubkey)
@@ -2576,7 +2576,7 @@ class Multisig_Wallet(Deterministic_Wallet):
             self.keystores[name] = load_keystore(self.storage, name)
         self.keystore = self.keystores['x1/']
         xtype = bitcoin.xpub_type(self.keystore.xpub)
-        self.txin_type = 'p2sh' if xtype == 'standard' else xtype
+        self.txin_type = 'p2sh' if xtype == 'slp_standard' else xtype
 
     def save_keystore(self):
         for name, k in self.keystores.items():
@@ -2630,7 +2630,7 @@ class Multisig_Wallet(Deterministic_Wallet):
         return True
 
 
-wallet_types = ['standard', 'bip39-slp', 'multisig', 'imported']
+wallet_types = ['standard', 'slp_standard', 'multisig', 'slp_multisig', 'imported', 'slp_imported']
 
 def register_wallet_type(category):
     wallet_types.append(category)
@@ -2639,7 +2639,7 @@ wallet_constructors = {
     'standard': Standard_Wallet,
     'old': Standard_Wallet,
     'xpub': Standard_Wallet,
-    'bip39-slp': Standard_Wallet,
+    'slp_standard': Standard_Wallet,
     'imported_privkey': ImportedPrivkeyWallet,
     'imported_addr': ImportedAddressWallet,
 }
@@ -2658,6 +2658,9 @@ class Wallet(object):
     type when passed a WalletStorage instance."""
 
     def __new__(self, storage):
+        # Convert 'bip39-slp' wallet type to 'slp_standard' wallet type
+        if storage.get('wallet_type', '') == 'bip39-slp' or storage.get('wallet_type', '') == 'standard_slp':
+            storage.put('wallet_type', 'slp_standard')
         wallet_type = storage.get('wallet_type')
         WalletClass = Wallet.wallet_class(wallet_type)
         wallet = WalletClass(storage)

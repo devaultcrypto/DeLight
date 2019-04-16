@@ -423,7 +423,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         # Set up SLP proxy here -- needs to be done before wallet.activate_slp is called.
         slp_validator_0x01.setup_config(self.config)
 
-        if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+        if "slp_" in self.wallet.storage.get('wallet_type', ''):
             self.wallet.activate_slp()
             self.slp_history_list.update()
             self.token_list.update()
@@ -442,7 +442,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.watching_only_changed()
         self.history_updated_signal.emit() # inform things like address_dialog that there's a new history
         """ If using SLP for the first time, turn it on by default. """
-        if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+        if "slp_" in self.wallet.storage.get('wallet_type', ''):
             self.config.set_key('enable_opreturn', False)
             self.message_opreturn_e.setHidden(True)
             self.opreturn_rawhex_cb.setHidden(True)
@@ -536,14 +536,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return is_old_bad
 
     def _warn_slp_prefers_slp_wallets_if_not_slp_wallet(self):
-        if self.wallet.storage.get('wallet_type', '') != 'bip39-slp':
+        if "slp_" not in self.wallet.storage.get('wallet_type', ''):
             msg = '\n\n'.join([
-                _("WARNING: This wallet is compatible with other wallets that may not be aware of SLP tokens.") + " "
-                + _("If you use this wallet's seed phrase with another Bitcoin Cash wallet that is not aware of SLP, you may burn your SLP tokens."),
+                _("WARNING: This type of wallet file does not allow use of SLP tokens.") + " "
+                + _("If you have SLP tokens saved in this electrum wallet file, please use a version prior to 3.4.7 to send your tokens to a new SLP wallet format."),
                 _("Since version 3.4.3 all newly created Electron Cash SLP wallet files use the HD path m/44'/245' to reduce the risk of burning SLP tokens."),
                 _('''If you're wondering "what do I have to do?":'''),
-                _("The answer is nothing. You can continue to use this old wallet type.") + " "
-                + _("However, we do recommend that if practical, you create a new wallet using the latest version of this software for all future use.")
+                _("If you want to use SLP with this wallet file you need to install version 3.4.6 of this software.")
             ])
             self.show_warning(msg, title=_("Non-SLP Wallet"))
 
@@ -958,7 +957,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.contact_list.update()
         self.invoice_list.update()
         self.update_completions()
-        if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+        if "slp_" in self.wallet.storage.get('wallet_type', ''):
             self.slp_history_list.update()
             self.token_list.update()
         self.history_updated_signal.emit() # inform things like address_dialog that there's a new history, also clears self.tx_update_mgr.verif_q
@@ -1473,7 +1472,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(self.token_type_combo, 7, 1)
 
 
-        if not self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+        if "slp_" in self.wallet.storage.get('wallet_type', ''):
             self.slp_amount_label.setHidden(True)
             self.slp_token_type_label.setHidden(True)
             self.token_type_combo.setHidden(True)
@@ -1696,7 +1695,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                         outputs.insert(0, self.output_for_opreturn_stringdata(opreturn_message))
                 elif self.slp_token_id is None:
                     pass
-                elif self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+                elif "slp_" in self.wallet.storage.get('wallet_type', ''):
                     amt = self.slp_amount_e.get_amount()
                     if self.slp_amount_e.text() == '!':
                         self.slp_amount_e.setAmount(self.wallet.get_slp_token_balance(self.slp_token_id)[3])
@@ -1822,7 +1821,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         opreturn_message = self.message_opreturn_e.text() if self.config.get('enable_opreturn') else None
         try:
             if self.slp_token_id == None and (opreturn_message != '' and opreturn_message != None):
-                if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+                if "slp_" in self.wallet.storage.get('wallet_type', ''):
                     try:
                         slpMsg = slp.SlpMessage.parseSlpOutputScript(self.output_for_opreturn_stringdata(opreturn_message)[1])
                         if slpMsg.transaction_type == 'SEND' and not preview:
@@ -1838,7 +1837,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 #outputs.append(self.output_for_opreturn_stringdata(opreturn_message))
             elif self.slp_token_id is None:
                 pass
-            elif self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+            elif "slp_" in self.wallet.storage.get('wallet_type', ''):
                 """ Guard against multiline 'Pay To' field """
                 if self.payto_e.is_multiline():
                     self.show_error(_("Too many receivers listed.\n\nCurrently this wallet only supports a single SLP token receiver."))
@@ -1894,7 +1893,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         """ SLP: Add an additional token change output """
         change_addr = None
-        if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+        if "slp_" in self.wallet.storage.get('wallet_type', ''):
             if len(token_outputs) > 1 and len(outputs) - 1 < len(token_outputs):
                 """ start of logic copied from wallet.py """
                 addrs = self.wallet.get_change_addresses()[-self.wallet.gap_limit_for_change:]
@@ -1914,7 +1913,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 outputs.append((TYPE_ADDRESS, change_addr, 546))
 
         """ Only Allow OP_RETURN if SLP is disabled. """
-        if not self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+        if "slp_" not in self.wallet.storage.get('wallet_type', ''):
             try:
                 # handle op_return if specified and enabled
                 opreturn_message = self.message_opreturn_e.text()
@@ -1957,7 +1956,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def do_send(self, preview = False):
         if run_hook('abort_send', self):
             return
-        if self.wallet.storage.get('wallet_type', '') in ['bip39-slp'] and self.token_type_combo.currentData():
+        if "slp_" in self.wallet.storage.get('wallet_type', '') and self.token_type_combo.currentData():
             if self.slp_amount_e.get_amount() == 0 or self.slp_amount_e.get_amount() is None:
                 self.show_message(_("No SLP token amount provided."))
                 return
@@ -2187,7 +2186,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             out = web.parse_URI(URI, self.on_pr)
         except Exception as e:
-            self.show_error(_('Invalid Address URI:') + '\n' + str(e))
+            #self.show_error(_('Invalid Address URI:') + '\n' + str(e))
             return
         self.show_send_tab()
         r = out.get('r')
@@ -3407,7 +3406,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def toggle_cashaddr(self, format, specified = False):
         #Gui toggle should just increment, if "specified" is True it is being set from preferences, so leave the value as is.
         if specified==False:
-            if self.wallet.storage.get('wallet_type', '') in ['bip39-slp']:
+            if "slp_" in self.wallet.storage.get('wallet_type', ''):
                 max_format=2
             else:
                 max_format=1
@@ -4290,7 +4289,7 @@ class TxUpdateMgr(QObject, PrintError):
                         if is_relevant:
                             total_amount += v
                             n_ok += 1
-                        if parent.wallet.storage.get('wallet_type', '') in [ 'bip39-slp' ]:
+                        if "slp_" in parent.wallet.storage.get('wallet_type', ''):
                             try:
                                 tti = parent.wallet.get_slp_token_info(tx.txid())
                                 tokens_included.add(parent.wallet.token_types.get(tti['token_id'],{}).get('name','unknown'))

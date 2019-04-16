@@ -248,7 +248,7 @@ class SimpleConfig(PrintError):
         if self.get('wallet_path') is None:
             path = wallet.storage.path
             self.set_key('gui_last_wallet_slp', path)
-            if wallet.storage.get('wallet_type') != 'bip39-slp':
+            if "slp_" not in wallet.storage.get('wallet_type'):
                 self.set_key('gui_last_wallet', path)
 
     def max_fee_rate(self):

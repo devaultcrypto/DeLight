@@ -55,6 +55,8 @@ def multisig_type(wallet_type):
     otherwise return None.'''
     if not wallet_type:
         return None
+    ''' SLP-only code!'''
+    wallet_type = wallet_type.replace("slp_", "")
     match = re.match(r'(\d+)of(\d+)', wallet_type)
     if match:
         match = [int(x) for x in match.group(1, 2)]
