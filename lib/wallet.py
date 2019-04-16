@@ -979,6 +979,9 @@ class Abstract_Wallet(PrintError):
             ### SLP: Handle incoming SLP transaction outputs here
             self.handleSlpTransaction(tx_hash, tx)
 
+    """ 
+    Callers are expected to take lock(s). We take no locks 
+    """
     def handleSlpTransaction(self, tx_hash, tx):
         txouts = tx.outputs()
 
@@ -988,12 +991,11 @@ class Abstract_Wallet(PrintError):
             token_type = 'SLP%d'%(e.args[0],)
             for i, (_type, addr, _) in enumerate(txouts):
                 if _type is TYPE_ADDRESS and self.is_mine(addr):
-                    with self.lock, self.transaction_lock:
-                        self._slp_txo[addr][tx_hash][i] = {
-                                'type': token_type,
-                                'qty': None,
-                                'token_id': None,
-                                }
+                    self._slp_txo[addr][tx_hash][i] = {
+                            'type': token_type,
+                            'qty': None,
+                            'token_id': None,
+                            }
             return
         except (SlpParsingError, IndexError):
             return
@@ -1005,34 +1007,31 @@ class Abstract_Wallet(PrintError):
             for i, qty in enumerate(amounts):
                 _type, addr, _ = txouts[i]
                 if _type is TYPE_ADDRESS and qty > 0 and self.is_mine(addr):
-                    with self.lock, self.transaction_lock:
-                        self._slp_txo[addr][tx_hash][i] = {
-                                'type': 'SLP1',
-                                'token_id': token_id_hex,
-                                'qty': qty,
-                                }
+                    self._slp_txo[addr][tx_hash][i] = {
+                            'type': 'SLP1',
+                            'token_id': token_id_hex,
+                            'qty': qty,
+                            }
         elif slpMsg.transaction_type == 'GENESIS':
             token_id_hex = tx_hash
             try:
                 _type, addr, _ = txouts[1]
                 if _type is TYPE_ADDRESS:
                     if slpMsg.op_return_fields['initial_token_mint_quantity'] > 0 and self.is_mine(addr):
-                        with self.lock, self.transaction_lock:
-                            self._slp_txo[addr][tx_hash][1] = {
-                                    'type': 'SLP1',
-                                    'token_id': token_id_hex,
-                                    'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
-                                }
+                        self._slp_txo[addr][tx_hash][1] = {
+                                'type': 'SLP1',
+                                'token_id': token_id_hex,
+                                'qty': slpMsg.op_return_fields['initial_token_mint_quantity'],
+                            }
                     if slpMsg.op_return_fields['mint_baton_vout'] is not None:
                         i = slpMsg.op_return_fields['mint_baton_vout']
                         _type, addr, _ = txouts[i]
                         if _type is TYPE_ADDRESS:
-                            with self.lock, self.transaction_lock:
-                                self._slp_txo[addr][tx_hash][i] = {
-                                        'type': 'SLP1',
-                                        'token_id': token_id_hex,
-                                        'qty': 'MINT_BATON',
-                                    }
+                            self._slp_txo[addr][tx_hash][i] = {
+                                    'type': 'SLP1',
+                                    'token_id': token_id_hex,
+                                    'qty': 'MINT_BATON',
+                                }
             except IndexError: # if too few outputs (compared to mint_baton_vout)
                 pass
         elif slpMsg.transaction_type == "MINT":
@@ -1041,22 +1040,20 @@ class Abstract_Wallet(PrintError):
                 _type, addr, _ = txouts[1]
                 if _type is TYPE_ADDRESS:
                     if slpMsg.op_return_fields['additional_token_quantity'] > 0 and self.is_mine(addr):
-                        with self.lock, self.transaction_lock:
-                            self._slp_txo[addr][tx_hash][1] = {
-                                    'type': 'SLP1',
-                                    'token_id': token_id_hex,
-                                    'qty': slpMsg.op_return_fields['additional_token_quantity'],
-                                }
+                        self._slp_txo[addr][tx_hash][1] = {
+                                'type': 'SLP1',
+                                'token_id': token_id_hex,
+                                'qty': slpMsg.op_return_fields['additional_token_quantity'],
+                            }
                     if slpMsg.op_return_fields['mint_baton_vout'] is not None:
                         i = slpMsg.op_return_fields['mint_baton_vout']
                         _type, addr, _ = txouts[i]
                         if _type is TYPE_ADDRESS:
-                            with self.lock, self.transaction_lock:
-                                self._slp_txo[addr][tx_hash][i] = {
-                                        'type': 'SLP1',
-                                        'token_id': token_id_hex,
-                                        'qty': 'MINT_BATON',
-                                    }
+                            self._slp_txo[addr][tx_hash][i] = {
+                                    'type': 'SLP1',
+                                    'token_id': token_id_hex,
+                                    'qty': 'MINT_BATON',
+                                }
             except IndexError: # if too few outputs (compared to mint_baton_vout)
                 pass
         elif slpMsg.transaction_type == 'COMMIT':
@@ -1066,32 +1063,33 @@ class Abstract_Wallet(PrintError):
             raise RuntimeError(slpMsg.transaction_type)
 
         # Always add entry to tx_tokinfo
-        with self.lock, self.transaction_lock:
-            tti = { 'type':'SLP%d'%(slpMsg.token_type,),
-                    'transaction_type':slpMsg.transaction_type,
-                    'token_id': token_id_hex,
-                    'validity': 0,
-                    }
-            self.tx_tokinfo[tx_hash] = tti
+        tti = { 'type':'SLP%d'%(slpMsg.token_type,),
+                'transaction_type':slpMsg.transaction_type,
+                'token_id': token_id_hex,
+                'validity': 0,
+                }
+        self.tx_tokinfo[tx_hash] = tti
 
         if "slp_" in self.storage.get('wallet_type', ''): # Only start up validation if SLP enabled
             self.slp_check_validation(tx_hash, tx)
 
+    """
+    Callers are expected to take lock(s). We take no locks
+    """
     def slp_check_validation(self, tx_hash, tx):
-        with self.lock, self.transaction_lock:
-            tti = self.tx_tokinfo[tx_hash]
-            if tti['validity'] == 0 and tti['token_id'] in self.token_types and tti['type'] == 'SLP1':
-                def callback(job):
-                    (txid,node), = job.nodes.items()
-                    val = node.validity
-                    tti['validity'] = val
-                    ui_cb = getattr(self, 'ui_emit_validity_updated', None)
-                    if ui_cb:
-                        ui_cb(txid, val)
-                job = slp_validator_0x01.make_job(tx, self, self.network,
-                                                debug=0, reset=False)
-                if job is not None:
-                    job.add_callback(callback)
+        tti = self.tx_tokinfo[tx_hash]
+        if tti['validity'] == 0 and tti['token_id'] in self.token_types and tti['type'] == 'SLP1':
+            def callback(job):
+                (txid,node), = job.nodes.items()
+                val = node.validity
+                tti['validity'] = val
+                ui_cb = getattr(self, 'ui_emit_validity_updated', None)
+                if ui_cb:
+                    ui_cb(txid, val)
+            job = slp_validator_0x01.make_job(tx, self, self.network,
+                                            debug=0, reset=False)
+            if job is not None:
+                job.add_callback(callback)
 
     def rebuild_slp(self,):
         """Wipe away old SLP transaction data and rerun on the entire tx set.
