@@ -1472,7 +1472,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(self.token_type_combo, 7, 1)
 
 
-        if "slp_" in self.wallet.storage.get('wallet_type', ''):
+        if "slp_" not in self.wallet.storage.get('wallet_type', ''):
             self.slp_amount_label.setHidden(True)
             self.slp_token_type_label.setHidden(True)
             self.token_type_combo.setHidden(True)
