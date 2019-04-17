@@ -34,7 +34,7 @@ from . import networks
 from .util import format_satoshis_plain
 
 
-DEFAULT_EXPLORER = "Blockchair.com"
+DEFAULT_EXPLORER = "Bitcoin.com"
 
 mainnet_block_explorers = {
     'Bitcoin.com': ('https://explorer.bitcoin.com/bch',
@@ -48,10 +48,7 @@ mainnet_block_explorers = {
                        {'tx': '', 'addr': ''}),
     'ViaBTC.com': ('https://www.viabtc.com/bch',
                    Address.FMT_CASHADDR,
-                   {'tx': 'tx', 'addr': 'address'}),
-    'Tokengraph.network': ('https://tokengraph.network',
-                   Address.FMT_CASHADDR,
-                   {'tx': 'tx', 'addr': 'address'}),
+                   {'tx': 'tx', 'addr': 'address'})
 }
 
 DEFAULT_EXPLORER_TESTNET = 'Bitcoin.com'

@@ -48,5 +48,10 @@ Electron Cash - SLP Token Edition
 
 3.4.7 Updates & Features
 -----
-- Patch to disallow importing wallets from electrum seeds, only allow BIP-39 with valid checksum
-- Various other minor patches
+- New fancy DMG for MacOS
+- New AppImage for linux installs
+- Ported many bug fixes from mainline Electron Cash 4.0.1 (and latest code)
+- Patched multi-sig wallet import vulnerability, now BIP-39 seeds are required to encourage use of path m/44'/245'/0' for SLP tokens
+- Updated SLP feature set activation behavior in preparation for merge with mainline Electron Cash
+- Fixed bugs associated with token tab context menu causing errors
+- Fixed bugs associated with thread locking around SLP token data read/write activity
