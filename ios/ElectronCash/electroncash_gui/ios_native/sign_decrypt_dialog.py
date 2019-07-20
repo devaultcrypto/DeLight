@@ -231,7 +231,7 @@ class SignDecryptVC(SignDecryptBase):
             print ("address = ", address)
             addr = Address.from_string(address)
         except:
-            parent().show_error(_('Invalid Bitcoin Cash address.'))
+            parent().show_error(_('Invalid DeVault address.'))
             return
         if addr.kind != addr.ADDR_P2PKH:
             msg_sign = _("Signing with an address actually means signing with the corresponding "
@@ -275,7 +275,7 @@ class SignDecryptVC(SignDecryptBase):
         try:
             address = Address.from_string(address_str)
         except:
-            parent().show_error(_('Invalid Bitcoin Cash address.'))
+            parent().show_error(_('Invalid DeVault address.'))
             return
         message = message.encode('utf-8')
         try:
