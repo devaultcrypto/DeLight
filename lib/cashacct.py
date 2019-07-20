@@ -51,7 +51,7 @@ from . import caches
 # See OP_RETURN prefix guideline: https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/op_return-prefix-guideline.md
 protocol_code = bytes.fromhex("01010101")
 
-activation_height = 563720  # all cash acct registrations are invalid if they appear before this block height
+activation_height = 20000  # all cash acct registrations are invalid if they appear before this block height
 height_modification = activation_height - 100  # compute the cashacct.number by subtracting this value from tx block height
 collision_hash_length = 10  # DO NOT MODIFY -- this is hard-coded in spec
 

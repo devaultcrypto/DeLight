@@ -262,10 +262,7 @@ class Blockchain(util.PrintError):
 
         # We do not need to check the block difficulty if the chain of linked header hashes was proven correct against our checkpoint.
         if bits is not None:
-            # checkpoint BitcoinCash fork block
-            if (header.get('block_height') == networks.net.BITCOIN_CASH_FORK_BLOCK_HEIGHT and hash_header(header) != networks.net.BITCOIN_CASH_FORK_BLOCK_HASH):
-                err_str = "block at height %i is not cash chain fork block. hash %s" % (header.get('block_height'), hash_header(header))
-                raise VerifyError(err_str)
+            # checkpoint 
             if bits != header.get('bits'):
                 raise VerifyError("bits mismatch: %s vs %s" % (bits, header.get('bits')))
             target = bits_to_target(bits)

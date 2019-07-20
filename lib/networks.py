@@ -43,16 +43,12 @@ class MainNet(AbstractNet):
     ADDRTYPE_P2PKH_BITPAY = 28
     ADDRTYPE_P2SH = 5
     ADDRTYPE_P2SH_BITPAY = 40
-    CASHADDR_PREFIX = "bitcoincash"
+    CASHADDR_PREFIX = "devault"
     HEADERS_URL = "http://bitcoincash.com/files/blockchain_headers"
     GENESIS = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
     DEFAULT_PORTS = {'t': '50001', 's': '50002'}
     DEFAULT_SERVERS = _read_json_dict('servers.json')  # DO NOT MODIFY IN CLIENT CODE
-    TITLE = 'Electron Cash'
-
-    # Bitcoin Cash fork block specification
-    BITCOIN_CASH_FORK_BLOCK_HEIGHT = 478559
-    BITCOIN_CASH_FORK_BLOCK_HASH = "000000000000000000651ef99cb9fcbe0dadde1d424bd9f15ff20136191a5eec"
+    TITLE = 'DeVault Cash'
 
     # Note to Jonald or anyone reading this: the below is misleadingly named.  It's not a simple
     # MERKLE_ROOT but a MERKLE_PROOF which is basically the hashes of all MERKLE_ROOTS up until and including
@@ -80,16 +76,12 @@ class TestNet(AbstractNet):
     ADDRTYPE_P2PKH_BITPAY = 111  # Unsure
     ADDRTYPE_P2SH = 196
     ADDRTYPE_P2SH_BITPAY = 196  # Unsure
-    CASHADDR_PREFIX = "bchtest"
+    CASHADDR_PREFIX = "dvtest"
     HEADERS_URL = "http://bitcoincash.com/files/testnet_headers"
     GENESIS = "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"
     DEFAULT_PORTS = {'t':'51001', 's':'51002'}
     DEFAULT_SERVERS = _read_json_dict('servers_testnet.json')  # DO NOT MODIFY IN CLIENT CODE
-    TITLE = 'Electron Cash Testnet'
-
-    # Bitcoin Cash fork block specification
-    BITCOIN_CASH_FORK_BLOCK_HEIGHT = 1155876
-    BITCOIN_CASH_FORK_BLOCK_HASH = "00000000000e38fef93ed9582a7df43815d5c2ba9fd37ef70c9a0ea4a285b8f5"
+    TITLE = 'DeVault Cash Testnet'
 
     VERIFICATION_BLOCK_MERKLE_ROOT = "c3cc7a7b6fe5e0ff19b750ae200ae93664b3abf09bf510e26e15ba338afe1f1a"
     VERIFICATION_BLOCK_HEIGHT = 1273800
