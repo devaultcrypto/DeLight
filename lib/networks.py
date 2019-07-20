@@ -45,7 +45,7 @@ class MainNet(AbstractNet):
     ADDRTYPE_P2SH_BITPAY = 40
     CASHADDR_PREFIX = "devault"
     HEADERS_URL = "http://devault.com/files/blockchain_headers"
-    GENESIS = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
+    GENESIS = "0000000038e62464371566f6a8d35c01aa54a7da351b2dbf85d92f30357f3a90"
     DEFAULT_PORTS = {'t': '50001', 's': '50002'}
     DEFAULT_SERVERS = _read_json_dict('servers.json')  # DO NOT MODIFY IN CLIENT CODE
     TITLE = 'DeVault Cash'
@@ -78,7 +78,7 @@ class TestNet(AbstractNet):
     ADDRTYPE_P2SH_BITPAY = 196  # Unsure
     CASHADDR_PREFIX = "dvtest"
     HEADERS_URL = "http://devault.com/files/testnet_headers"
-    GENESIS = "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"
+    GENESIS = "00000000ed6c30b2e78a0eff7d20692c14099ce8eb04e205fcc08c474cfd6675"
     DEFAULT_PORTS = {'t':'51001', 's':'51002'}
     DEFAULT_SERVERS = _read_json_dict('servers_testnet.json')  # DO NOT MODIFY IN CLIENT CODE
     TITLE = 'DeVault Cash Testnet'
