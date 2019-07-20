@@ -498,7 +498,7 @@ class ReceiveVC(ReceiveBase):
         ]
         alert = utils.show_alert(vc = self,
                                  title = _("Share Request"),
-                                 message = _("You may share this payment request as a 'bitcoincash:' style URI, or as a QR Code Image."),
+                                 message = _("You may share this payment request as a 'devault:' style URI, or as a QR Code Image."),
                                  actions = actions,
                                  style = UIAlertControllerStyleActionSheet,
                                  cancel = _("Cancel"),

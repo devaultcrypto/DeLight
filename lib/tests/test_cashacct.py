@@ -36,7 +36,7 @@ class TestCashAccounts(unittest.TestCase):
         '''Test for the cashacct.ScriptOutput class'''
 
         valid_registration_scripts = [
-            ( 1, 'bv1', Address.from_string('bitcoincash:qzgvpjawln2l8wfmsg2qwnnytcua02hy45vpdvrqu5'),
+            ( 1, 'bv1', Address.from_string('devault:qzgvpjawln2l8wfmsg2qwnnytcua02hy45vpdvrqu5'),
               bytes.fromhex('6a040101010103627631150190c0cbaefcd5f3b93b8214074e645e39d7aae4ad')),
             ( 1, 'im_uname', Address.from_string('qqevtgm50kulte70smem643qs07fjkj47y5jv2d2v7'),
               bytes.fromhex('6a040101010108696d5f756e616d65150132c5a3747db9f5e7cf86f3bd562083fc995a55f1')),

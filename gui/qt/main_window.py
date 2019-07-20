@@ -462,8 +462,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.wallet.is_watching_only():
             msg = ' '.join([
                 _("This wallet is watching-only."),
-                _("This means you will not be able to spend Bitcoin Cash with it."),
-                _("Make sure you own the seed phrase or the private keys, before you request Bitcoin Cash to be sent to this wallet.")
+                _("This means you will not be able to spend DeVault with it."),
+                _("Make sure you own the seed phrase or the private keys, before you request DeVault to be sent to this wallet.")
             ])
             self.show_warning(msg, title=_('Information'))
 
@@ -698,7 +698,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             "<p><font size=+3><b>Electron Cash</b></font></p><p>" + _("Version") + f" {self.wallet.electrum_version}" + "</p>" +
             '<p><span style="font-size:11pt; font-weight:500;">' + "Copyright © 2017-2019<br>Electron Cash LLC &amp; The Electron Cash Developers" + "</span></p>" +
             '<p><span style="font-weight:200;">' +
-            _("Electron Cash's focus is speed, with low resource usage and simplifying Bitcoin Cash. You do not need to perform regular backups, because your wallet can be recovered from a secret phrase that you can memorize or write on paper. Startup times are instant because it operates in conjunction with high-performance servers that handle the most complicated parts of the Bitcoin Cash system.") +
+            _("Electron Cash's focus is speed, with low resource usage and simplifying DeVault. You do not need to perform regular backups, because your wallet can be recovered from a secret phrase that you can memorize or write on paper. Startup times are instant because it operates in conjunction with high-performance servers that handle the most complicated parts of the DeVault system.") +
             "</span></p>"
         )
 
@@ -1004,7 +1004,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.receive_address_e = ButtonsLineEdit()
         self.receive_address_e.addCopyButton()
         self.receive_address_e.setReadOnly(True)
-        msg = _('Bitcoin Cash address where the payment should be received. Note that each payment request uses a different Bitcoin Cash address.')
+        msg = _('DeVault address where the payment should be received. Note that each payment request uses a different DeVault address.')
         label = HelpLabel(_('&Receiving address'), msg)
         label.setBuddy(self.receive_address_e)
         self.receive_address_e.textChanged.connect(self.update_receive_qr)
@@ -1124,8 +1124,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         msg = ' '.join([
             _('Expiration date of your request.'),
             _('This information is seen by the recipient if you send them a signed payment request.'),
-            _('Expired requests have to be deleted manually from your list, in order to free the corresponding Bitcoin Cash addresses.'),
-            _('The Bitcoin Cash address never expires and will always be part of this Electron Cash wallet.'),
+            _('Expired requests have to be deleted manually from your list, in order to free the corresponding DeVault addresses.'),
+            _('The DeVault address never expires and will always be part of this Electron Cash wallet.'),
         ])
         label = HelpLabel(_('Request &expires'), msg)
         label.setBuddy(self.expires_combo)
@@ -1419,12 +1419,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if opret:
                 kwargs[arg] = opret
 
-        # Special case hack -- see #1473. Omit bitcoincash: prefix from
+        # Special case hack -- see #1473. Omit devault: prefix from
         # legacy address if no other params present in receive request.
         if Address.FMT_UI == Address.FMT_LEGACY and not kwargs and not amount and not message:
             uri = self.receive_address.to_ui_string()
         else:
-            # Otherwise proceed as normal, prepending bitcoincash: to URI
+            # Otherwise proceed as normal, prepending devault: to URI
             uri = web.create_URI(self.receive_address, amount, message, **kwargs)
 
         self.receive_qr.setData(uri)
@@ -1447,8 +1447,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         msg = "<span style=\"font-weight:400;\">" + _('Recipient of the funds.') + " " + \
               _("You may enter:"
                 "<ul>"
-                "<li> Bitcoin Cash <b>Address</b> <b>★</b>"
-                "<li> Bitcoin Legacy <b>Address</b> <b>★</b>"
+                "<li> DeVault <b>Address</b> <b>★</b>"
                 "<li> <b>Cash Account</b> <b>★</b> e.g. <i>satoshi#123</i>"
                 "<li> <b>Contact name</b> <b>★</b> from the Contacts tab"
                 "<li> <b>CoinText</b> e.g. <i>cointext:+1234567</i>"
@@ -1535,7 +1534,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         hbox.addStretch(1)
         grid.addLayout(hbox, 5, 4)
 
-        msg = _('Bitcoin Cash transactions are in general not free. A transaction fee is paid by the sender of the funds.') + '\n\n'\
+        msg = _('DeVault transactions are in general not free. A transaction fee is paid by the sender of the funds.') + '\n\n'\
               + _('The amount of fee can be decided freely by the sender. However, transactions with low fees take more time to be processed.') + '\n\n'\
               + _('A suggested fee is automatically added to this field. You may override it. The suggested fee increases with the size of the transaction.')
         self.fee_e_label = HelpLabel(_('F&ee'), msg)
@@ -2285,7 +2284,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             out = web.parse_URI(URI, self.on_pr)
         except Exception as e:
-            self.show_error(_('Invalid bitcoincash URI:') + '\n' + str(e))
+            self.show_error(_('Invalid devault URI:') + '\n' + str(e))
             return
         self.show_send_tab()
         r = out.get('r')
@@ -2422,7 +2421,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         w.setLayout(grid)
 
         label = WWLabel(_(
-            "This tool helps convert between address formats for Bitcoin "
+            "This tool helps convert between address formats for DeVault??? "
             "Cash addresses.\nYou are encouraged to use the 'Cash address' "
             "format."
         ))
@@ -2691,7 +2690,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                                  'network' : self.network,
                                  'plugins' : self.gui_object.plugins,
                                  'window': self})
-        console.updateNamespace({'util' : util, 'bitcoin':bitcoin})
+        console.updateNamespace({'util' : util, 'devault':bitcoin})
 
         set_json = Weak(self.console.set_json)
         c = commands.Commands(self.config, self.wallet, self.network, lambda: set_json(True))
@@ -3001,7 +3000,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             addr = Address.from_string(address)
         except:
-            self.show_message(_('Invalid Bitcoin Cash address.'))
+            self.show_message(_('Invalid DeVault address.'))
             return
         if addr.kind != addr.ADDR_P2PKH:
             self.show_message(_('Cannot sign messages with this type of address.') + '\n\n' + self.msg_sign)
@@ -3021,7 +3020,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             address = Address.from_string(address.text().strip())
         except:
-            self.show_message(_('Invalid Bitcoin Cash address.'))
+            self.show_message(_('Invalid DeVault address.'))
             return
         message = message.toPlainText().strip().encode('utf-8')
         try:
@@ -3193,7 +3192,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     return
                 if not result:
                     return
-                # if the user scanned a bitcoincash URI
+                # if the user scanned a devault URI
                 if result.lower().startswith(networks.net.CASHADDR_PREFIX + ':'):
                     self.pay_to_URI(result)
                     return

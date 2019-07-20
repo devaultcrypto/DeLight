@@ -47,8 +47,8 @@ from . import rsakey
 
 from .bitcoin import TYPE_ADDRESS
 
-REQUEST_HEADERS = {'Accept': 'application/bitcoincash-paymentrequest', 'User-Agent': 'Electron-Cash'}
-ACK_HEADERS = {'Content-Type':'application/bitcoincash-payment','Accept':'application/bitcoincash-paymentack','User-Agent':'Electron-Cash'}
+REQUEST_HEADERS = {'Accept': 'application/devault-paymentrequest', 'User-Agent': 'Electron-Cash'}
+ACK_HEADERS = {'Content-Type':'application/devault-payment','Accept':'application/devault-paymentack','User-Agent':'Electron-Cash'}
 
 ca_path = requests.certs.where()
 ca_list = None
@@ -77,11 +77,11 @@ def get_payment_request(url):
         try:
             response = requests.request('GET', url, headers=REQUEST_HEADERS)
             response.raise_for_status()
-            # Guard against `bitcoincash:`-URIs with invalid payment request URLs
+            # Guard against `devault:`-URIs with invalid payment request URLs
             if "Content-Type" not in response.headers \
-            or response.headers["Content-Type"] != "application/bitcoincash-paymentrequest":
+            or response.headers["Content-Type"] != "application/devault-paymentrequest":
                 data = None
-                error = "payment URL not pointing to a bitcoincash payment request handling server"
+                error = "payment URL not pointing to a devault payment request handling server"
             else:
                 data = response.content
             print_error('fetched payment request', url, len(response.content))

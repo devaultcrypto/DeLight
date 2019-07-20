@@ -140,7 +140,7 @@ class Contacts(util.PrintError):
     def _cleanup_address(address : str, _type : str) -> str:
         rm_prefix = (networks.net.CASHADDR_PREFIX + ":").lower()
         if _type in ('address', 'cashacct') and address.lower().startswith(rm_prefix):
-            address = address[len(rm_prefix):]  # chop off bitcoincash: prefix
+            address = address[len(rm_prefix):]  # chop off devault: prefix
         return address
 
     @staticmethod
@@ -248,7 +248,7 @@ class Contacts(util.PrintError):
                 'type': 'openalias',
                 'validated': validated
             }
-        raise RuntimeWarning("Invalid Bitcoin address or alias", k)
+        raise RuntimeWarning("Invalid DeVault address or alias", k)
 
     @classmethod
     def resolve_openalias(cls, url):

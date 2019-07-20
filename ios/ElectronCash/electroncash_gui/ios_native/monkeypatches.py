@@ -61,9 +61,9 @@ class MonkeyPatches:
             try:
                 #
                 # The below is very important to allow OpenSSL to do SSL connections on iOS without verifying certs.
-                # If you take this out, blockchain_headers from http://bitcoincash.com will fail, and the
+                # If you take this out, blockchain_headers from http://devault.com will fail, and the
                 # "downloading headers" thing will take ages.  So I left this in.
-                # TODO: Figure out how to get bitcoincash.com to not fail with cert verification.
+                # TODO: Figure out how to get devault.com to not fail with cert verification.
                 #   - Calin May 24, 2018
                 #
                 if (getattr(ssl, '_create_unverified_context', None)):

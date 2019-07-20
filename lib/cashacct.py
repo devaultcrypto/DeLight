@@ -48,7 +48,7 @@ from . import blockchain
 from . import caches
 
 # Cash Accounts protocol code prefix is 0x01010101
-# See OP_RETURN prefix guideline: https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/op_return-prefix-guideline.md
+# See OP_RETURN prefix guideline: https://github.com/devaultorg/devault.org/blob/master/spec/op_return-prefix-guideline.md
 protocol_code = bytes.fromhex("01010101")
 
 activation_height = 20000  # all cash acct registrations are invalid if they appear before this block height
@@ -355,13 +355,13 @@ class ScriptOutput(ScriptOutputBase):
         # prepare payload
         # From: https://gitlab.com/cash-accounts/specification/blob/master/SPECIFICATION.md
         #
-        # Sample payload (hex bytes) for registration of 'bv1' -> bitcoincash:qzgvpjawln2l8wfmsg2qwnnytcua02hy45vpdvrqu5
+        # Sample payload (hex bytes) for registration of 'bv1' -> devault:qzgvpjawln2l8wfmsg2qwnnytcua02hy45vpdvrqu5
         # (This example is a real tx with txid: 4a2da2a69fba3ac07b7047dd17927a890091f13a9e89440a4cd4cfb4c009de1f)
         #
         # hex bytes:
         # 6a040101010103627631150190c0cbaefcd5f3b93b8214074e645e39d7aae4ad
         # | | |......|| |....|| | |......................................|
-        # | | |......|| |....|| | ↳ hash160 of bitcoincash:qzgvpjawln2l8wfmsg2qwnnytcua02hy45vpdvrqu5
+        # | | |......|| |....|| | ↳ hash160 of devault:qzgvpjawln2l8wfmsg2qwnnytcua02hy45vpdvrqu5
         # | | |......|| |....|| |
         # | | |......|| |....|| ↳ type (01 = p2pkh)
         # | | |......|| |....||

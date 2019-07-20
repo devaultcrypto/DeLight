@@ -78,7 +78,7 @@ class AddressList(MyTreeWidget):
 
     def filter(self, p):
         ''' Reimplementation from superclass filter.  Chops off the
-        "bitcoincash:" prefix so that address filters ignore this prefix.
+        "devault:" prefix so that address filters ignore this prefix.
         Closes #1440. '''
         cashaddr_prefix = f"{networks.net.CASHADDR_PREFIX}:".lower()
         p = p.strip()

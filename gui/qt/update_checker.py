@@ -67,9 +67,9 @@ class UpdateChecker(QWidget, PrintError):
     download_url = "https://electroncash.org/#download"
 
     VERSION_ANNOUNCEMENT_SIGNING_ADDRESSES = (
-        address.Address.from_string("bitcoincash:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82", net=MainNet), # Calin's key
-        address.Address.from_string("bitcoincash:qqy9myvyt7qffgye5a2mn2vn8ry95qm6asy40ptgx2", net=MainNet), # Mark Lundeberg's key
-        address.Address.from_string("bitcoincash:qz4wq9m860zr5p2nfdpttm5ymdqdyt3psc95qjagae", net=MainNet), # electroncash.org donation address
+        address.Address.from_string("devault:qrzq4dnhffx5fmydz3fjaq5275s3l2e5qvyjygmzsr", net=MainNet), # Spock's key
+        address.Address.from_string("devault:qpn2x4w7pp079wleaty9nw0xh3ndjjdq0sndl5gpl2", net=MainNet), # 
+        address.Address.from_string("devault:qr3dszpxtse8wxecz33emg5ggtz4n0qvkyahudhgm2", net=MainNet), # 
     )
 
     def __init__(self, parent=None):
@@ -126,13 +126,13 @@ class UpdateChecker(QWidget, PrintError):
         # example signed_version_dict:
         # {
         #     "3.9.9": {
-        #         "bitcoincash:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "IA+2QG3xPRn4HAIFdpu9eeaCYC7S5wS/sDxn54LJx6BdUTBpse3ibtfq8C43M7M1VfpGkD5tsdwl5C6IfpZD/gQ="
+        #         "devault:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "IA+2QG3xPRn4HAIFdpu9eeaCYC7S5wS/sDxn54LJx6BdUTBpse3ibtfq8C43M7M1VfpGkD5tsdwl5C6IfpZD/gQ="
         #     },
         #     "3.9.9CS": {
-        #         "bitcoincash:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "IA+2QG3xPRn4HAIFdpu9eeaCYC7S5wS/sDxn54LJx6BdUTBpse3ibtfq8C43M7M1VfpGkD5tsdwl5C6IfpZD/gQ="
+        #         "devault:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "IA+2QG3xPRn4HAIFdpu9eeaCYC7S5wS/sDxn54LJx6BdUTBpse3ibtfq8C43M7M1VfpGkD5tsdwl5C6IfpZD/gQ="
         #     },
         #     "3.9.9SLP": {
-        #         "bitcoincash:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "IA+2QG3xPRn4HAIFdpu9eeaCYC7S5wS/sDxn54LJx6BdUTBpse3ibtfq8C43M7M1VfpGkD5tsdwl5C6IfpZD/gQ="
+        #         "devault:qphax4cg8sxuc0qnzk6sx25939ma7y877uz04s2z82": "IA+2QG3xPRn4HAIFdpu9eeaCYC7S5wS/sDxn54LJx6BdUTBpse3ibtfq8C43M7M1VfpGkD5tsdwl5C6IfpZD/gQ="
         #     },
         # }
         # All signed messages above are signed with the address in the dict, and the message is the "3.9.9" or "3.9.9CS" etc string

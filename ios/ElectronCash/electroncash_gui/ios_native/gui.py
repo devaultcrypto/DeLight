@@ -1192,8 +1192,8 @@ class ElectrumGui(PrintError):
                 out = web.parse_URI(URI, self.on_pr)
             except:
                 e = sys.exc_info()[1]
-                utils.NSLog("Invalid bitcoincash URI: %s, exception: %s", URI, str(e))
-                if showErr: self.show_error(_('Invalid bitcoincash URI:') + '\n' + str(e))
+                utils.NSLog("Invalid devault URI: %s, exception: %s", URI, str(e))
+                if showErr: self.show_error(_('Invalid devault URI:') + '\n' + str(e))
                 return False
             r = out.get('r')
             sig = out.get('sig')
@@ -2168,7 +2168,7 @@ class ElectrumGui(PrintError):
         UIPasteboard.generalPasteboard.string = text
         utils.show_notification(message=_(messagePrefix.strip() + " copied to clipboard"))
 
-    def open_bitcoincash_url(self, uri : str) -> None:
+    def open_devault_url(self, uri : str) -> None:
         if not self.wallet:
             self.queued_payto_uri = uri
         else:

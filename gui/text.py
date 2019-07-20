@@ -323,7 +323,7 @@ class ElectrumGui:
 
     def do_send(self):
         if not Address.is_valid(self.str_recipient):
-            self.show_message(_('Invalid Bitcoin address'))
+            self.show_message(_('Invalid DeVault address'))
             return
         try:
             amount = int(PyDecimal(self.str_amount) * COIN)

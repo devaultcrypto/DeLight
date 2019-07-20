@@ -335,7 +335,7 @@ class ElectrumGui(QObject, PrintError):
 
 
     def eventFilter(self, obj, event):
-        ''' This event filter allows us to open bitcoincash: URIs on macOS '''
+        ''' This event filter allows us to open devault: URIs on macOS '''
         if event.type() == QEvent.FileOpen:
             if len(self.windows) >= 1:
                 self.windows[0].pay_to_URI(event.url().toString())

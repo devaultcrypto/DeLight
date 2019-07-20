@@ -58,8 +58,8 @@ class PythonAppDelegate(UIResponder):
         eg = gui.ElectrumGui.gui
         ret = True
         if eg:
-            if scheme == 'bitcoincash':
-                eg.open_bitcoincash_url(url_string)
+            if scheme == 'devault':
+                eg.open_devault_url(url_string)
             elif scheme == 'file':
                 data, filename = utils.nsurl_read_local_file(url)
                 utils.NSLog("App file openURL: %s Options: %s",str(filename),str(py_from_ns(options) if options else dict()))

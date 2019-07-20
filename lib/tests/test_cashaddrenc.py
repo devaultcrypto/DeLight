@@ -29,19 +29,19 @@ import random
 from .. import cashaddr
 
 
-BCH_PREFIX = "bitcoincash"
+BCH_PREFIX = "devault"
 BCH_TESTNET_PREFIX = "bchtest"
 
 VALID_PUBKEY_ADDRESSES = [
-    "bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a",
-    "bitcoincash:qr95sy3j9xwd2ap32xkykttr4cvcu7as4y0qverfuy",
-    "bitcoincash:qqq3728yw0y47sqn6l2na30mcw6zm78dzqre909m2r"
+    "devault:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a",
+    "devault:qr95sy3j9xwd2ap32xkykttr4cvcu7as4y0qverfuy",
+    "devault:qqq3728yw0y47sqn6l2na30mcw6zm78dzqre909m2r"
 ]
 
 VALID_SCRIPT_ADDRESSES = [
-    "bitcoincash:ppm2qsznhks23z7629mms6s4cwef74vcwvn0h829pq",
-    "bitcoincash:pr95sy3j9xwd2ap32xkykttr4cvcu7as4yc93ky28e",
-    "bitcoincash:pqq3728yw0y47sqn6l2na30mcw6zm78dzq5ucqzc37"
+    "devault:ppm2qsznhks23z7629mms6s4cwef74vcwvn0h829pq",
+    "devault:pr95sy3j9xwd2ap32xkykttr4cvcu7as4yc93ky28e",
+    "devault:pqq3728yw0y47sqn6l2na30mcw6zm78dzq5ucqzc37"
 ]
 
 VALID_HASHES = [
@@ -118,14 +118,14 @@ class TestCashAddrAddress(unittest.TestCase):
                cashaddr.decode(addr)
 
     def test_address_case(self):
-        prefix, kind, hash160 = cashaddr.decode("bitcoincash:ppm2qsznhks23z7629mms6s4cwef74vcwvn0h829pq")
-        assert prefix == "bitcoincash"
+        prefix, kind, hash160 = cashaddr.decode("devault:ppm2qsznhks23z7629mms6s4cwef74vcwvn0h829pq")
+        assert prefix == "devault"
         prefix, kind, hash160 = cashaddr.decode("BITCOINCASH:PPM2QSZNHKS23Z7629MMS6S4CWEF74VCWVN0H829PQ")
         assert prefix == "BITCOINCASH"
         with self.assertRaises(ValueError):
-            cashaddr.decode("bitcoincash:PPM2QSZNHKS23Z7629MMS6S4CWEF74VCWVN0H829PQ")
+            cashaddr.decode("devault:PPM2QSZNHKS23Z7629MMS6S4CWEF74VCWVN0H829PQ")
         with self.assertRaises(ValueError):
-            cashaddr.decode("bitcoincash:ppm2qsznhks23z7629mmS6s4cwef74vcwvn0h829pq")
+            cashaddr.decode("devault:ppm2qsznhks23z7629mmS6s4cwef74vcwvn0h829pq")
 
     def test_prefix(self):
         with self.assertRaises(ValueError):
@@ -138,7 +138,7 @@ class TestCashAddrAddress(unittest.TestCase):
             cashaddr.decode("bitcoin cash:ab")
         # b is invalid
         with self.assertRaises(ValueError):
-            cashaddr.decode("bitcoincash:ppm2qsznbks23z7629mms6s4cwef74vcwvn0h82")
+            cashaddr.decode("devault:ppm2qsznbks23z7629mms6s4cwef74vcwvn0h82")
 
     def test_bad_decode_checksum(self):
         """Test whether addresses with invalid checksums fail to decode."""
