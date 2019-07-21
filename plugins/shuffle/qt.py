@@ -2130,7 +2130,7 @@ class PoolsWindow(QWidget, PrintError, NetworkCheckerDelegateMixin):
             is_my_settings = typ == mysettings.type_name and version == mysettings.version
             if not simple or is_my_settings:
                 twi = QTreeWidgetItem([
-                    format_satoshis_plain(p['amount']) + " BCH",
+                    format_satoshis_plain(p['amount']) + " DVT",
                     "{} / {}".format(str(p['members']), poolSize),
                     str(p.get('type','?')).lower(),
                     str(p.get('version','?')),

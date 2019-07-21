@@ -801,7 +801,7 @@ class Round(PrintError):
         def compute_shuffle_amount():
             assert totals
             self.shuffle_amount = min(totals) - self.fee
-            self.log_message("adjusts shuffle amount to {} BCH".format(self.shuffle_amount / 1e8))
+            self.log_message("adjusts shuffle amount to {} DVT".format(self.shuffle_amount / 1e8))
             assert self.shuffle_amount >= self.scale
             # recompute did_use_change here.
             self.did_use_change = self.coin_value - self.shuffle_amount - self.fee >= self.coin_utils.dust_threshold()

@@ -705,7 +705,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
                     if fee and self.network and self.network.config.has_fee_estimates():
                         # NB: this branch will not be taken as has_fee_estimates()
                         # will always return false since we disabled querying
-                        # the fee histogram as it's useless for BCH anyway.
+                        # the fee histogram as it's useless for DVT anyway.
                         size = tx.estimated_size()
                         fee_per_kb = fee * 1000 / size
                         exp_n = self.network.config.reverse_dynfee(fee_per_kb)
@@ -1161,7 +1161,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
             if not tx:
                 return 3, 'unknown'
             fee = self.tx_fees.get(tx_hash)
-            # we disable fee estimates in BCH for now.
+            # we disable fee estimates in DVT for now.
             #if fee and self.network and self.network.config.has_fee_estimates():
             #    size = len(tx.raw)/2
             #    low_fee = int(self.network.config.dynfee(0)*size/1000)
@@ -1271,7 +1271,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
         tx_in_bytes=tx.estimated_size()
         fee_in_satoshis=tx.get_fee()
         sats_per_byte=fee_in_satoshis/tx_in_bytes
-        if (sats_per_byte > 50):
+        if (sats_per_byte > 1000000):
             raise ExcessiveFee()
             return
 

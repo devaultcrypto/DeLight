@@ -305,7 +305,7 @@ class CoinUtils(PrintError):
         except AssertionError:
             return False
         if (s << 1) > order:
-            # high S values are rejected by BCH network
+            # high S values are rejected by DVT network
             return False
         try:
             pubkey_point = ser_to_point(bfh(verification_key))
