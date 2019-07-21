@@ -22,10 +22,10 @@ import java.util.*
 import kotlin.reflect.KClass
 
 
-val UNIT_BCH = 100000000L
-val UNIT_MBCH = 100000L
-var unitSize = UNIT_BCH  // TODO: make unit configurable
-var unitName = "BCH"     //
+val UNIT_DVT = 100000000L
+val UNIT_MDVT = 100000L
+var unitSize = UNIT_DVT  // TODO: make unit configurable
+var unitName = "DVT"     //
 
 val libBitcoin by lazy { libMod("bitcoin") }
 val libUtil by lazy { libMod("util") }

@@ -139,7 +139,7 @@ class DaemonModel {
             amountStr = "!"
         } else {
             if (amount <= 0) throw ToastException(R.string.Invalid_amount)
-            amountStr = formatSatoshis(amount, UNIT_BCH)
+            amountStr = formatSatoshis(amount, UNIT_DVT)
         }
 
         val outputs = arrayOf(arrayOf(address, amountStr))
