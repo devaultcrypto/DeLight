@@ -55,7 +55,7 @@ class MainNet(AbstractNet):
     # this block. Consult the ElectrumX documentation.
     # To get this value you need to connect to an ElectrumX server you trust and issue it a protocol command.
     # blockchain.block.header (see ElectrumX docs)
-    VERIFICATION_BLOCK_MERKLE_ROOT = "02b5e7954717549036c2ffbd72185044ba10b35875bb7774d6f857a4d7bdb8d9"
+    VERIFICATION_BLOCK_MERKLE_ROOT = "47caa1d479807d32131ce1df843cf66c8a06603404377b3713a8bf1669e4ab09"
     VERIFICATION_BLOCK_HEIGHT = 20000
 
     # Version numbers for BIP32 extended keys
