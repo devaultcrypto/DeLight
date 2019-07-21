@@ -3,7 +3,19 @@
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.0.0"
+        "version": "1.10.1"
+    },	
+    "electrum.dvtapi.com": {	
+        "pruning": "-",	
+        "s": "50002",	
+        "t": "50001",	
+        "version": "1.10.1"	
+    },	
+    "electron.devault.cc": {	
+        "pruning": "-",	
+        "s": "50002",	
+        "t": "50001",	
+        "version": "1.10.1"	
     }
 }
 

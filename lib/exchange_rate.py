@@ -155,7 +155,7 @@ class BitcoinAverage(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/short')
-        return dict([(r.replace("BCH", ""), PyDecimal(json[r]['last']))
+        return dict([(r.replace("DVT", ""), PyDecimal(json[r]['last']))
                      for r in json if r != 'timestamp'])
 
     # note: historical rates used to be freely available
@@ -168,7 +168,7 @@ class BitcoinAverage(ExchangeBase):
     #
     #def request_history(self, ccy):
     #    history = self.get_csv('apiv2.bitcoinaverage.com',
-    #                           "/indices/global/history/BCH%s?period=alltime&format=csv" % ccy)
+    #                           "/indices/global/history/DVT%s?period=alltime&format=csv" % ccy)
     #    return dict([(h['DateTime'][:10], h['Average'])
     #                 for h in history])
 
@@ -183,7 +183,7 @@ class Bitmarket(ExchangeBase):
 class BitPay(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('bitpay.com', '/api/rates/BCH')
+        json = self.get_json('bitpay.com', '/api/rates/DVT')
         return dict([(r['code'], PyDecimal(r['rate'])) for r in json])
 
 
@@ -209,7 +209,7 @@ class Coinbase(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('api.coinbase.com',
-                             '/v2/exchange-rates?currency=BCH')
+                             '/v2/exchange-rates?currency=DVT')
         return {ccy: PyDecimal(rate) for (ccy, rate) in json["data"]["rates"].items()}
 
 
@@ -217,7 +217,7 @@ class Kraken(ExchangeBase):
 
     def get_rates(self, ccy):
         ccys = ['EUR', 'USD']
-        pairs = ['BCH%s' % c for c in ccys]
+        pairs = ['DVT%s' % c for c in ccys]
         json = self.get_json('api.kraken.com',
                              '/0/public/Ticker?pair=%s' % ','.join(pairs))
         return dict((k[-3:], PyDecimal(float(v['c'][0])))
@@ -227,7 +227,7 @@ class Kraken(ExchangeBase):
 class CoinFloor(ExchangeBase):
     # CoinFloor API only supports GBP on public API
     def get_rates(self, ccy):
-        json = self.get_json('webapi.coinfloor.co.uk:8090/bist/BCH/GBP', '/ticker/')
+        json = self.get_json('webapi.coinfloor.co.uk:8090/bist/DVT/GBP', '/ticker/')
         return {'GBP': PyDecimal(json['last'])}
 
 
@@ -273,7 +273,7 @@ class CoinCap(ExchangeBase):
 class CoinGecko(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('api.coingecko.com', '/api/v3/coins/bitcoin-cash?localization=False&sparkline=false')
+        json = self.get_json('api.coingecko.com', '/api/v3/coins/devault?localization=False&sparkline=false')
         prices = json["market_data"]["current_price"]
         return dict([(a[0].upper(),PyDecimal(a[1])) for a in prices.items()])
 
@@ -286,7 +286,7 @@ class CoinGecko(ExchangeBase):
                 'TRY', 'TWD', 'USD', 'VEF', 'XAG', 'XAU', 'XDR', 'ZAR']
 
     def request_history(self, ccy):
-        history = self.get_json('api.coingecko.com', '/api/v3/coins/bitcoin-cash/market_chart?vs_currency=%s&days=max' % ccy)
+        history = self.get_json('api.coingecko.com', '/api/v3/coins/devault/market_chart?vs_currency=%s&days=max' % ccy)
 
         from datetime import datetime as dt
         return dict([(dt.utcfromtimestamp(h[0]/1000).strftime('%Y-%m-%d'), h[1])
