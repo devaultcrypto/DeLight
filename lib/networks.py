@@ -34,6 +34,7 @@ def _read_json_dict(filename):
 
 class AbstractNet:
     TESTNET = False
+    POW_TARGET_SPACING = 120
 
 
 class MainNet(AbstractNet):

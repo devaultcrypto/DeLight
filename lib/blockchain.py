@@ -74,6 +74,7 @@ def target_to_bits(target):
     return compact | size << 24
 
 HEADER_SIZE = 80 # bytes
+LWMA_AVERAGING_WINDOW = 72
 MAX_BITS = 0x1d00ffff
 MAX_TARGET = bits_to_target(MAX_BITS)
 # indicates no header in data file
@@ -264,7 +265,7 @@ class Blockchain(util.PrintError):
         if bits is not None:
             # checkpoint 
             if bits != header.get('bits'):
-                raise VerifyError("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+                raise VerifyError("bits mismatch: %x vs %x" % (bits, header.get('bits')))
             target = bits_to_target(bits)
             if int('0x' + this_header_hash, 16) > target:
                 raise VerifyError("insufficient proof of work: %s vs target %s" % (int('0x' + this_header_hash, 16), target))
@@ -391,6 +392,54 @@ class Blockchain(util.PrintError):
         v = self.read_header(height)['version']
         return ((v & 0xE0000000) == 0x20000000) and ((v & flag) == flag)
 
+
+    def get_lwma_target(self, height, chunk):
+        cur = chunk.get_header_at_height(height)
+        last_height = (height - 1)
+        last = chunk.get_header_at_height(last_height)
+
+        # Special testnet handling
+        if networks.net.TESTNET:
+            pass # TBD
+        else:
+            total = 0
+            t = 0
+            j = 0
+
+            assert (height - LWMA_AVERAGING_WINDOW) > 0
+
+            T = networks.net.POW_TARGET_SPACING
+            N = LWMA_AVERAGING_WINDOW
+            k = (N+1) * T / 2;  # ignore adjust 0.9989^(500/N) from python code
+            dnorm = 10;
+            ts = 6 * T
+
+            # Loop through N most recent blocks.  "< height", not "<=".
+            # height-1 = most recently solved block
+            for i in range(height - LWMA_AVERAGING_WINDOW, height):
+                cur = chunk.get_header_at_height(i)
+                prev_height = (i - 1)
+                prev = chunk.get_header_at_height(prev_height)
+
+                solvetime = cur.get('timestamp') - prev.get('timestamp')
+                if (solvetime > ts): solvetime = ts
+
+                j += 1
+                t += solvetime * j
+                total += self.bits_to_target(cur.get('bits')) // (k * N * N)
+
+            # Keep t reasonable in case strange solvetimes occurred.
+            if t < N * k // dnorm:
+                t = N * k // dnorm
+
+            new_target = t * total
+
+            if new_target > networks.net.MAX_TARGET:
+                new_target = networks.net.MAX_TARGET
+
+        return new_target
+
+
     def get_median_time_past(self, height, chunk=None):
         if height < 0:
             return 0
@@ -417,7 +466,6 @@ class Blockchain(util.PrintError):
 
         return blocks1['block_height']
 
-    # UPDATE THIS : HACK
     def get_bits(self, header, chunk=None):
         '''Return bits for the given height.'''
         # Difficulty adjustment interval?
@@ -431,53 +479,15 @@ class Blockchain(util.PrintError):
             raise Exception("get_bits missing header {} with chunk {!r}".format(height - 1, chunk))
         bits = prior['bits']
 
-        #NOV 13 HF DAA
-
-        prevheight = height -1
-        daa_mtp = self.get_median_time_past(prevheight, chunk)
-
-        #if (daa_mtp >= 1509559291):  #leave this here for testing
-        #END OF NOV-2017 DAA
-
-        if height % 2016 == 0:
-            return self.get_new_bits(height, chunk)
-
-        if networks.net.TESTNET:
-            # testnet 20 minute rule
-            if header['timestamp'] - prior['timestamp'] > 20*60:
-                return MAX_BITS
-            return self.read_header(height // 2016 * 2016, chunk)['bits']
-
-        # bitcoin cash EDA
-        # Can't go below minimum, so early bail
-        if bits == MAX_BITS:
-            return bits
-        mtp_6blocks = self.get_median_time_past(height - 1, chunk) - self.get_median_time_past(height - 7, chunk)
-        if mtp_6blocks < 12 * 3600:
-            return bits
-
-        # If it took over 12hrs to produce the last 6 blocks, increase the
-        # target by 25% (reducing difficulty by 20%).
-        target = bits_to_target(bits)
-        target += target >> 2
-
-        return target_to_bits(target)
-
-    # UPDATE THIS : HACK
-    def get_new_bits(self, height, chunk=None):
-        assert height % 2016 == 0
-        # Genesis
-        if height == 0:
+        if ((height - LWMA_AVERAGING_WINDOW) < 0):
             return MAX_BITS
-        first = self.read_header(height - 2016, chunk)
-        prior = self.read_header(height - 1, chunk)
-        prior_target = bits_to_target(prior['bits'])
 
-        target_span = 14 * 24 * 60 * 60
-        span = prior['timestamp'] - first['timestamp']
-        span = min(max(span, target_span // 4), target_span * 4)
-        new_target = (prior_target * span) // target_span
-        return target_to_bits(new_target)
+        if (chunk):
+            self.print_error("will call lwma for height",height)
+            target = self.get_lwma_target(height, chunk)
+            return target_to_bits(target)
+        else:
+            return header['bits']
 
     def can_connect(self, header, check_height=True):
         height = header['block_height']
@@ -493,6 +503,7 @@ class Blockchain(util.PrintError):
             return False
         bits = self.get_bits(header)
         try:
+            self.print_error("will call verify header with hash = ",hash_header(header)," prev hash = ",hash_header(previous_header)," and bits = ",bits)
             self.verify_header(header, previous_header, bits)
         except VerifyError as e:
             self.print_error('verify header {} failed at height {:d}: {}'
