@@ -255,11 +255,8 @@ class Blockchain(util.PrintError):
         p = self.path()
         self._size = os.path.getsize(p)//HEADER_SIZE if os.path.exists(p) else 0
 
-    def verify_header(self, header, prev_header, bits=None):
-        prev_header_hash = hash_header(prev_header)
+    def verify_header(self, header, bits=None):
         this_header_hash = hash_header(header)
-        if prev_header_hash != header.get('prev_block_hash'):
-            raise VerifyError("prev hash mismatch: %s vs %s" % (prev_header_hash, header.get('prev_block_hash')))
 
         # We do not need to check the block difficulty if the chain of linked header hashes was proven correct against our checkpoint.
         if bits is not None:
@@ -270,7 +267,14 @@ class Blockchain(util.PrintError):
             if int('0x' + this_header_hash, 16) > target:
                 raise VerifyError("insufficient proof of work: %s vs target %s" % (int('0x' + this_header_hash, 16), target))
 
+    def verify_single_header(self, header, prev_header):
+        prev_header_hash = hash_header(prev_header)
+        this_header_hash = hash_header(header)
+        if prev_header_hash != header.get('prev_block_hash'):
+            raise VerifyError("prev hash mismatch: %s vs %s" % (prev_header_hash, header.get('prev_block_hash')))
+
     def verify_chunk(self, chunk_base_height, chunk_data):
+        self.print_error("calling verify_check with base_height = ",chunk_base_height,"\n")
         chunk = HeaderChunk(chunk_base_height, chunk_data)
 
         prev_header = None
@@ -278,11 +282,15 @@ class Blockchain(util.PrintError):
             prev_header = self.read_header(chunk_base_height - 1)
 
         header_count = len(chunk_data) // HEADER_SIZE
-        for i in range(header_count):
+        self.print_error("start loop in verify_check with base_height = ",chunk_base_height)
+        for i in range(header_count-73):
             header = chunk.get_header_at_index(i)
+            lwma_header = chunk.get_header_at_index(i+73)
             # Check the chain of hashes and the difficulty.
             bits = self.get_bits(header, chunk)
-            self.verify_header(header, prev_header, bits)
+            # for now .... HACK -- > NEED TO ADD BACK
+            #self.verify_single_header(header, prev_header)
+            self.verify_header(lwma_header, bits)
             prev_header = header
 
     def path(self):
@@ -395,9 +403,6 @@ class Blockchain(util.PrintError):
 
     def get_lwma_target(self, height, chunk):
         cur = chunk.get_header_at_height(height)
-        last_height = (height - 1)
-        last = chunk.get_header_at_height(last_height)
-
         # Special testnet handling
         if networks.net.TESTNET:
             pass # TBD
@@ -411,14 +416,16 @@ class Blockchain(util.PrintError):
             T = networks.net.POW_TARGET_SPACING
             N = LWMA_AVERAGING_WINDOW
             k = (N+1) * T / 2;  # ignore adjust 0.9989^(500/N) from python code
+            kNN = int(k*N*N)
             dnorm = 10;
             ts = 6 * T
 
             # Loop through N most recent blocks.  "< height", not "<=".
             # height-1 = most recently solved block
-            for i in range(height - LWMA_AVERAGING_WINDOW, height):
-                cur = chunk.get_header_at_height(i)
-                prev_height = (i - 1)
+            for i in range(LWMA_AVERAGING_WINDOW): 
+                h = height + i + 1
+                cur = chunk.get_header_at_height(h)
+                prev_height = (h - 1)
                 prev = chunk.get_header_at_height(prev_height)
 
                 solvetime = cur.get('timestamp') - prev.get('timestamp')
@@ -426,7 +433,8 @@ class Blockchain(util.PrintError):
 
                 j += 1
                 t += solvetime * j
-                total += self.bits_to_target(cur.get('bits')) // (k * N * N)
+                add_total = bits_to_target(cur.get('bits')) // (kNN)
+                total += add_total
 
             # Keep t reasonable in case strange solvetimes occurred.
             if t < N * k // dnorm:
@@ -434,10 +442,10 @@ class Blockchain(util.PrintError):
 
             new_target = t * total
 
-            if new_target > networks.net.MAX_TARGET:
-                new_target = networks.net.MAX_TARGET
+            if new_target > MAX_TARGET:
+                new_target = MAX_TARGET
 
-        return new_target
+        return target_to_bits(new_target)
 
 
     def get_median_time_past(self, height, chunk=None):
@@ -466,28 +474,14 @@ class Blockchain(util.PrintError):
 
         return blocks1['block_height']
 
-    def get_bits(self, header, chunk=None):
+    def get_bits(self, header, chunk):
         '''Return bits for the given height.'''
-        # Difficulty adjustment interval?
         height = header['block_height']
-        # Genesis
-        if height == 0:
-            return MAX_BITS
-
-        prior = self.read_header(height - 1, chunk)
-        if prior is None:
-            raise Exception("get_bits missing header {} with chunk {!r}".format(height - 1, chunk))
-        bits = prior['bits']
 
         if ((height - LWMA_AVERAGING_WINDOW) < 0):
             return MAX_BITS
 
-        if (chunk):
-            self.print_error("will call lwma for height",height)
-            target = self.get_lwma_target(height, chunk)
-            return target_to_bits(target)
-        else:
-            return header['bits']
+        return self.get_lwma_target(height, chunk) # height is the low value of the chunk with chunk having higher height headers
 
     def can_connect(self, header, check_height=True):
         height = header['block_height']
@@ -501,10 +495,9 @@ class Blockchain(util.PrintError):
         prev_hash = hash_header(previous_header)
         if prev_hash != header.get('prev_block_hash'):
             return False
-        bits = self.get_bits(header)
+        bits = header['bits']
         try:
-            self.print_error("will call verify header with hash = ",hash_header(header)," prev hash = ",hash_header(previous_header)," and bits = ",bits)
-            self.verify_header(header, previous_header, bits)
+            self.verify_single_header(header, previous_header)
         except VerifyError as e:
             self.print_error('verify header {} failed at height {:d}: {}'
                              .format(hash_header(header), height, e))

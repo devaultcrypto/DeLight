@@ -781,7 +781,8 @@ class Network(util.DaemonThread):
             try:
                 self.on_block_headers(interface, request, response)
             except Exception as e:
-                self.print_error(f"bad server response for {method}: {repr(e)} / {response}")
+                self.print_error(f"bad server response for {method}: {repr(e)}")
+                #self.print_error(f"bad server response for {method}: {repr(e)} / {response}")
                 self.connection_down(interface.server)
         elif method == 'blockchain.block.header':
             try:
@@ -1031,17 +1032,18 @@ class Network(util.DaemonThread):
         self.requested_chunks.add(chunk_index)
 
         interface.print_error("requesting chunk {}".format(chunk_index))
-        chunk_base_height = chunk_index * 2016
-        chunk_count = 2016
+        chunk_base_height = chunk_index * 2000
+        chunk_count = 2000
         return self.request_headers(interface, chunk_base_height, chunk_count, silent=True)
 
     def request_headers(self, interface, base_height, count, silent=False):
         if not silent:
             interface.print_error("requesting multiple consecutive headers, from {} count {}".format(base_height, count))
-        if count > 2016:
-            raise Exception("Server does not support requesting more than 2016 consecutive headers")
+        if count > 2000:
+            raise Exception("Server does not support requesting more than 2000 consecutive headers")
 
         top_height = base_height + count - 1
+        self.print_error("Request headers with top = ",top_height," base = ",base_height)
         if top_height > networks.net.VERIFICATION_BLOCK_HEIGHT:
             if base_height < networks.net.VERIFICATION_BLOCK_HEIGHT:
                 # As part of the verification process, we fetched the set of headers that allowed manual verification of the post-checkpoint headers that were fetched
@@ -1068,16 +1070,17 @@ class Network(util.DaemonThread):
         if not request or result is None or params is None or error is not None:
             interface.print_error(error or 'bad response')
             # Ensure the chunk can be rerequested, but only if the request originated from us.
-            if request and request[1][0] // 2016 in self.requested_chunks:
-                self.requested_chunks.remove(request[1][0] // 2016)
+            if request and request[1][0] // 2000 in self.requested_chunks:
+                self.requested_chunks.remove(request[1][0] // 2000)
             return
 
         # Ignore unsolicited chunks
         request_params = request[1]
         request_base_height = request_params[0]
         expected_header_count = request_params[1]
-        index = request_base_height // 2016
+        index = request_base_height // 2000
         if request_params != params:
+            self.print_error("unsolicited chunk base_height={} count={}".format(request_base_height, expected_header_count))
             interface.print_error("unsolicited chunk base_height={} count={}".format(request_base_height, expected_header_count))
             return
         if index in self.requested_chunks:
@@ -1175,7 +1178,7 @@ class Network(util.DaemonThread):
             pass
         else:
             if interface.blockchain.height() < interface.tip:
-                self.request_headers(interface, request_base_height + actual_header_count, 2016)
+                self.request_headers(interface, request_base_height + actual_header_count, 2000)
             else:
                 interface.set_mode(Interface.MODE_DEFAULT)
                 interface.print_error('catch up done', interface.blockchain.height())
@@ -1346,7 +1349,7 @@ class Network(util.DaemonThread):
         # If not finished, get the next header
         if next_height:
             if interface.mode == Interface.MODE_CATCH_UP and interface.tip > next_height:
-                self.request_headers(interface, next_height, 2016)
+                self.request_headers(interface, next_height, 2000)
             else:
                 self.request_header(interface, next_height)
         else:
