@@ -77,8 +77,8 @@ TX_STATUS = [
 
 
 def relayfee(network):
-    RELAY_FEE = 5000
-    MAX_RELAY_FEE = 50000
+    RELAY_FEE = 100000
+    MAX_RELAY_FEE = 200000
     f = network.relay_fee if network and network.relay_fee else RELAY_FEE
     return min(f, MAX_RELAY_FEE)
 
@@ -86,7 +86,7 @@ def dust_threshold(network):
     # Change < dust threshold is added to the tx fee
     #return 182 * 3 * relayfee(network) / 1000 # original Electrum logic
     #return 1 # <-- was this value until late Sept. 2018
-    return 546 # hard-coded Bitcoin Cash dust threshold. Was changed to this as of Sept. 2018
+    return 100000 # hard-coded Bitcoin Cash dust threshold. Was changed to this as of Sept. 2018
 
 
 def append_utxos_to_inputs(inputs, network, pubkey, txin_type, imax):
@@ -709,6 +709,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
                         size = tx.estimated_size()
                         fee_per_kb = fee * 1000 / size
                         exp_n = self.network.config.reverse_dynfee(fee_per_kb)
+                    if (fee < 100000): fee = 100000
             else:
                 status = _("Signed")
                 can_broadcast = self.network is not None

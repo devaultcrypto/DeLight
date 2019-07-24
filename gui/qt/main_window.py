@@ -161,7 +161,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.utxo_tab = self.create_utxo_tab()
         self.console_tab = self.create_console_tab()
         self.contacts_tab = self.create_contacts_tab()
-        self.converter_tab = self.create_converter_tab()
         tabs.addTab(self.create_history_tab(), QIcon(":icons/tab_history.png"), _('History'))
         tabs.addTab(self.send_tab, QIcon(":icons/tab_send.png"), _('Send'))
         tabs.addTab(self.receive_tab, QIcon(":icons/tab_receive.png"), _('Receive'))
@@ -179,7 +178,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         add_optional_tab(tabs, self.addresses_tab, QIcon(":icons/tab_addresses.png"), _("&Addresses"), "addresses")
         add_optional_tab(tabs, self.utxo_tab, QIcon(":icons/tab_coins.png"), _("Co&ins"), "utxo")
         add_optional_tab(tabs, self.contacts_tab, QIcon(":icons/tab_contacts.png"), _("Con&tacts"), "contacts")
-        add_optional_tab(tabs, self.converter_tab, QIcon(":icons/tab_converter.svg"), _("Address Converter"), "converter", True)
         add_optional_tab(tabs, self.console_tab, QIcon(":icons/tab_console.png"), _("Con&sole"), "console")
 
         tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -201,7 +199,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         for i in range(tabs.count()):
             self._shortcuts.add( QShortcut(QKeySequence("Alt+" + str(i + 1)), self, lambda i=i: wrtabs() and wrtabs().setCurrentIndex(i)) )
 
-        self.gui_object.cashaddr_toggled_signal.connect(self.update_cashaddr_icon)
         self.payment_request_ok_signal.connect(self.payment_request_ok)
         self.payment_request_error_signal.connect(self.payment_request_error)
         self.gui_object.update_available_signal.connect(self.on_update_available)  # shows/hides the update_available_button, emitted by update check mechanism when a new version is available
@@ -634,7 +631,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         add_toggle_action(view_menu, self.addresses_tab)
         add_toggle_action(view_menu, self.utxo_tab)
         add_toggle_action(view_menu, self.contacts_tab)
-        add_toggle_action(view_menu, self.converter_tab)
         add_toggle_action(view_menu, self.console_tab)
 
         tools_menu = menubar.addMenu(_("&Tools"))
@@ -2369,73 +2365,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.utxo_list.update()
         self.update_fee()
 
-    def create_converter_tab(self):
-
-        source_address = QLineEdit()
-        cash_address = ButtonsLineEdit()
-        cash_address.addCopyButton()
-        cash_address.setReadOnly(True)
-        legacy_address = ButtonsLineEdit()
-        legacy_address.addCopyButton()
-        legacy_address.setReadOnly(True)
-
-        widgets = [
-            (cash_address, Address.FMT_CASHADDR),
-            (legacy_address, Address.FMT_LEGACY),
-        ]
-
-        def convert_address():
-            try:
-                addr = Address.from_string(source_address.text().strip())
-            except:
-                addr = None
-            for widget, fmt in widgets:
-                if addr:
-                    widget.setText(addr.to_full_string(fmt))
-                else:
-                    widget.setText('')
-
-        source_address.textChanged.connect(convert_address)
-
-        w = QWidget()
-        grid = QGridLayout()
-        grid.setSpacing(15)
-        grid.setColumnStretch(1, 2)
-        grid.setColumnStretch(2, 1)
-
-        label = QLabel(_('&Address to convert'))
-        label.setBuddy(source_address)
-        grid.addWidget(label, 0, 0)
-        grid.addWidget(source_address, 0, 1)
-
-        label = QLabel(_('&Cash address'))
-        label.setBuddy(cash_address)
-        grid.addWidget(label, 1, 0)
-        grid.addWidget(cash_address, 1, 1)
-
-        label = QLabel(_('&Legacy address'))
-        label.setBuddy(legacy_address)
-        grid.addWidget(label, 2, 0)
-        grid.addWidget(legacy_address, 2, 1)
-
-        w.setLayout(grid)
-
-        label = WWLabel(_(
-            "This tool helps convert between address formats for DeVault??? "
-            "Cash addresses.\nYou are encouraged to use the 'Cash address' "
-            "format."
-        ))
-
-        vbox = QVBoxLayout()
-        vbox.addWidget(label)
-        vbox.addWidget(w)
-        vbox.addStretch(1)
-
-        w = QWidget()
-        w.setLayout(vbox)
-
-        return w
-
     def create_list_tab(self, l, list_header=None):
         w = QWidget()
         w.searchable_list = l
@@ -2751,16 +2680,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.cashshuffle_status_button.setContextMenuPolicy(Qt.ActionsContextMenu)
 
         sb.addPermanentWidget(self.cashshuffle_status_button)
-
-        self.addr_converter_button = StatusBarButton(
-            self.cashaddr_icon(),
-            _("Toggle CashAddr Display"),
-            self.toggle_cashaddr_status_bar
-        )
-        self.update_cashaddr_icon()
-        sb.addPermanentWidget(self.addr_converter_button)
-        self.addr_converter_button.setHidden(self.gui_object.is_cashaddr_status_button_hidden())
-        self.gui_object.cashaddr_status_button_hidden_signal.connect(self.addr_converter_button.setHidden)
 
         sb.addPermanentWidget(StatusBarButton(QIcon(":icons/preferences.svg"), _("Preferences"), self.settings_dialog ) )
         self.seed_button = StatusBarButton(QIcon(":icons/seed.png"), _("Seed"), self.show_seed_dialog )
@@ -3639,22 +3558,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.address_list.update()
         self.update_status()
 
-    def cashaddr_icon(self):
-        if self.gui_object.is_cashaddr():
-            return QIcon(":icons/tab_converter.svg")
-        else:
-            return QIcon(":icons/tab_converter_bw.svg")
-
-    def cashaddr_status_tip(self):
-        if self.gui_object.is_cashaddr():
-            return _('Address Format') + ' - ' + _('CashAddr')
-        else:
-            return _('Address Format') + ' - ' + _('Legacy')
-
-    def update_cashaddr_icon(self):
-        self.addr_converter_button.setIcon(self.cashaddr_icon())
-        self.addr_converter_button.setStatusTip(self.cashaddr_status_tip())
-
     def toggle_cashaddr_status_bar(self):
         self.gui_object.toggle_cashaddr()
         self.statusBar().showMessage(self.cashaddr_status_tip(), 2000)
@@ -4048,20 +3951,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         address_w = QGroupBox(_('Address Format'))
         address_w.setToolTip(_('Select between Cash Address and Legacy formats for addresses'))
         hbox = QHBoxLayout(address_w)
-        cashaddr_cbox = QComboBox()
-        cashaddr_cbox.addItem(QIcon(':icons/tab_converter.svg'), _("CashAddr"), Address.FMT_CASHADDR)
-        cashaddr_cbox.addItem(QIcon(':icons/tab_converter_bw.svg'), _("Legacy"), Address.FMT_LEGACY)
-        cashaddr_cbox.setCurrentIndex(0 if self.gui_object.is_cashaddr() else 1)
-        def cashaddr_cbox_handler(ignored_param):
-            fmt = int(cashaddr_cbox.currentData())
-            self.gui_object.toggle_cashaddr(fmt == Address.FMT_CASHADDR)
-        cashaddr_cbox.currentIndexChanged.connect(cashaddr_cbox_handler)
-        hbox.addWidget(cashaddr_cbox)
-        toggle_cashaddr_control = QCheckBox(_('Hide status button'))
-        toggle_cashaddr_control.setToolTip(_('If checked, the status bar button for toggling address formats will be hidden'))
-        toggle_cashaddr_control.setChecked(self.gui_object.is_cashaddr_status_button_hidden())
-        toggle_cashaddr_control.toggled.connect(self.gui_object.set_cashaddr_status_button_hidden)
-        hbox.addWidget(toggle_cashaddr_control)
         gui_widgets.append((address_w, None))
 
         gui_widgets.append((None, None)) # spacer
