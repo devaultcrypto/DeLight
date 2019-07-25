@@ -39,7 +39,7 @@ from PyQt5.QtWidgets import *
 
 from electroncash import keystore, get_config
 from electroncash.address import Address, ScriptOutput
-from electroncash.bitcoin import COIN, TYPE_ADDRESS, TYPE_SCRIPT
+from electroncash.bitcoin import COIN, TYPE_ADDRESS, TYPE_SCRIPT, MIN_AMOUNT
 from electroncash import networks
 from electroncash.plugins import run_hook
 from electroncash.i18n import _, ngettext
@@ -2044,6 +2044,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         amount = tx.output_value() if self.max_button.isChecked() else sum(map(lambda x:x[2], outputs))
         fee = tx.get_fee()
+        if (fee < MIN_AMOUNT): fee = MIN_AMOUNT
 
         #if fee < self.wallet.relayfee() * tx.estimated_size() / 1000 and tx.requires_fee(self.wallet):
             #self.show_error(_("This transaction requires a higher fee, or it will not be propagated by the network"))

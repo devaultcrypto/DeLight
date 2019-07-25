@@ -77,16 +77,14 @@ TX_STATUS = [
 
 
 def relayfee(network):
-    RELAY_FEE = 100000
-    MAX_RELAY_FEE = 200000
+    RELAY_FEE = MIN_AMOUNT
+    MAX_RELAY_FEE = 10*MIN_AMOUNT
     f = network.relay_fee if network and network.relay_fee else RELAY_FEE
     return min(f, MAX_RELAY_FEE)
 
 def dust_threshold(network):
     # Change < dust threshold is added to the tx fee
-    #return 182 * 3 * relayfee(network) / 1000 # original Electrum logic
-    #return 1 # <-- was this value until late Sept. 2018
-    return 100000 # hard-coded Bitcoin Cash dust threshold. Was changed to this as of Sept. 2018
+    return MIN_AMOUNT # hard-coded DeVault dust threshold. 
 
 
 def append_utxos_to_inputs(inputs, network, pubkey, txin_type, imax):
@@ -702,14 +700,14 @@ class Abstract_Wallet(PrintError, SPVDelegate):
                     status = _('Unconfirmed')
                     if fee is None:
                         fee = self.tx_fees.get(tx_hash)
-                    if fee and self.network and self.network.config.has_fee_estimates():
-                        # NB: this branch will not be taken as has_fee_estimates()
-                        # will always return false since we disabled querying
-                        # the fee histogram as it's useless for DVT anyway.
-                        size = tx.estimated_size()
-                        fee_per_kb = fee * 1000 / size
-                        exp_n = self.network.config.reverse_dynfee(fee_per_kb)
-                    if (fee < 100000): fee = 100000
+                    # if fee and self.network and self.network.config.has_fee_estimates():
+                    # NB: this branch will not be taken as has_fee_estimates()
+                    # will always return false since we disabled querying
+                    # the fee histogram as it's useless for DVT anyway.
+                    #    size = tx.estimated_size()
+                    #    fee_per_kb = fee * 1000 / size
+                    #    exp_n = self.network.config.reverse_dynfee(fee_per_kb)
+                    if fee is None or (fee < MIN_AMOUNT): fee = MIN_AMOUNT
             else:
                 status = _("Signed")
                 can_broadcast = self.network is not None
@@ -1162,14 +1160,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
             if not tx:
                 return 3, 'unknown'
             fee = self.tx_fees.get(tx_hash)
-            # we disable fee estimates in DVT for now.
-            #if fee and self.network and self.network.config.has_fee_estimates():
-            #    size = len(tx.raw)/2
-            #    low_fee = int(self.network.config.dynfee(0)*size/1000)
-            #    is_lowfee = fee < low_fee * 0.5
-            #else:
-            #    is_lowfee = False
-            # and instead if it's less than 1.0 sats/B we flag it as low_fee
+            # we disable fee estimates in DVT since it was disabled in BCH
             try:
                 # NB len(tx.raw) is 2x the byte size as it's hex encoded.
                 is_lowfee = int(fee) / (int(len(tx.raw)) / 2.0) < 1.0  # if less than 1.0 sats/B, complain. otherwise don't.
@@ -1865,6 +1856,11 @@ class Abstract_Wallet(PrintError, SPVDelegate):
     def is_schnorr_enabled(self) -> bool:
         ''' Returns whether schnorr is enabled AND possible for this wallet.
         Schnorr is enabled per-wallet. '''
+        #
+        # Since not yet enabled in CORE, turn off
+        #
+        return False
+        #
         if not self.is_schnorr_possible():
             # Short-circuit out of here -- it's not even possible with this
             # wallet type.

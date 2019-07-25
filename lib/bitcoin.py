@@ -43,8 +43,9 @@ do_monkey_patching_of_python_ecdsa_internals_with_libsecp256k1()
 
 ################################## transactions
 
-FEE_STEP = 10000
-MAX_FEE_RATE = 20000
+MIN_AMOUNT = 100000
+FEE_STEP = 100000
+MAX_FEE_RATE = 200000
 FEE_TARGETS = [25, 10, 5, 2]
 
 COINBASE_MATURITY = 100

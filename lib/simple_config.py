@@ -8,7 +8,7 @@ from . import util
 from copy import deepcopy
 from .util import user_dir, make_dir, print_error, PrintError
 
-from .bitcoin import MAX_FEE_RATE, FEE_TARGETS
+from .bitcoin import MAX_FEE_RATE, FEE_TARGETS, MIN_AMOUNT
 
 config = None
 
@@ -36,7 +36,7 @@ class SimpleConfig(PrintError):
         2. User configuration (in the user's config directory)
     They are taken in order (1. overrides config options set in 2.)
     """
-    fee_rates = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
+    fee_rates = [100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000]
 
     def __init__(self, options=None, read_user_config_function=None,
                  read_user_dir_function=None):
@@ -268,6 +268,7 @@ class SimpleConfig(PrintError):
                 fee += fee/2
         if fee is not None:
             fee = min(5*MAX_FEE_RATE, fee)
+        if (fee < MIN_AMOUNT): fee = MIN_AMOUNT
         return fee
 
     def reverse_dynfee(self, fee_per_kb):
@@ -287,8 +288,7 @@ class SimpleConfig(PrintError):
         return min(range(len(dist)), key=dist.__getitem__)
 
     def has_fee_estimates(self):
-        #return len(self.fee_estimates)==4
-        # We disabled fee estimates for BCH.  They do more harm than good.
+        # We disabled fee estimates for DVT (from BCH.  They do more harm than good.
         # Our blocks aren't full and it is not the intention for them to ever
         # be full according to all the full node implementers.  This is a
         # coreism that must die. :)
@@ -318,7 +318,9 @@ class SimpleConfig(PrintError):
         return i >= 0
 
     def estimate_fee(self, size):
-        return int(self.fee_per_kb() * size / 1000.)
+        calc = int(self.fee_per_kb() * size / 1000.)
+        if (calc < MIN_AMOUNT): calc = MIN_AMOUNT
+        return calc
 
     def update_fee_estimates(self, key, value):
         self.fee_estimates[key] = value
