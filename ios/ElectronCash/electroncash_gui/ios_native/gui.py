@@ -207,7 +207,7 @@ class ElectrumGui(PrintError):
 
         self.onboardingWizard = None
 
-        self.decimal_point = config.get('decimal_point', 5)
+        self.decimal_point = config.get('decimal_point', 8) # default is DVT , not mDVT
         self.fee_unit = config.get('fee_unit', 0)
         self.num_zeros     = self.prefs_get_num_zeros()
         self.alias_info = None # TODO: IMPLEMENT alias stuff
@@ -1000,7 +1000,7 @@ class ElectrumGui(PrintError):
             raise ValueError('Passed-in decimal point %s is not one of [2,5,8]'%str(dec))
 
     def prefs_get_num_zeros(self) -> int:
-        return int(self.config.get('num_zeros', 2))
+        return int(self.config.get('num_zeros', 3))
 
     def prefs_set_num_zeros(self, nz : int) -> None:
         value = int(nz)
@@ -1047,7 +1047,7 @@ class ElectrumGui(PrintError):
         if not self.wallet: return
         if self.wallet.is_watching_only():
             self.show_message(title = _("This is a watching-only wallet"),
-                              message = _("This means you will not be able to spend Bitcoin Cash with it."),
+                              message = _("This means you will not be able to spend DeVault with it."),
                               vc = vc,
                               onOk = onOk)
 
@@ -1454,8 +1454,8 @@ class ElectrumGui(PrintError):
         except:
             pass
         if not self.config.get('use_exchange'):
-            self.config.set_key('use_exchange', 'BitcoinAverage')
-            utils.NSLog("Forced default exchange to 'BitcoinAverage'")
+            self.config.set_key('use_exchange', 'CoinGecko')
+            utils.NSLog("Forced default exchange to 'CoinGecko'")
         if self.check_low_diskspace():
             # Not enough disk space.
             # Will stop the daemon if running and show a pop-up window warning user.

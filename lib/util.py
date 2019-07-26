@@ -44,7 +44,7 @@ def inv_dict(d):
     return {v: k for k, v in d.items()}
 
 
-base_units = {'DVT':8, 'mDVT':5, 'bits':2}
+base_units = {'DVT':8, 'mDVT':5}
 inv_base_units = inv_dict(base_units)
 base_unit_labels = tuple(inv_base_units[dp] for dp in sorted(inv_base_units.keys(), reverse=True))  # ('DVT', 'mDVT', 'bits')
 

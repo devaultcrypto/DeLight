@@ -32,7 +32,7 @@ TAG_FIAT_CURRENCY = 401
 TAG_FIAT_EXCHANGE = 404
 
 UNITS = base_units
-UNIT_KEYS = base_unit_labels  # ('DVT', 'mDVT', 'bits') in decreasing order
+UNIT_KEYS = base_unit_labels  # ('DVT', 'mDVT') in decreasing order
 
 
 class PrefsVC(UITableViewController):
@@ -222,10 +222,11 @@ class PrefsVC(UITableViewController):
         cell.contentView.tag = TAG_CONTENTVIEW
         if secName == 'Tools':
             if row == 0:
-                cell.imageView.image = parent.cashaddr_icon()
-                cell.textLabel.text = _("Address Converter")
-                cell.detailTextLabel.text = _("Convert between Legacy and Cashaddr formats")
-                cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator
+                statusText = "Obsolete"
+                cell.imageView.image = UIImage.imageNamed_("network_icon_new")
+                cell.textLabel.text = _("Obsolete - Don't Press! - Remove Later")
+                cell.detailTextLabel.text = _("Status:") + " " + statusText
+                cell.accessoryType = UITableViewCellAccessoryNone
             elif row == 1:
                 statusText = self.networkStatusText if self.networkStatusText else _("Offline")
                 cell.imageView.image = UIImage.imageNamed_("network_icon_new")
@@ -308,10 +309,8 @@ class PrefsVC(UITableViewController):
             elif row == 1:
                 l = cell.viewWithTag_(1)
                 s = cell.viewWithTag_(2)
-                l.text = _('CashAddr address format')
-                s.on = parent.prefs_get_use_cashaddr()
-                if s.allTargets.count <= 0:
-                    s.addTarget_action_forControlEvents_(self, SEL(b'onUseCashAddr:'), UIControlEventValueChanged)
+                l.text = _('Obsolete - Remove later - DO NOT Press')
+                s.on = True
             elif row == 2:
                 l = cell.viewWithTag_(1)
                 b = cell.viewWithTag_(2)
