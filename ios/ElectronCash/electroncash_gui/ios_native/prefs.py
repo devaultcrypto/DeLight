@@ -155,15 +155,15 @@ class PrefsVC(UITableViewController):
         secName = SECTION_TITLES[section]
         if secName == 'Tools':
             if self.hasPW:
-                return 3 if not self.hasSeed else 4
+                return 2 if not self.hasSeed else 3
             else:
-                return 2
+                return 1
         elif secName == 'Fees':
             return 2
         elif secName == 'Transactions':
             return 3
         elif secName == 'Appearance':
-            return 5
+            return 4
         elif secName == 'Fiat':
             return 4
         return 0
@@ -192,15 +192,11 @@ class PrefsVC(UITableViewController):
         secName = SECTION_TITLES[section]
 
         if secName == "Tools":
-            if row == 0: # AddrConv
-                if not self.navigationController: return
-                vc = addrconv.AddrConvVC.new().autorelease()
-                self.navigationController.pushViewController_animated_(vc, True)
-            elif row == 1: # Network Dialog
+            if row == 0: # Network Dialog
                 parent.show_network_dialog(vc = self)
-            elif row == 2 and self.hasPW: # Password dialog
+            elif row == 1 and self.hasPW: # Password dialog
                 parent.show_change_password(vc = self)
-            elif row == 3 and self.hasSeed:
+            elif row == 2 and self.hasSeed:
                 def gotPW(pw) -> None:
                     parent.show_seed_dialog(pw)
                 parent.prompt_password_if_needed_asynch(vc=self, callBack = gotPW)
@@ -211,7 +207,7 @@ class PrefsVC(UITableViewController):
         secName = SECTION_TITLES[section]
         parent = gui.ElectrumGui.gui
 
-        if secName == 'Tools' and row == 1: parent.show_network_dialog()
+        if secName == 'Tools' and row == 0: parent.show_network_dialog()
 
     @objc_method
     def setupCell_section_row_(self, cell : ObjCInstance, secName_oc : ObjCInstance, row : int) -> None:
@@ -222,23 +218,17 @@ class PrefsVC(UITableViewController):
         cell.contentView.tag = TAG_CONTENTVIEW
         if secName == 'Tools':
             if row == 0:
-                statusText = "Obsolete"
-                cell.imageView.image = UIImage.imageNamed_("network_icon_new")
-                cell.textLabel.text = _("Obsolete - Don't Press! - Remove Later")
-                cell.detailTextLabel.text = _("Status:") + " " + statusText
-                cell.accessoryType = UITableViewCellAccessoryNone
-            elif row == 1:
                 statusText = self.networkStatusText if self.networkStatusText else _("Offline")
                 cell.imageView.image = UIImage.imageNamed_("network_icon_new")
                 cell.textLabel.text = _("Network Settings")
                 cell.detailTextLabel.text = _("Status:") + " " + statusText
                 cell.accessoryType = UITableViewCellAccessoryNone
-            elif row == 2:
+            elif row == 1:
                 cell.imageView.image = UIImage.imageNamed_("password_icon_new")
                 cell.textLabel.text = _("Change or Set Password")
                 cell.detailTextLabel.text = _("Modify wallet password & encryption settings")
                 cell.accessoryType = UITableViewCellAccessoryNone
-            elif row == 3:
+            elif row == 2:
                 cell.imageView.image = UIImage.imageNamed_("seed_icon_new")
                 cell.textLabel.text = _("Wallet Recovery Seed")
                 cell.detailTextLabel.text = _("View the wallet seed phrase used for wallet recovery")
@@ -308,11 +298,6 @@ class PrefsVC(UITableViewController):
                     s.addTarget_action_forControlEvents_(self, SEL(b'onHideDLBanner:'), UIControlEventValueChanged)
             elif row == 1:
                 l = cell.viewWithTag_(1)
-                s = cell.viewWithTag_(2)
-                l.text = _('Obsolete - Remove later - DO NOT Press')
-                s.on = True
-            elif row == 2:
-                l = cell.viewWithTag_(1)
                 b = cell.viewWithTag_(2)
                 b = b if b is not None else cell.viewWithTag_(TAG_NZ)
                 l.text = _('Zeros after decimal point')
@@ -325,7 +310,7 @@ class PrefsVC(UITableViewController):
                     if nz_prefs >= nr:
                         nz_prefs = nr-1
                     b.setTitle_forState_(str(nz_prefs),UIControlStateNormal)
-            elif row == 3:
+            elif row == 2:
                 l = cell.viewWithTag_(1)
                 b = cell.viewWithTag_(2)
                 b = b if b is not None else cell.viewWithTag_(TAG_BASE_UNIT)
@@ -335,7 +320,7 @@ class PrefsVC(UITableViewController):
                     b.setTitle_forState_(parent.base_unit(),UIControlStateNormal)
                     if b.allTargets.count <= 0:
                         b.addTarget_action_forControlEvents_(self, SEL(b'onBaseUnitBut:'), UIControlEventPrimaryActionTriggered)
-            elif row == 4:
+            elif row == 3:
                 l = cell.viewWithTag_(1)
                 b = cell.viewWithTag_(2)
                 b = b if b is not None else cell.viewWithTag_(TAG_BLOCK_EXPLORER)
@@ -416,7 +401,7 @@ class PrefsVC(UITableViewController):
 
         if secName in ['Tools']:
             cell =  UITableViewCell.alloc().initWithStyle_reuseIdentifier_(UITableViewCellStyleSubtitle, ident).autorelease()
-        elif ident in ['Fees_1', 'Transactions_0', 'Transactions_1', 'Transactions_2', 'Appearance_0', 'Appearance_1','Fiat_1', 'Fiat_2']:
+        elif ident in ['Fees_1', 'Transactions_0', 'Transactions_1', 'Transactions_2', 'Appearance_0', 'Fiat_1', 'Fiat_2']:
             objs = NSBundle.mainBundle.loadNibNamed_owner_options_("BoolCell",self.tableView,None)
             assert objs is not None and len(objs)
             cell = objs[0]
@@ -424,7 +409,7 @@ class PrefsVC(UITableViewController):
             objs = NSBundle.mainBundle.loadNibNamed_owner_options_("TFCell",self.tableView,None)
             assert objs is not None and len(objs)
             cell = objs[0]
-        elif ident in ['Appearance_2', 'Appearance_3', 'Appearance_4', 'Fiat_0', 'Fiat_3']:
+        elif ident in ['Appearance_1', 'Appearance_2', 'Appearance_3', 'Fiat_0', 'Fiat_3']:
             objs = NSBundle.mainBundle.loadNibNamed_owner_options_("ButtonCell",self.tableView,None)
             assert objs is not None and len(objs)
             cell = objs[0]
