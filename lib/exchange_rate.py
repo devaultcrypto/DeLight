@@ -154,8 +154,8 @@ class ExchangeBase(PrintError):
 class CoinGecko(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('api.coingecko.com', '/api/v3/simple/price?ids=devault&vs_currencies=usd')
-        prices = json["devault"]["usd"]
+        json = self.get_json('api.coingecko.com', '/api/v3/coins/devault?localization=False&sparkline=false')
+        prices = json["market_data"]["current_price"]
         return dict([(a[0].upper(),PyDecimal(a[1])) for a in prices.items()])
 
     def history_ccys(self):
