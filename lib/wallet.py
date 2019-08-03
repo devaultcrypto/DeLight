@@ -39,7 +39,7 @@ from collections import defaultdict
 from decimal import Decimal as PyDecimal  # Qt 5.12 also exports Decimal
 from functools import partial
 
-from .i18n import _, ngettext
+from .i18n import ngettext
 from .util import NotEnoughFunds, ExcessiveFee, PrintError, UserCancelled, profiler, format_satoshis, format_time, finalization_print_error
 
 from .address import Address, Script, ScriptOutput, PublicKey, OpCodes
@@ -67,6 +67,8 @@ from .paymentrequest import InvoiceStore
 from .contacts import Contacts
 from . import cashacct
 
+def _(message): return message
+
 TX_STATUS = [
     _('Unconfirmed parent'),
     _('Low fee'),
@@ -74,17 +76,22 @@ TX_STATUS = [
     _('Not Verified'),
 ]
 
+del _
+from .i18n import _
 
+DEFAULT_CONFIRMED_ONLY = False
 
 def relayfee(network):
-    RELAY_FEE = MIN_AMOUNT
-    MAX_RELAY_FEE = 10*MIN_AMOUNT
+    RELAY_FEE = 5000
+    MAX_RELAY_FEE = 50000
     f = network.relay_fee if network and network.relay_fee else RELAY_FEE
     return min(f, MAX_RELAY_FEE)
 
 def dust_threshold(network):
     # Change < dust threshold is added to the tx fee
-    return MIN_AMOUNT # hard-coded DeVault dust threshold. 
+    #return 182 * 3 * relayfee(network) / 1000 # original Electrum logic
+    #return 1 # <-- was this value until late Sept. 2018
+    return 546 # hard-coded Bitcoin Cash dust threshold. Was changed to this as of Sept. 2018
 
 
 def append_utxos_to_inputs(inputs, network, pubkey, txin_type, imax):
@@ -700,14 +707,13 @@ class Abstract_Wallet(PrintError, SPVDelegate):
                     status = _('Unconfirmed')
                     if fee is None:
                         fee = self.tx_fees.get(tx_hash)
-                    # if fee and self.network and self.network.config.has_fee_estimates():
-                    # NB: this branch will not be taken as has_fee_estimates()
-                    # will always return false since we disabled querying
-                    # the fee histogram as it's useless for DVT anyway.
-                    #    size = tx.estimated_size()
-                    #    fee_per_kb = fee * 1000 / size
-                    #    exp_n = self.network.config.reverse_dynfee(fee_per_kb)
-                    if fee is None or (fee < MIN_AMOUNT): fee = MIN_AMOUNT
+                    if fee and self.network and self.network.config.has_fee_estimates():
+                        # NB: this branch will not be taken as has_fee_estimates()
+                        # will always return false since we disabled querying
+                        # the fee histogram as it's useless for BCH anyway.
+                        size = tx.estimated_size()
+                        fee_per_kb = fee * 1000 / size
+                        exp_n = self.network.config.reverse_dynfee(fee_per_kb)
             else:
                 status = _("Signed")
                 can_broadcast = self.network is not None
@@ -833,7 +839,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
         return result
 
     def get_spendable_coins(self, domain, config, isInvoice = False):
-        confirmed_only = config.get('confirmed_only', False)
+        confirmed_only = config.get('confirmed_only', DEFAULT_CONFIRMED_ONLY)
         if (isInvoice):
             confirmed_only = True
         return self.get_utxos(domain, exclude_frozen=True, mature=True, confirmed_only=confirmed_only)
@@ -1086,7 +1092,8 @@ class Abstract_Wallet(PrintError, SPVDelegate):
 
         return h2
 
-    def export_history(self, domain=None, from_timestamp=None, to_timestamp=None, fx=None, show_addresses=False):
+    def export_history(self, domain=None, from_timestamp=None, to_timestamp=None, fx=None,
+                       show_addresses=False, decimal_point=8):
         from .util import timestamp_to_datetime
         h = self.get_history(domain, reverse=True)
         out = []
@@ -1100,8 +1107,9 @@ class Abstract_Wallet(PrintError, SPVDelegate):
                 'height':height,
                 'confirmations':conf,
                 'timestamp':timestamp,
-                'value': format_satoshis(value, is_diff=True) if value is not None else '--',
-                'balance': format_satoshis(balance)
+                'value': (format_satoshis(value, decimal_point=decimal_point, is_diff=True)
+                          if value is not None else '--'),
+                'balance': format_satoshis(balance, decimal_point=decimal_point)
             }
             if item['height']>0:
                 date_str = format_time(timestamp) if timestamp is not None else _("unverified")
@@ -1160,7 +1168,14 @@ class Abstract_Wallet(PrintError, SPVDelegate):
             if not tx:
                 return 3, 'unknown'
             fee = self.tx_fees.get(tx_hash)
-            # we disable fee estimates in DVT since it was disabled in BCH
+            # we disable fee estimates in BCH for now.
+            #if fee and self.network and self.network.config.has_fee_estimates():
+            #    size = len(tx.raw)/2
+            #    low_fee = int(self.network.config.dynfee(0)*size/1000)
+            #    is_lowfee = fee < low_fee * 0.5
+            #else:
+            #    is_lowfee = False
+            # and instead if it's less than 1.0 sats/B we flag it as low_fee
             try:
                 # NB len(tx.raw) is 2x the byte size as it's hex encoded.
                 is_lowfee = int(fee) / (int(len(tx.raw)) / 2.0) < 1.0  # if less than 1.0 sats/B, complain. otherwise don't.
@@ -1178,7 +1193,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
         else:
             status = 3 + min(conf, 6)
         time_str = format_time(timestamp) if timestamp else _("unknown")
-        status_str = TX_STATUS[status] if status < 4 else time_str
+        status_str = _(TX_STATUS[status]) if status < 4 else time_str
         return status, status_str
 
     def relayfee(self):
@@ -1263,7 +1278,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
         tx_in_bytes=tx.estimated_size()
         fee_in_satoshis=tx.get_fee()
         sats_per_byte=fee_in_satoshis/tx_in_bytes
-        if (sats_per_byte > 1000000):
+        if (sats_per_byte > 50):
             raise ExcessiveFee()
             return
 
@@ -1593,6 +1608,12 @@ class Abstract_Wallet(PrintError, SPVDelegate):
                 return True, conf
         return False, None
 
+    def has_payment_request(self, addr):
+        ''' Returns True iff Address addr has any extant payment requests
+        (even if expired), False otherwise. '''
+        assert isinstance(addr, Address)
+        return bool(self.receive_requests.get(addr))
+
     def get_payment_request(self, addr, config):
         assert isinstance(addr, Address)
         r = self.receive_requests.get(addr)
@@ -1856,11 +1877,6 @@ class Abstract_Wallet(PrintError, SPVDelegate):
     def is_schnorr_enabled(self) -> bool:
         ''' Returns whether schnorr is enabled AND possible for this wallet.
         Schnorr is enabled per-wallet. '''
-        #
-        # Since not yet enabled in CORE, turn off
-        #
-        return False
-        #
         if not self.is_schnorr_possible():
             # Short-circuit out of here -- it's not even possible with this
             # wallet type.
@@ -1923,7 +1939,7 @@ class Simple_Wallet(Abstract_Wallet):
     def update_password(self, old_pw, new_pw, encrypt=False):
         if old_pw is None and self.has_password():
             raise InvalidPassword()
-        if self.keystore is not None:
+        if self.keystore is not None and self.keystore.can_change_password():
             self.keystore.update_password(old_pw, new_pw)
             self.save_keystore()
         self.storage.set_password(new_pw, encrypt)
