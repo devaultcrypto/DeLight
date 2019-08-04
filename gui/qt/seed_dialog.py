@@ -52,7 +52,7 @@ class SeedLayout(QVBoxLayout):
     #options
     is_bip39 = False
     is_ext = False
-    is_bip39_145 = False
+    is_bip39_339 = False
 
     def seed_options(self):
         dialog = QDialog()
@@ -88,7 +88,7 @@ class SeedLayout(QVBoxLayout):
         # would be triggered.  The below warning message is needlessly
         # FUD-ey.  It should be altered if this code path is ever reinstated.
         # -Calin
-        if 'bip39_145' in self.options:
+        if 'bip39_339' in self.options:
             def f(b):
                 self.is_seed = (lambda x: bool(x)) if b else self.saved_is_seed
                 self.on_edit()
@@ -105,10 +105,10 @@ class SeedLayout(QVBoxLayout):
                 else:
                     msg = ''
                 self.seed_warning.setText(msg)
-            cb_bip39_145 = QCheckBox(_('Use Coin Type 145 with bip39'))
-            cb_bip39_145.toggled.connect(f)
-            cb_bip39_145.setChecked(self.is_bip39_145)
-            vbox.addWidget(cb_bip39_145)
+            cb_bip39_339 = QCheckBox(_('Use Coin Type 145 with bip39'))
+            cb_bip39_339.toggled.connect(f)
+            cb_bip39_339.setChecked(self.is_bip39_339)
+            vbox.addWidget(cb_bip39_339)
 
 
         vbox.addLayout(Buttons(OkButton(dialog)))
@@ -116,7 +116,7 @@ class SeedLayout(QVBoxLayout):
             return None
         self.is_ext = cb_ext.isChecked() if 'ext' in self.options else False
         self.is_bip39 = cb_bip39.isChecked() if 'bip39' in self.options else False
-        self.is_bip39_145 = cb_bip39_145.isChecked() if 'bip39_145' in self.options else False
+        self.is_bip39_339 = cb_bip39_339.isChecked() if 'bip39_339' in self.options else False
 
     def __init__(self, seed=None, title=None, icon=True, msg=None, options=None, is_seed=None, passphrase=None, parent=None, editable=True):
         QVBoxLayout.__init__(self)
