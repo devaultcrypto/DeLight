@@ -599,7 +599,7 @@ class Transaction:
         _type = txin['type']
         if _type == 'coinbase':
             return txin['scriptSig']
-        pubkeys, sig_list = self.get_siglist(txin, estimate_size, sign_schnorr=sign_schnorr)
+        pubkeys, sig_list = self.get_siglist(txin, estimate_size, sign_schnorr=False)
         script = ''.join(push_script(x) for x in sig_list)
         if _type == 'p2pk':
             pass
@@ -763,7 +763,7 @@ class Transaction:
     @classmethod
     def estimated_input_size(self, txin, sign_schnorr=False):
         '''Return an estimated of serialized input size in bytes.'''
-        script = self.input_script(txin, True, sign_schnorr=sign_schnorr)
+        script = self.input_script(txin, True, sign_schnorr=False)
         return len(self.serialize_input(txin, script, True)) // 2  # ASCII hex string
 
     def signature_count(self):
