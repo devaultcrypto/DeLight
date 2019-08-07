@@ -1,6 +1,6 @@
 <resources>
 
-    <string name="app_name">Electron Cash</string>
+    <string name="app_name">DeLight</string>
 
     <string name="test_address">qpzry9x8gf2tvdw0s3jn54khce6mua7lcw20ayyn</string>  <!-- Invalid address from cashaddr spec -->
     <string name="test_contact">Alice Robertson</string>
@@ -14,14 +14,14 @@
     <string name="test_txid">f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16</string>
     <string name="test_value">42.12345678</string>
     <string name="test_wallet">alpha</string>
-    <string name="test_url">bitcoincash:qpzry9x8gf2tvdw0s3jn54khce6mua7lcw20ayyn?amount=1.23&amp;message=Hello%20world</string>
+    <string name="test_url">devault:qpzry9x8gf2tvdw0s3jn54khce6mua7lcw20ayyn?amount=1.23&amp;message=Hello%20world</string>
 
     <!-- On a medium-sized phone, with the default text size, this is two lines in portrait and
     one line in landscape. -->
     <string name="lorem">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
         eiusmod</string>
 
-    <string name="default_bip39_derivation">m/44\'/145\'/0\'</string>
+    <string name="default_bip39_derivation">m/44\'/339\'/0\'</string>
 
     <!-- See lib/paymentrequest.py. -->
     <string-array name="payment_status">
