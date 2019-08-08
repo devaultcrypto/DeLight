@@ -45,11 +45,11 @@ class MainNet(AbstractNet):
     ADDRTYPE_P2SH = 5
     ADDRTYPE_P2SH_BITPAY = 40
     CASHADDR_PREFIX = "devault"
-    HEADERS_URL = "http://devault.com/files/blockchain_headers"
+    HEADERS_URL = None
     GENESIS = "0000000038e62464371566f6a8d35c01aa54a7da351b2dbf85d92f30357f3a90"
     DEFAULT_PORTS = {'t': '50001', 's': '50002'}
     DEFAULT_SERVERS = _read_json_dict('servers.json')  # DO NOT MODIFY IN CLIENT CODE
-    TITLE = 'DeVault Cash'
+    TITLE = 'DeLight - DeVault Wallet'
 
     # Note to Jonald or anyone reading this: the below is misleadingly named.  It's not a simple
     # MERKLE_ROOT but a MERKLE_PROOF which is basically the hashes of all MERKLE_ROOTS up until and including

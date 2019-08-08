@@ -3,14 +3,14 @@
 # sudo desktop-file-install electron-cash.desktop
 
 [Desktop Entry]
-Comment=Lightweight DeVault Cash Client
+Comment=Lightweight DeVault Client
 Exec=electron-cash %u
-GenericName=DeVault Cash Wallet
+GenericName=DeLight - DeVault Wallet
 Icon=electron-cash
 Name=Electron Cash
 Categories=Finance;Network;
 StartupNotify=true
-StartupWMClass=Electron Cash
+StartupWMClass=DeLight
 Terminal=false
 Type=Application
 MimeType=x-scheme-handler/bitcoincash;
