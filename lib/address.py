@@ -495,7 +495,7 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
 
     @classmethod
     def show_cashaddr(cls, on):
-        cls.FMT_UI = cls.FMT_CASHADDR if on else cls.FMT_LEGACY
+        cls.FMT_UI = cls.FMT_CASHADDR
 
     @classmethod
     def from_cashaddr_string(cls, string, *, net=None):

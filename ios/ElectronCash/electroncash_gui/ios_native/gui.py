@@ -214,7 +214,7 @@ class ElectrumGui(PrintError):
         self.lastHeightSeen = -2
         self.lastSplitNotify = 0
 
-        Address.show_cashaddr(self.prefs_get_use_cashaddr())
+        self.show_cashaddr = True
 
         self.cash_addr_sig = utils.PySig()
 

@@ -9,7 +9,7 @@ def _(s):
     return s
 
 _("Block explorer")
-_("Copyright 2019 the Electron Cash developers.")
+_("Copyright 2019 the DeVault developers.")
 _("Cannot specify private keys and addresses in the same wallet.")
 _("Change password")
 _("Close wallet")

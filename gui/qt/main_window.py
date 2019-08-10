@@ -690,18 +690,20 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.show_error(_('No donation address for this server'))
 
     def show_about(self):
-        QMessageBox.about(self, "Electron Cash",
-            "<p><font size=+3><b>Electron Cash</b></font></p><p>" + _("Version") + f" {self.wallet.electrum_version}" + "</p>" +
-            '<p><span style="font-size:11pt; font-weight:500;">' + "Copyright © 2017-2019<br>Electron Cash LLC &amp; The Electron Cash Developers" + "</span></p>" +
+        QMessageBox.about(self, "DeLight",
+            "<p><font size=+3><b>DeLight</b></font></p><p>" + _("Version") + f" {self.wallet.electrum_version}" + "</p>" +
+            '<p><span style="font-size:11pt; font-weight:500;">' + "Copyright © 2019<br>The DeVault Developers" + "</span></p>" +
             '<p><span style="font-weight:200;">' +
-            _("Electron Cash's focus is speed, with low resource usage and simplifying DeVault. You do not need to perform regular backups, because your wallet can be recovered from a secret phrase that you can memorize or write on paper. Startup times are instant because it operates in conjunction with high-performance servers that handle the most complicated parts of the DeVault system.") +
+            '<p><span style="font-size:11pt; font-weight:500;">' + "Copyright © 2017-2019<br>Electron Cash LLC &amp; The Electron Cash Developers" + "</span></p>" +
+            '<p><span style="font-weight:200;">' +            
+            _("DeLight's focus is speed, with low resource usage and simplifying DeVault. You do not need to perform regular backups, because your wallet can be recovered from a secret phrase that you can memorize or write on paper. Startup times are instant because it operates in conjunction with high-performance servers that handle the most complicated parts of the DeVault system.") +
             "</span></p>"
         )
 
     def show_report_bug(self):
         msg = ' '.join([
             _("Please report any bugs as issues on github:<br/>"),
-            "<a href=\"https://github.com/Electron-Cash/Electron-Cash/issues\">https://github.com/Electron-Cash/Electron-Cash/issues</a><br/><br/>",
+            "<a href=\"https://github.com/devaultcrypto/DeLight/issues\">https://github.com/devaultcrypto/DeLight/issues</a><br/><br/>",
             _("Before reporting a bug, upgrade to the most recent version of Electron Cash (latest release or git HEAD), and include the version number in your report."),
             _("Try to explain not only what the bug is, but how it occurs.")
          ])
@@ -2035,7 +2037,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.show_message(_("Insufficient funds"))
             return
         except ExcessiveFee:
-            self.show_message(_("Your fee is too high.  Max is 50 sat/byte."))
+            self.show_message(_("Your fee is too high.  Max is 500 sat/byte."))
             return
         except BaseException as e:
             traceback.print_exc(file=sys.stdout)

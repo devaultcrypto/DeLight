@@ -91,7 +91,7 @@ class CoinChooserBase(PrintError):
             buckets[key].append(coin)
 
         def make_Bucket(desc, coins):
-            size = sum(Transaction.estimated_input_size(coin, sign_schnorr=sign_schnorr)
+            size = sum(Transaction.estimated_input_size(coin, sign_schnorr=False)
                        for coin in coins)
             value = sum(coin['value'] for coin in coins)
             return Bucket(desc, size, value, coins)
@@ -177,7 +177,7 @@ class CoinChooserBase(PrintError):
         self.p = PRNG(''.join(sorted(utxos)))
 
         # Copy the ouputs so when adding change we don't modify "outputs"
-        tx = Transaction.from_io([], outputs, sign_schnorr=sign_schnorr)
+        tx = Transaction.from_io([], outputs, sign_schnorr=False)
         # Size of the transaction with no inputs and no change
         base_size = tx.estimated_size()
         spent_amount = tx.output_value()
@@ -190,7 +190,7 @@ class CoinChooserBase(PrintError):
             return total_input >= spent_amount + fee_estimator(total_size)
 
         # Collect the coins into buckets, choose a subset of the buckets
-        buckets = self.bucketize_coins(coins, sign_schnorr=sign_schnorr)
+        buckets = self.bucketize_coins(coins, sign_schnorr=False)
         buckets = self.choose_buckets(buckets, sufficient_funds,
                                       self.penalty_func(tx))
 

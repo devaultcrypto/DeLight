@@ -65,7 +65,7 @@ setup(
     options={
         'app': {
             'formal_name': formal_name, # comes from common.sh
-            'bundle': 'com.c3-soft'
+            'bundle': 'org.jonspock'
         },
 
         # Mobile deployments

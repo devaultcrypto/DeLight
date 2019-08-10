@@ -106,7 +106,7 @@ android {
 
     applicationVariants.all { variant ->
         variant.outputs.all {
-            outputFileName = "electroncash-${variant.versionName}.apk"
+            outputFileName = "delight-${variant.versionName}.apk"
         }
     }
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
-	<id>electron-cash.desktop</id>
-	<name>Electron Cash</name>
+	<id>org.electroncash.ElectronCash</id>
+	<name>DeLight</name>
 	<developer_name>Jonald Fyookball</developer_name>
 	<summary>Lightweight Bitcoin Cash Client</summary>
 	<description>

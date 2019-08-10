@@ -93,7 +93,7 @@ function retry() {
 export PYTHONHASHSEED=22
 PYTHON_VERSION=3.6.8  # Windows, OSX & Linux AppImage use this to determine what to download/build
 PYTHON_SRC_TARBALL_HASH="35446241e995773b1bed7d196f4b624dadcadc8429f26282e756b2fb8a351193"  # If you change PYTHON_VERSION above, update this by downloading the tarball manually and doing a sha256sum on it.
-DEFAULT_GIT_REPO=https://github.com/Electron-Cash/Electron-Cash
+DEFAULT_GIT_REPO=https://github.com/devaultcrypto/DeLight
 if [ -z "$GIT_REPO" ] ; then
     # If no override from env is present, use default. Support for overrides
     # for the GIT_REPO has been added to allows contributors to test containers
