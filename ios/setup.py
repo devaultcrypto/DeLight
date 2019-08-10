@@ -36,10 +36,10 @@ with io.open('README.rst', encoding='utf8') as readme:
 setup(
     name=compact_name, # comes from common.sh
     version=version,
-    description='A Bitcoin Cash SPV Wallet',
+    description='A DeVault SPV Wallet',
     long_description=long_description,
-    author='Calin Culianu',
-    author_email='calin.culianu@gmail.com',
+    author='Proteus, Jon Spock, Calin Culianu',
+    author_email='jonspock@protonmail.com',
     license='MIT license',
     package_data={'': ["*.json", "*.po", "*.mo", "*.pot", "*.txt", "locale/*", "locale/*/*", "locale/*/*/*", "wordlist/*.txt", "*.png"]},
     include_package_data=True,
