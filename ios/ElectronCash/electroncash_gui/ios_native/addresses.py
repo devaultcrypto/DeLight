@@ -548,7 +548,7 @@ class AddressesVC(AddressesVCBase):
         if self.tableView:
             self.tableView.reloadData()
         if self.mode == ModeNormal and self.navigationItem.rightBarButtonItem:
-            self.navigationItem.rightBarButtonItem.title = _GetBBTitle()
+            self.navigationItem.rightBarButtonItem.title = " "
         #print("did address refresh")
         self.needsRefresh = False # indicate refreshing done
 
