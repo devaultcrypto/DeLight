@@ -1129,7 +1129,7 @@
                                             <constraint firstAttribute="width" constant="208" id="lxK-8b-E6P"/>
                                         </constraints>
                                         <attributedString key="attributedText">
-                                            <fragment content="Electron Cash is an SPV wallet for Bitcoin Cash">
+                                            <fragment content="DeLight is an SPV wallet for DeVault">
                                                 <attributes>
                                                     <color key="NSColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                     <font key="NSFont" metaFont="system" size="15"/>

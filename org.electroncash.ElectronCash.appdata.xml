@@ -2,10 +2,10 @@
 <component type="desktop">
 	<id>org.electroncash.ElectronCash</id>
 	<name>DeLight</name>
-	<developer_name>Jonald Fyookball</developer_name>
-	<summary>Lightweight Bitcoin Cash Client</summary>
+	<developer_name>Jon Spock</developer_name>
+	<summary>Lightweight DeVault Client</summary>
 	<description>
-		<p>Electron Cash is an SPV wallet for Bitcoin Cash</p>
+		<p>DeLight is an SPV wallet for DeVault</p>
 		<p>Control your own private keys. Easily back up your wallet with a mnemonic seed phrase. Enjoy high security without downloading the blockchain or running a full node.</p>
 	</description>
 	<metadata_license>CC0-1.0</metadata_license>
