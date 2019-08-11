@@ -1,6 +1,6 @@
 # If you want Electron Cash to appear in a linux app launcher ("start menu"),
 # install this file by doing:
-# sudo desktop-file-install electron-cash.desktop
+# sudo desktop-file-install delight.desktop
 
 [Desktop Entry]
 Comment=Lightweight DeVault Client

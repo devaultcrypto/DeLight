@@ -125,7 +125,7 @@ class ElectrumGui(QObject, PrintError):
         if hasattr(Qt, "AA_UseHighDpiPixmaps"):
             QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
         if hasattr(QGuiApplication, 'setDesktopFileName'):
-            QGuiApplication.setDesktopFileName('electron-cash.desktop')
+            QGuiApplication.setDesktopFileName('delight.desktop')
         self.config = config
         self.daemon = daemon
         self.plugins = plugins
@@ -158,7 +158,7 @@ class ElectrumGui(QObject, PrintError):
         # init tray
         self.dark_icon = self.config.get("dark_icon", False)
         self.tray = QSystemTrayIcon(self.tray_icon(), self)
-        self.tray.setToolTip('Electron Cash')
+        self.tray.setToolTip('DeLight')
         self.tray.activated.connect(self.tray_activated)
         self.build_tray_menu()
         self.tray.show()
