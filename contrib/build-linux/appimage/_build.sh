@@ -134,7 +134,7 @@ mkdir -p "$CACHEDIR/pip_cache"
 
 info "Copying desktop integration"
 cp -fp "$PROJECT_ROOT/delight.desktop" "$APPDIR/delight.desktop"
-cp -fp "$PROJECT_ROOT/icons/electron-cash.png" "$APPDIR/electron-cash.png"
+cp -fp "$PROJECT_ROOT/icons/delight.png" "$APPDIR/delight.png"
 
 
 # add launcher
