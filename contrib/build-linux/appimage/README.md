@@ -20,7 +20,7 @@ folder.
 2. Build image
 
     ```
-    $ sudo docker build --no-cache -t electroncash-appimage-builder-img \
+    $ sudo docker build --no-cache -t delight-appimage-builder-img \
         -f contrib/build-linux/appimage/Dockerfile_ub1404 \
         contrib/build-linux/appimage
     ```
@@ -32,11 +32,11 @@ folder.
 
     ```
     $ sudo docker run -it \
-        --name electroncash-appimage-builder-cont \
-        -v $PWD:/opt/electroncash \
+        --name delight-appimage-builder-cont \
+        -v $PWD:/opt/delight \
         --rm \
-        --workdir /opt/electroncash/contrib/build-linux/appimage \
-        electroncash-appimage-builder-img \
+        --workdir /opt/delight/contrib/build-linux/appimage \
+        delight-appimage-builder-img \
         ./_build.sh REVISION_TAG_OR_BRANCH_OR_COMMIT_TAG
     ```
 

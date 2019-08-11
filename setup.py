@@ -56,7 +56,7 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         (os.path.join(share_dir, 'icons/hicolor/128x128/apps/'), ['icons/electron-cash.png']),
         (os.path.join(share_dir, 'pixmaps/'),                    ['icons/electron-cash.png']),
         # Menu entry
-        (os.path.join(share_dir, 'applications/'), ['electron-cash.desktop']),
+        (os.path.join(share_dir, 'applications/'), ['delight.desktop']),
         # App stream (store) metadata
         (os.path.join(share_dir, 'metainfo/'), ['org.electroncash.ElectronCash.appdata.xml']),
     ]
@@ -123,7 +123,7 @@ setup(
     cmdclass={
         'sdist': MakeAllBeforeSdist,
     },
-    name="Electron Cash",
+    name="DeLight",
     version=version.PACKAGE_VERSION,
     install_requires=requirements + ['pyqt5'],
     extras_require={
@@ -174,12 +174,12 @@ setup(
         # On Darwin we don't use that font, so we don't add it to save space.
         **platform_package_data
     },
-    scripts=['electron-cash'],
+    scripts=['delight'],
     data_files=data_files,
-    description="Lightweight Bitcoin Cash Wallet",
-    author="Jonald Fyookball",
-    author_email="jonf@electroncash.org",
+    description="Lightweight DeVault Wallet",
+    author="Proteus & Jon Spock",
+    author_email="hello@devault.cc",
     license="MIT Licence",
-    url="http://electroncash.org",
-    long_description="""Lightweight Bitcoin Cash Wallet"""
+    url="https://devault.cc",
+    long_description="""Lightweight DeVault Wallet"""
 )

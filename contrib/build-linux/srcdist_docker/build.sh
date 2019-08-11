@@ -43,13 +43,13 @@ fi
 
 
 info "Creating docker image ..."
-$SUDO docker build -t electroncash-srcdist-builder-img \
+$SUDO docker build -t delight-srcdist-builder-img \
     contrib/build-linux/srcdist_docker \
     || fail "Failed to create docker image"
 
 # This is the place where we checkout and put the exact revision we want to work
-# on. Docker will run mapping this directory to /opt/electroncash
-# which inside wine will look lik c:\electroncash
+# on. Docker will run mapping this directory to /opt/delight
+# which inside wine will look lik c:\delight
 FRESH_CLONE=`pwd`/contrib/build-linux/fresh_clone2
 FRESH_CLONE_DIR=$FRESH_CLONE/$GIT_DIR_NAME
 
@@ -67,11 +67,11 @@ FRESH_CLONE_DIR=$FRESH_CLONE/$GIT_DIR_NAME
     # just in case it needs to see it.
     $SUDO docker run -it \
     -e GIT_REPO="$GIT_REPO" \
-    --name electroncash-srcdist-builder-cont \
-    -v $FRESH_CLONE_DIR:/opt/electroncash \
+    --name delight-srcdist-builder-cont \
+    -v $FRESH_CLONE_DIR:/opt/delight \
     --rm \
-    --workdir /opt/electroncash/contrib/build-linux/srcdist_docker \
-    electroncash-srcdist-builder-img \
+    --workdir /opt/delight/contrib/build-linux/srcdist_docker \
+    delight-srcdist-builder-img \
     ./_build.sh $REV
 ) || fail "Build inside docker container failed"
 

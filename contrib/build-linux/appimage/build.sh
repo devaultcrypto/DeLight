@@ -55,14 +55,14 @@ fi
 DOCKER_SUFFIX=ub1604
 
 info "Creating docker image ..."
-$SUDO docker build -t electroncash-appimage-builder-img-$DOCKER_SUFFIX \
+$SUDO docker build -t delight-appimage-builder-img-$DOCKER_SUFFIX \
     -f contrib/build-linux/appimage/Dockerfile_$DOCKER_SUFFIX \
     contrib/build-linux/appimage \
     || fail "Failed to create docker image"
 
 # This is the place where we checkout and put the exact revision we want to work
-# on. Docker will run mapping this directory to /opt/electroncash
-# which inside wine will look lik c:\electroncash
+# on. Docker will run mapping this directory to /opt/delight
+# which inside wine will look lik c:\delight
 FRESH_CLONE=`pwd`/contrib/build-linux/fresh_clone
 FRESH_CLONE_DIR=$FRESH_CLONE/$GIT_DIR_NAME
 
@@ -80,11 +80,11 @@ FRESH_CLONE_DIR=$FRESH_CLONE/$GIT_DIR_NAME
     # just in case it needs to see it.
     $SUDO docker run -it \
     -e GIT_REPO="$GIT_REPO" \
-    --name electroncash-appimage-builder-cont-$DOCKER_SUFFIX \
-    -v $FRESH_CLONE_DIR:/opt/electroncash \
+    --name delight-appimage-builder-cont-$DOCKER_SUFFIX \
+    -v $FRESH_CLONE_DIR:/opt/delight \
     --rm \
-    --workdir /opt/electroncash/contrib/build-linux/appimage \
-    electroncash-appimage-builder-img-$DOCKER_SUFFIX \
+    --workdir /opt/delight/contrib/build-linux/appimage \
+    delight-appimage-builder-img-$DOCKER_SUFFIX \
     ./_build.sh $REV
 ) || fail "Build inside docker container failed"
 
