@@ -4,10 +4,10 @@
 
 [Desktop Entry]
 Comment=Lightweight DeVault Client
-Exec=electron-cash %u
+Exec=delight %u
 GenericName=DeLight - DeVault Wallet
-Icon=electron-cash
-Name=Electron Cash
+Icon=delight
+Name=DeLight
 Categories=Finance;Network;
 StartupNotify=true
 StartupWMClass=DeLight
