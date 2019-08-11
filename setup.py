@@ -131,6 +131,7 @@ setup(
     },
     packages=[
         'electroncash',
+        'electroncash.locale',
         'electroncash.qrreaders',
         'electroncash.utils',
         'electroncash_gui',
