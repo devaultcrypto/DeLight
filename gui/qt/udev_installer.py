@@ -64,7 +64,7 @@ class InstallHardwareWalletSupportDialog(PrintError, WindowModalDialog):
         info_label = QLabel()
         info_label.setText(
             _('This tool installs hardware wallet "udev rules" on your system.') + ' ' +
-            _('Correct udev rules are required in order for a hardware wallet to be accessed by Electron Cash.') + '\n\n' +
+            _('Correct udev rules are required in order for a hardware wallet to be accessed by DeLight.') + '\n\n' +
             _('Note: Installing udev rules requires root access via "sudo", so make sure you are in the sudoers file and/or have Administrator rights on this system!')
             )
         info_label.setWordWrap(True)

@@ -664,7 +664,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             icon = QIcon(":icons/cashacct-button-darkmode.png")
         else:
             icon = QIcon(":icons/cashacct-logo.png")
-        tools_menu.addAction(icon, _("Lookup &Cash Account..."), self.lookup_cash_account_dialog, QKeySequence("Ctrl+L"))
+ #       tools_menu.addAction(icon, _("Lookup &Cash Account..."), self.lookup_cash_account_dialog, QKeySequence("Ctrl+L"))
         run_hook('init_menubar_tools', self, tools_menu)
 
         help_menu = menubar.addMenu(_("&Help"))
