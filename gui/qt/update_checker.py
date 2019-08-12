@@ -64,7 +64,7 @@ class UpdateChecker(QWidget, PrintError):
 
     #url = "https://www.c3-soft.com/downloads/BitcoinCash/Electron-Cash/update_check" # Testing URL
     url = "https://raw.githubusercontent.com/devaultcrypto/Electron-Cash/master/contrib/update_checker/releases.json" # Release URL
-    download_url = "https://electroncash.org/#download"
+    download_url = "https://github.com/devaultcrypto/DeLight/releases"
 
     VERSION_ANNOUNCEMENT_SIGNING_ADDRESSES = (
         address.Address.from_string("devault:qrzq4dnhffx5fmydz3fjaq5275s3l2e5qvyjygmzsr", net=MainNet), # Spock's key

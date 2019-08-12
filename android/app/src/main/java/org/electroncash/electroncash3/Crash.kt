@@ -44,7 +44,7 @@ class CrashhubDialog : CrashReportDialog() {
 
 class CrashhubSenderFactory : ReportSenderFactory {
     override fun create(context: Context, config: CoreConfiguration): ReportSender {
-        return CrashhubSender(config, "https://crashhub.electroncash.org/crash")
+        return CrashhubSender(config, "https://crashhub.devault.cc/crash")
     }
 }
 
