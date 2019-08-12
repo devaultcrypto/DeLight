@@ -3949,13 +3949,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             hidpi_chk.stateChanged.connect(on_hi_dpi_toggle)
             gui_widgets.append((hidpi_chk, None))
 
-        # CashAddr control
-        gui_widgets.append((None, None)) # spacer
-        address_w = QGroupBox(_('Address Format'))
-        address_w.setToolTip(_('Select between Cash Address and Legacy formats for addresses'))
-        hbox = QHBoxLayout(address_w)
-        gui_widgets.append((address_w, None))
-
         gui_widgets.append((None, None)) # spacer
         updatecheck_cb = QCheckBox(_("Automatically check for updates"))
         updatecheck_cb.setChecked(self.gui_object.has_auto_update_check())
