@@ -149,7 +149,6 @@ setup(
         'electroncash_plugins.trezor',
         'electroncash_plugins.digitalbitbox',
         'electroncash_plugins.virtualkeyboard',
-        'electroncash_plugins.shuffle',
     ],
     package_dir={
         'electroncash': 'lib',
