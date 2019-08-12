@@ -798,7 +798,7 @@ def pay_to(addys : list) -> bool:
     print("payto:",*addys)
     if len(addys) > 1:
         gui.ElectrumGui.gui.show_error(title=_("Coming Soon"),
-                                       message=_("This version of Electron Cash currently only supports sending to 1 address at a time! Sorry!"))
+                                       message=_("This version of DeLight currently only supports sending to 1 address at a time! Sorry!"))
         return False
     gui.ElectrumGui.gui.jump_to_send_with_pay_to(addys[0])
     return True

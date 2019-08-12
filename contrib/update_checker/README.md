@@ -1,7 +1,7 @@
 # Electron Cash Update Checker
 ### (`releases.json`)
 
-This directory contains the `releases.json` file that the Electron Cash update checker uses to determine when a new version of Electron Cash is available.
+This directory contains the `releases.json` file that the Electron Cash update checker uses to determine when a new version of DeLight is available.
 
 #### Update Checker Overview
 As of version 3.3.6 of Electron Cash, there is an update-checking facility built-in to the Qt desktop app. The facility basically functions as follows:
@@ -17,7 +17,7 @@ The purpose of this facility is merely as a convenience for users who aren't on 
 It hopefully will decrease the number of users running very old versions of Electron Cash.
 
 #### What This Means For You, The Maintainer
-You need to update `releases.json` in this directory whenever a new version of Electron Cash is released, and push it to master.
+You need to update `releases.json` in this directory whenever a new version of DeLight is released, and push it to master.
 
 This file contains a dictionary of:
 ```
@@ -26,7 +26,7 @@ This file contains a dictionary of:
     }
 ```
 - **"version string"** above is a version of the form MAJOR.MINOR.REV[variant], e.g. "3.3.5" or "3.3.5CS" (in the latter, 'CS' is the variant)
-- And empty/omitted variant means "Electron Cash Regular"
+- And empty/omitted variant means "DeLight Regular"
 - The variant must match the variant in `lib/version.py`.
     
 

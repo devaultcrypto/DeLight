@@ -390,7 +390,7 @@ class Commands:
 
     @command('')
     def version(self):
-        """Return the version of Electron Cash."""
+        """Return the version of DeLight."""
         from .version import PACKAGE_VERSION
         return PACKAGE_VERSION
 

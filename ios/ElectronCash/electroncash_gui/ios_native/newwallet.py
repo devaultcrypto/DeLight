@@ -26,7 +26,7 @@ if False:
         _("Please write your seed phrase down, as it's the only way to recover your funds if you forget your password or your device is stolen."),
         _("Reenter your seed phrase"),
         # On-Boarding text...
-        _("Welcome to"), _("Electron Cash is an SPV wallet for DeVault"),
+        _("Welcome to"), _("DeLight is an SPV wallet for DeVault"),
         _("Control your own private keys"), _("Easily back up your wallet with a mnemonic seed phrase."),
         _("Enjoy high security"), _("without downloading the blockchain or running a full node."),
         _("Get Started"),
@@ -400,7 +400,7 @@ class NewWalletSeed2(NewWalletSeedBase):
                 if not self.restoreMode:
                     txt = _('Your seed is important!') + ' ' + _('To make sure that you have properly saved your seed, please retype it here.') + ' ' + _('Use the quick suggestions to save time.')
                 else:
-                    txt = _('You can restore a wallet that was created by any version of Electron Cash.')
+                    txt = _('You can restore a wallet that was created by any version of DeLight.')
                 utils.uilabel_replace_attributed_text(lbl, txt, font=UIFont.italicSystemFontOfSize_(14.0))
             else:
                 lbl.setText_withKerning_(_(d[lbl.ptr.value]), utils._kern)

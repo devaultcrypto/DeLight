@@ -487,7 +487,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if is_old_bad:
             msg = ' '.join([
                 _("This testnet wallet has an invalid master key format."),
-                _("(Old versions of Electron Cash before 3.3.6 produced invalid testnet wallets)."),
+                _("(Old versions of DeLight before 3.3.6 produced invalid testnet wallets)."),
                 '<br><br>',
                 _("In order to use this wallet without errors with this version of EC, please <b>re-generate this wallet from seed</b>."),
                 "<br><br><em><i>~SPV stopped~</i></em>"
@@ -536,7 +536,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
                 self.show_message(_("A copy of your wallet file was created in")+" '%s'" % str(new_path), title=_("Wallet backup created"))
             except (IOError, os.error) as reason:
-                self.show_critical(_("Electron Cash was unable to copy your wallet file to the specified location.") + "\n" + str(reason), title=_("Unable to create backup"))
+                self.show_critical(_("DeLight was unable to copy your wallet file to the specified location.") + "\n" + str(reason), title=_("Unable to create backup"))
 
     def update_recently_visited(self, filename):
         recent = self.config.get('recently_open', [])
@@ -636,7 +636,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tools_menu = menubar.addMenu(_("&Tools"))
 
         # Settings / Preferences are all reserved keywords in OSX using this as work around
-        prefs_tit = _("Electron Cash preferences") if sys.platform == 'darwin' else _("Preferences")
+        prefs_tit = _("DeLight preferences") if sys.platform == 'darwin' else _("Preferences")
         tools_menu.addAction(prefs_tit, self.settings_dialog, QKeySequence("Ctrl+,") )
         gui_object = self.gui_object
         weakSelf = Weak.ref(self)
@@ -704,10 +704,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         msg = ' '.join([
             _("Please report any bugs as issues on github:<br/>"),
             "<a href=\"https://github.com/devaultcrypto/DeLight/issues\">https://github.com/devaultcrypto/DeLight/issues</a><br/><br/>",
-            _("Before reporting a bug, upgrade to the most recent version of Electron Cash (latest release or git HEAD), and include the version number in your report."),
+            _("Before reporting a bug, upgrade to the most recent version of DeLight (latest release or git HEAD), and include the version number in your report."),
             _("Try to explain not only what the bug is, but how it occurs.")
          ])
-        self.show_message(msg, title="Electron Cash - " + _("Reporting Bugs"), rich_text = True)
+        self.show_message(msg, title="DeLight - " + _("Reporting Bugs"), rich_text = True)
 
     def notify(self, message):
         self.gui_object.notify(message)
@@ -1123,7 +1123,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             _('Expiration date of your request.'),
             _('This information is seen by the recipient if you send them a signed payment request.'),
             _('Expired requests have to be deleted manually from your list, in order to free the corresponding DeVault addresses.'),
-            _('The DeVault address never expires and will always be part of this Electron Cash wallet.'),
+            _('The DeVault address never expires and will always be part of this DeLight wallet.'),
         ])
         label = HelpLabel(_('Request &expires'), msg)
         label.setBuddy(self.expires_combo)
@@ -2655,7 +2655,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         sb.addPermanentWidget(self.search_box, 1)
 
         self.update_available_button = StatusBarButton(QIcon(":icons/electron-cash-update.svg"), _("Update available, click for details"), lambda: self.gui_object.show_update_checker(self, skip_check=True))
-        self.update_available_button.setStatusTip(_("An Electron Cash update is available"))
+        self.update_available_button.setStatusTip(_("A DeLight update is available"))
         sb.addPermanentWidget(self.update_available_button)
         self.update_available_button.setVisible(bool(self.gui_object.new_version_available))  # if hidden now gets unhidden by on_update_available when a new version comes in
 
@@ -2913,7 +2913,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 "private key, and verifying with the corresponding public key. The "
                 "address you have entered does not have a unique public key, so these "
                 "operations cannot be performed.") + '\n\n' + \
-               _('The operation is undefined. Not just in Electron Cash, but in general.')
+               _('The operation is undefined. Not just in DeLight, but in general.')
 
     @protected
     def do_sign(self, address, message, signature, password):
@@ -3080,7 +3080,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return tx
         except:
             traceback.print_exc(file=sys.stdout)
-            self.show_critical(_("Electron Cash was unable to parse your transaction"))
+            self.show_critical(_("DeLight was unable to parse your transaction"))
             return
 
     # Due to the asynchronous nature of the qr reader we need to keep the
@@ -3148,7 +3148,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             file_content = file_content.strip()
             tx_file_dict = json.loads(str(file_content))
         except (ValueError, IOError, OSError, json.decoder.JSONDecodeError) as reason:
-            self.show_critical(_("Electron Cash was unable to open your transaction file") + "\n" + str(reason), title=_("Unable to read file or no transaction found"))
+            self.show_critical(_("DeLight was unable to open your transaction file") + "\n" + str(reason), title=_("Unable to read file or no transaction found"))
             return
         tx = self.tx_from_text(file_content)
         return tx
@@ -3163,7 +3163,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if tx:
                 self.show_transaction(tx)
         except SerializationError as e:
-            self.show_critical(_("Electron Cash was unable to deserialize the transaction:") + "\n" + str(e))
+            self.show_critical(_("DeLight was unable to deserialize the transaction:") + "\n" + str(e))
 
     def do_process_from_file(self, *, fileName = None):
         from electroncash.transaction import SerializationError
@@ -3172,7 +3172,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if tx:
                 self.show_transaction(tx)
         except SerializationError as e:
-            self.show_critical(_("Electron Cash was unable to deserialize the transaction:") + "\n" + str(e))
+            self.show_critical(_("DeLight was unable to deserialize the transaction:") + "\n" + str(e))
 
     def do_process_from_txid(self, *, txid=None, parent=None, tx_desc=None):
         parent = parent or self
@@ -3278,7 +3278,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.do_export_privkeys(filename, private_keys, csv_button.isChecked())
         except (IOError, os.error) as reason:
             txt = "\n".join([
-                _("Electron Cash was unable to produce a private key-export."),
+                _("DeLight was unable to produce a private key-export."),
                 str(reason)
             ])
             self.show_critical(txt, title=_("Unable to create csv"))
@@ -3313,7 +3313,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.wallet.set_label(key, value)
             self.show_message(_("Your labels were imported from") + " '%s'" % str(labelsFile))
         except (IOError, OSError, json.decoder.JSONDecodeError) as reason:
-            self.show_critical(_("Electron Cash was unable to import your labels.") + "\n" + str(reason))
+            self.show_critical(_("DeLight was unable to import your labels.") + "\n" + str(reason))
         self.address_list.update()
         self.history_list.update()
         self.utxo_list.update()
@@ -3328,7 +3328,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     json.dump(labels, f, indent=4, sort_keys=True)
                 self.show_message(_("Your labels were exported to") + " '%s'" % str(fileName))
         except (IOError, os.error) as reason:
-            self.show_critical(_("Electron Cash was unable to export your labels.") + "\n" + str(reason))
+            self.show_critical(_("DeLight was unable to export your labels.") + "\n" + str(reason))
 
     def export_history_dialog(self):
         d = WindowModalDialog(self.top_level_window(), _('Export History'))
@@ -3353,7 +3353,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             self.do_export_history(self.wallet, filename, csv_button.isChecked())
         except (IOError, os.error) as reason:
-            export_error_label = _("Electron Cash was unable to produce a transaction export.")
+            export_error_label = _("DeLight was unable to produce a transaction export.")
             self.show_critical(export_error_label + "\n" + str(reason), title=_("Unable to export history"))
             return
         self.show_message(_("Your wallet history has been successfully exported."))
@@ -3952,7 +3952,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         gui_widgets.append((None, None)) # spacer
         updatecheck_cb = QCheckBox(_("Automatically check for updates"))
         updatecheck_cb.setChecked(self.gui_object.has_auto_update_check())
-        updatecheck_cb.setToolTip(_("Enable this option if you wish to be notified as soon as a new version of Electron Cash becomes available"))
+        updatecheck_cb.setToolTip(_("Enable this option if you wish to be notified as soon as a new version of DeLight becomes available"))
         def on_set_updatecheck(v):
             self.gui_object.set_auto_update_check(v == Qt.Checked)
         updatecheck_cb.stateChanged.connect(on_set_updatecheck)
@@ -4200,7 +4200,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         run_hook('close_settings_dialog')
         if self.need_restart:
-            self.show_message(_('Please restart Electron Cash to activate the new GUI settings'), title=_('Success'))
+            self.show_message(_('Please restart DeLight to activate the new GUI settings'), title=_('Success'))
 
     def closeEvent(self, event):
         # It seems in some rare cases this closeEvent() is called twice
@@ -4489,7 +4489,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             or isinstance(self.wallet, (Multisig_Wallet, ImportedWalletBase))):
             # wallet is watching-only, multisig, or hardware so.. not compatible
             return False
-        return True
+        return False # display disabled (for now)
 
     _cs_reminder_pixmap = None
     def do_cash_shuffle_reminder(self):
@@ -4520,7 +4520,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 <p>{}</p>
                 '''.format(_("CashShuffle is disabled for this wallet.") if not cashshuffle_flag else _("CashShuffle is disabled."),
                            _("Would you like to enable CashShuffle for this wallet?"))
-                info = ' '.join([_("If you enable it, Electron Cash will shuffle your coins for greater <b>privacy</b>. However, you will pay fractions of a penny per shuffle in transaction fees."),
+                info = ' '.join([_("If you enable it, DeLight will shuffle your coins for greater <b>privacy</b>. However, you will pay fractions of a penny per shuffle in transaction fees."),
                                  _("(You can always toggle it later using the CashShuffle button.)")])
                 res, chkd = self.msg_box(icon=icon,
                                          parent=self.top_level_window(),
@@ -4675,7 +4675,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 _("The Send Tab has been filled-in with your <b>Cash Accounts</b> registration data.")
                 + "<br><br>" + _("Please review the transaction, save it, and/or broadcast it at your leisure.")
             )
-            msg2 = ( _("After at least <i>1 confirmation</i>, you will be able to use your new <b>Cash Account</b>, and it will be visible in Electron Cash in the <b>Addresses</b> tab.")
+            msg2 = ( _("After at least <i>1 confirmation</i>, you will be able to use your new <b>Cash Account</b>, and it will be visible in DeLight in the <b>Addresses</b> tab.")
             )
             msg3 = _("If you wish to control which specific coins are used to "
                      "fund this registration transaction, feel free to use the "

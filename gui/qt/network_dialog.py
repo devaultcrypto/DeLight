@@ -418,7 +418,7 @@ class NetworkChoiceLayout(QObject, PrintError):
         # Blockchain Tab
         grid = QGridLayout(blockchain_tab)
         msg =  ' '.join([
-            _("Electron Cash connects to several nodes in order to download block headers and find out the longest blockchain."),
+            _("DeLight connects to several nodes in order to download block headers and find out the longest blockchain."),
             _("This blockchain is used to verify the transactions sent by your transaction server.")
         ])
         self.status_label = QLabel('')
@@ -429,7 +429,7 @@ class NetworkChoiceLayout(QObject, PrintError):
 
         self.server_label = QLabel('')
         self.server_label.setTextInteractionFlags(self.server_label.textInteractionFlags() | Qt.TextSelectableByMouse)
-        msg = _("Electron Cash sends your wallet addresses to a single server, in order to receive your transaction history.")
+        msg = _("DeLight sends your wallet addresses to a single server, in order to receive your transaction history.")
         grid.addWidget(QLabel(_('Server') + ':'), 1, 0)
         grid.addWidget(self.server_label, 1, 1, 1, 3)
         grid.addWidget(HelpButton(msg), 1, 4)

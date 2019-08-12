@@ -43,7 +43,7 @@ def _printStats(config_options):
         # lazy init of SSL
         import ssl, sys
         from electroncash import version
-        NSLog("Electron Cash lib version: %s (using server protocol: %s)", version.PACKAGE_VERSION, version.PROTOCOL_VERSION)
+        NSLog("DeLight lib version: %s (using server protocol: %s)", version.PACKAGE_VERSION, version.PROTOCOL_VERSION)
         NSLog("Python version: %s", ' '.join(sys.version.split('\n')))
         NSLog("OpenSSL version: %s", ssl.OPENSSL_VERSION)
         #NSLog("Environment Vars:")

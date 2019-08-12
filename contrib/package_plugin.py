@@ -155,7 +155,7 @@ class App(QWidget):
         self.minimumElectronCashVersionEdit = QLineEdit()
         self.minimumElectronCashVersionEdit.setPlaceholderText("3.2")
         self.minimumElectronCashVersionEdit.setMaximumWidth(50)
-        self.minimumElectronCashVersionEdit.setToolTip("This is the lowest version of Electron Cash which this plugin can be installed with.")
+        self.minimumElectronCashVersionEdit.setToolTip("This is the lowest version of DeLight which this plugin can be installed with.")
         groupLayout.addRow('Minimum Electron Cash Version', self.minimumElectronCashVersionEdit)
 
         availableVLayout = QVBoxLayout()

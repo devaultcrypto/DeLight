@@ -224,7 +224,7 @@ class UpdateChecker(QWidget, PrintError):
                 self.cancel_or_check_button.setEnabled(False)
             else:
                 self.heading_label.setText('<h2>' + _("Already up to date") + '</h2>')
-                self.detail_label.setText(_("You are already on the latest version of Electron Cash."))
+                self.detail_label.setText(_("You are already on the latest version of DeLight."))
                 self.cancel_or_check_button.setEnabled(True)
         else:
             self.pb.show()

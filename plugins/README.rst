@@ -97,7 +97,7 @@ to your plugin's Python package directory, in the ``plugins`` directory within t
 clone of the Electron Cash source you are developing within.
 
 Please be sure that you test your plugin with the same recommended version of
-Python for the version of Electron Cash you intend to specify in your
+Python for the version of DeLight you intend to specify in your
 plugin's minimum Electron Cash version.  Not doing so, will cause you pain
 and potential users to avoid your plugin.
 
@@ -132,7 +132,7 @@ The ``manifest.json`` file has required fields:
 - ``project_url``: This is the official URL of your project.
 - ``description``: A longer form description of how your plugin upgrades
   Electron Cash.
-- ``minimum_ec_version``: This is the earliest version of Electron Cash
+- ``minimum_ec_version``: This is the earliest version of DeLight
   which your plugin is known to work with.  This will not be ``3.2`` or lower
   as the external plugin functionality only arrived after that version.
 - ``package_name``: This is the name of the Python package directory at the

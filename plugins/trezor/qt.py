@@ -349,7 +349,7 @@ class SettingsDialog(WindowModalDialog):
             currently_enabled = self.features.passphrase_protection
             if currently_enabled:
                 msg = _("After disabling passphrases, you can only pair this "
-                        "Electron Cash wallet if it had an empty passphrase. "
+                        "DeLight wallet if it had an empty passphrase. "
                         "If its passphrase was not empty, you will need to "
                         "create a new wallet with the install wizard. You "
                         "can use this wallet again at any time by re-enabling "
