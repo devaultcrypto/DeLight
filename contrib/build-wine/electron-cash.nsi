@@ -6,10 +6,10 @@
 ;--------------------------------
 ;Variables
 
-  !define PRODUCT_NAME "Electron Cash"
-  !define INTERNAL_NAME "Electron-Cash"
+  !define PRODUCT_NAME "DeLight"
+  !define INTERNAL_NAME "DeLight"
   !define PRODUCT_WEB_SITE "https://github.com/devaultcrypto/DeLight"
-  !define PRODUCT_PUBLISHER "Electron Cash LLC"
+  !define PRODUCT_PUBLISHER "The DeVault Developers"
   !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 
 ;--------------------------------
@@ -137,11 +137,11 @@ Section
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} Testnet.lnk" "$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe" "--testnet" "$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe" 0
 
 
-  ;Links bitcoincash: URI's to Electron Cash
-  WriteRegStr HKCU "Software\Classes\bitcoincash" "" "URL:bitcoincash Protocol"
-  WriteRegStr HKCU "Software\Classes\bitcoincash" "URL Protocol" ""
-  WriteRegStr HKCU "Software\Classes\bitcoincash" "DefaultIcon" "$\"$INSTDIR\electron.ico, 0$\""
-  WriteRegStr HKCU "Software\Classes\bitcoincash\shell\open\command" "" "$\"$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe$\" $\"%1$\""
+  ;Links devault: URI's to DeLight
+  WriteRegStr HKCU "Software\Classes\devault" "" "URL:devault Protocol"
+  WriteRegStr HKCU "Software\Classes\devault" "URL Protocol" ""
+  WriteRegStr HKCU "Software\Classes\devault" "DefaultIcon" "$\"$INSTDIR\electron.ico, 0$\""
+  WriteRegStr HKCU "Software\Classes\devault\shell\open\command" "" "$\"$INSTDIR\${INTERNAL_NAME}-${PRODUCT_VERSION}.exe$\" $\"%1$\""
 
   ;Adds an uninstaller possibilty to Windows Uninstall or change a program section
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
@@ -186,7 +186,7 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\*.*"
   RMDir  "$SMPROGRAMS\${PRODUCT_NAME}"
 
-  DeleteRegKey HKCU "Software\Classes\bitcoincash"
+  DeleteRegKey HKCU "Software\Classes\devault"
   DeleteRegKey HKCU "Software\${PRODUCT_NAME}"
   DeleteRegKey HKCU "${PRODUCT_UNINST_KEY}"
 SectionEnd

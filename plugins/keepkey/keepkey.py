@@ -190,7 +190,7 @@ class KeepKeyPlugin(HW_PluginBase):
 
     def get_coin_name(self):
         # Doesn't support testnet addresses
-        return "DeVault"
+        return "BitcoinCash"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method
