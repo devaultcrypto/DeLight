@@ -223,7 +223,7 @@ class BaseWizard(object):
                 msgs.append('pip3 install -r contrib/requirements/requirements-hw.txt\n')
 
             msgs.append('\n' + _("If this problem persists, please visit:")
-                        + "\n\n     https://github.com/Electron-Cash/Electron-Cash/issues")
+                        + "\n\n     https://github.com/devaultcrypto/DeLight/issues")
 
             msg = ''.join(msgs)
             self.confirm_dialog(title=title, message=msg, run_next= lambda x: self.choose_hw_device(), extra_button=extra_button)
