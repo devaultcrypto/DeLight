@@ -70,7 +70,7 @@ class KeepKeyPlugin(HW_PluginBase):
     #     wallet_class, ckd_public, types, HidTransport
 
     firmware_URL = 'https://www.keepkey.com'
-    libraries_URL = 'https://github.com/keepkey/python-keepkey'
+    libraries_URL = 'https://github.com/proteanx/python-keepkey'
     minimum_firmware = (1, 0, 0)
     keystore_class = KeepKey_KeyStore
     SUPPORTED_XTYPES = ('standard', 'p2sh')
