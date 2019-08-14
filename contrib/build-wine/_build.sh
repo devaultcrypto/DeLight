@@ -202,7 +202,7 @@ prepare_wine() {
             git fetch --depth 1 origin $PYINSTALLER_COMMIT
             git checkout FETCH_HEAD
             rm -fv PyInstaller/bootloader/Windows-*/run*.exe || true  # Make sure EXEs that came with repo are deleted -- we rebuild them and need to detect if build failed
-            echo "const char *ec_tag = \"tagged by Electron-Cash@$GIT_COMMIT_HASH\";" >> ./bootloader/src/pyi_main.c
+            echo "const char *ec_tag = \"tagged by DeLight@$GIT_COMMIT_HASH\";" >> ./bootloader/src/pyi_main.c
             pushd bootloader
             # If switching to 64-bit Windows, edit CC= below
             python3 ./waf all CC=i686-w64-mingw32-gcc CFLAGS="-Wno-stringop-overflow -static"

@@ -12,7 +12,7 @@ else
 fi
 
 if [ ! -d 'contrib' ]; then
-    fail "Please run this script form the top-level Electron Cash git directory"
+    fail "Please run this script form the top-level DeLight git directory"
 fi
 
 pushd .
