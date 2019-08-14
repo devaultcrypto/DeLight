@@ -44,7 +44,7 @@ class AmountEdit(MyLineEdit):
             if '.' in s:
                 p = s.find('.')
                 s = s.replace('.','')
-                s = s[:p] + '.' + s[p:p+self.decimal_point()]
+                s = s[:p] + '.' + s[p:p+3]
         self.setText(s)
         # setText sets Modified to False.  Instead we want to remember
         # if updates were because of user modification.

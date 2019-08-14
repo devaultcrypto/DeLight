@@ -4199,7 +4199,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.wallet.thread.stop()
         self.wallet.thread.wait() # Join the thread to make sure it's really dead.
 
-        for w in [self.address_list, self.history_list, self.utxo_list, self.cash_account_e, self.contact_list]:
+        for w in [self.address_list, self.history_list, self.utxo_list, self.contact_list]:
             if w: w.clean_up()  # tell relevant widget to clean itself up, unregister callbacks, etc
 
         # We catch these errors with the understanding that there is no recovery at
