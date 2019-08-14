@@ -267,12 +267,12 @@ class UTXOList(MyTreeWidget):
         run_hook('utxo_list_context_menu_setup', self, menu, selected)
 
         # add optional toggle actions
-        menu.addSeparator()
-        def toggle():
-            self.show_cash_accounts = not self.show_cash_accounts
-        a = menu.addAction(_("Show Cash Accounts"), toggle)
-        a.setCheckable(True)
-        a.setChecked(self.show_cash_accounts)
+   #     menu.addSeparator()
+   #     def toggle():
+   #         self.show_cash_accounts = not self.show_cash_accounts
+   #     a = menu.addAction(_("Show Cash Accounts"), toggle)
+   #     a.setCheckable(True)
+   #     a.setChecked(self.show_cash_accounts)
 
         menu.exec_(self.viewport().mapToGlobal(position))
 
