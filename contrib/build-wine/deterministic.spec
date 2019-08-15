@@ -11,7 +11,7 @@ else:
     raise BaseException('no name')
 
 
-home = 'C:\\electroncash\\'
+home = 'C:\\delight\\'
 
 # see https://github.com/pyinstaller/pyinstaller/issues/2005
 hiddenimports = []
@@ -57,7 +57,7 @@ datas += collect_data_files('keepkeylib')
 datas += collect_data_files('mnemonic')  # wordlists used by keepkeylib from lib mnemonic
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
-a = Analysis([home+'electron-cash',
+a = Analysis([home+'delight',
               home+'gui/qt/main_window.py',
               home+'gui/qt/qrreader/camera_dialog.py',
               home+'gui/text.py',
@@ -128,7 +128,7 @@ exe_standalone = EXE(
     a.scripts,
     a.binaries,
     a.datas,
-    name=os.path.join('build\\pyi.win32\\electroncash', cmdline_name + ".exe"),
+    name=os.path.join('build\\pyi.win32\\delight', cmdline_name + ".exe"),
     debug=False,
     strip=None,
     upx=False,
@@ -140,7 +140,7 @@ exe_portable = EXE(
     a.scripts,
     a.binaries,
     a.datas + [ ('is_portable', 'README.md', 'DATA' ) ],
-    name=os.path.join('build\\pyi.win32\\electroncash', cmdline_name + "-portable.exe"),
+    name=os.path.join('build\\pyi.win32\\delight', cmdline_name + "-portable.exe"),
     debug=False,
     strip=None,
     upx=False,
@@ -154,7 +154,7 @@ exe_dependent = EXE(
     pyz,
     a.scripts,
     exclude_binaries=True,
-    name=os.path.join('build\\pyi.win32\\electroncash', cmdline_name),
+    name=os.path.join('build\\pyi.win32\\delight', cmdline_name),
     debug=False,
     strip=None,
     upx=False,

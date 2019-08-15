@@ -289,14 +289,14 @@ build_the_app() {
         popd  # go back to $here
 
         cp "$here"/../../LICENCE "$here"/tmp
-        cp -r "$here"/../electrum-locale/locale $WINEPREFIX/drive_c/electroncash/lib/
+        cp -r "$here"/../electrum-locale/locale $WINEPREFIX/drive_c/delight/lib/
 
         # Install frozen dependencies
         info "Installing frozen dependencies ..."
         $PYTHON -m pip install --no-warn-script-location -r "$here"/../deterministic-build/requirements.txt || fail "Failed to install requirements"
         $PYTHON -m pip install --no-warn-script-location -r "$here"/../deterministic-build/requirements-hw.txt || fail "Failed to install requirements-hw"
 
-        pushd $WINEPREFIX/drive_c/electroncash
+        pushd $WINEPREFIX/drive_c/delight
         $PYTHON setup.py install || fail "Failed setup.py install"
         popd
 
