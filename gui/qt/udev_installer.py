@@ -38,7 +38,7 @@ from electroncash.plugins import Plugins
 from electroncash_gui.qt import WindowModalDialog
 
 class InstallHardwareWalletSupportDialog(PrintError, WindowModalDialog):
-    UDEV_RULES_FILE='/etc/udev/rules.d/20-electron-cash-hw-wallets.rules'
+    UDEV_RULES_FILE='/etc/udev/rules.d/20-delight-hw-wallets.rules'
     GRAPHICAL_SUDOS=['pkexec','gksudo','kdesudo']
 
     ADDITIONAL_HARDWARE_IDS = {
@@ -153,12 +153,12 @@ class InstallHardwareWalletSupportDialog(PrintError, WindowModalDialog):
 
         ids_set = self.device_manager.recognised_hardware.union(self.ADDITIONAL_HARDWARE_IDS)
         lines = [line_format.format(ids[0], ids[1]) for ids in ids_set]
-        return '# Electron Cash hardware wallet rules file\n' + '\n'.join(lines) + '\n'
+        return '# DeLight hardware wallet rules file\n' + '\n'.join(lines) + '\n'
 
     def _runScriptAsRoot(self, script: str) -> bool:
         assert script
 
-        with tempfile.NamedTemporaryFile(mode='w', prefix='electroncash') as tf:
+        with tempfile.NamedTemporaryFile(mode='w', prefix='delight') as tf:
             tf.write(script)
             tf.flush()
 
