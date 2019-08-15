@@ -73,7 +73,7 @@
   !define MUI_ABORTWARNING
   !define MUI_ABORTWARNING_TEXT "Are you sure you wish to abort the installation of ${PRODUCT_NAME}?"
 
-  !define MUI_ICON "\electroncash\icons\electron.ico"
+  !define MUI_ICON "\delight\icons\electron.ico"
 
 ;--------------------------------
 ;Pages
