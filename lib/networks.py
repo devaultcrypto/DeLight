@@ -78,14 +78,14 @@ class TestNet(AbstractNet):
     ADDRTYPE_P2SH = 196
     ADDRTYPE_P2SH_BITPAY = 196  # Unsure
     CASHADDR_PREFIX = "dvtest"
-    HEADERS_URL = "http://devault.com/files/testnet_headers"
+    HEADERS_URL = None
     GENESIS = "00000000ed6c30b2e78a0eff7d20692c14099ce8eb04e205fcc08c474cfd6675"
     DEFAULT_PORTS = {'t':'51001', 's':'51002'}
     DEFAULT_SERVERS = _read_json_dict('servers_testnet.json')  # DO NOT MODIFY IN CLIENT CODE
     TITLE = 'DeVault Cash Testnet'
 
-    VERIFICATION_BLOCK_MERKLE_ROOT = "c3cc7a7b6fe5e0ff19b750ae200ae93664b3abf09bf510e26e15ba338afe1f1a"
-    VERIFICATION_BLOCK_HEIGHT = 1273800
+    VERIFICATION_BLOCK_MERKLE_ROOT = "9f6991a4f5669445893bfeee7fb77acd4c07bbc495a80b889e55a8cd45ef7292"
+    VERIFICATION_BLOCK_HEIGHT = 9000
 
     # Version numbers for BIP32 extended keys
     # standard: tprv, tpub
