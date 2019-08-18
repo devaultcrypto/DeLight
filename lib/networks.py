@@ -84,8 +84,8 @@ class TestNet(AbstractNet):
     DEFAULT_SERVERS = _read_json_dict('servers_testnet.json')  # DO NOT MODIFY IN CLIENT CODE
     TITLE = 'DeVault Cash Testnet'
 
-    VERIFICATION_BLOCK_MERKLE_ROOT = "9f6991a4f5669445893bfeee7fb77acd4c07bbc495a80b889e55a8cd45ef7292"
-    VERIFICATION_BLOCK_HEIGHT = 9000
+    VERIFICATION_BLOCK_MERKLE_ROOT = "21a114cc2c1167af26be582ec9c49adc43f88f6227efe2aea40610d7de297d93"
+    VERIFICATION_BLOCK_HEIGHT = 9563
 
     # Version numbers for BIP32 extended keys
     # standard: tprv, tpub
