@@ -11,7 +11,7 @@
             android:key="auto_connect"
             android:title="@string/select_server_automatically"
             android:disableDependentsState="true"/>
-        <org.electroncash.electroncash3.ServerPreference
+        <cc.devault.delight1.ServerPreference
             android:key="server"
             android:title="@string/server"
             android:dependency="auto_connect"/>

@@ -1,6 +1,6 @@
 @file:Suppress("DEPRECATION")
 
-package org.electroncash.electroncash3
+package cc.devault.delight1
 
 import android.app.Dialog
 import android.app.ProgressDialog

@@ -5,10 +5,10 @@
 
     <data>
         <import type="android.view.View"/>
-        <import type="org.electroncash.electroncash3.UtilKt"/>
+        <import type="cc.devault.delight1.UtilKt"/>
         <variable
             name="model"
-            type="org.electroncash.electroncash3.AddressModel"/>
+            type="cc.devault.delight1.AddressModel"/>
     </data>
 
     <android.support.constraint.ConstraintLayout

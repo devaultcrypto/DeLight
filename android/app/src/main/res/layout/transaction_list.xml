@@ -7,7 +7,7 @@
         <import type="android.view.View"/>
         <variable
             name="model"
-            type="org.electroncash.electroncash3.TransactionModel"/>
+            type="cc.devault.delight1.TransactionModel"/>
     </data>
 
     <android.support.constraint.ConstraintLayout

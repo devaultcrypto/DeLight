@@ -1,4 +1,4 @@
-package org.electroncash.electroncash3
+package cc.devault.delight1
 
 import android.content.Context
 import android.view.View

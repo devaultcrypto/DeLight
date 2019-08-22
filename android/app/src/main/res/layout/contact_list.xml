@@ -6,7 +6,7 @@
     <data>
         <variable
             name="model"
-            type="org.electroncash.electroncash3.ContactModel"/>
+            type="cc.devault.delight1.ContactModel"/>
     </data>
 
     <android.support.constraint.ConstraintLayout
