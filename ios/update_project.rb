@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 require 'xcodeproj'
 require 'plist'
+require 'open3'
 
 # These should be edited by each user, if password for dev_team is not available
 bundle_id = "org.devault.DeLight";
@@ -12,7 +13,15 @@ project_path = "iOS/DeLight.xcodeproj";
 # Create project object
 project = Xcodeproj::Project.open(project_path);
 
-lib = '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/libxml2.tbd'
+stdout,stderr,status = Open3.capture3("/usr/bin/xcode-select -print-path")
+
+
+if status
+  lib = stdout.strip + '/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/libxml2.tbd'
+else
+  puts "Xcode not found!"
+  exit(1)
+end
 
 project.targets.each do |target|
   build_phase = target.frameworks_build_phase
