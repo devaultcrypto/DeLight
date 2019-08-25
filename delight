@@ -367,7 +367,7 @@ if __name__ == '__main__':
         config_options['portable'] = False
 
     if config_options.get('portable'):
-        config_options['electron_cash_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'electron_cash_data')
+        config_options['electron_cash_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'delight_data')
 
     set_verbosity(config_options.get('verbose'))
 
