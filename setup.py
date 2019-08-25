@@ -58,7 +58,7 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         # Menu entry
         (os.path.join(share_dir, 'applications/'), ['delight.desktop']),
         # App stream (store) metadata
-        (os.path.join(share_dir, 'metainfo/'), ['org.electroncash.ElectronCash.appdata.xml']),
+        (os.path.join(share_dir, 'metainfo/'), ['cc.devault.DeLight.appdata.xml']),
     ]
 
 class MakeAllBeforeSdist(setuptools.command.sdist.sdist):
