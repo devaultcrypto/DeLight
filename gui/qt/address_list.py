@@ -286,9 +286,6 @@ class AddressList(MyTreeWidget):
             else:
                 copy_text = item.text(col)
             menu.addAction(_("Copy {}").format(column_title), lambda: doCopy(copy_text))
-            if alt_copy_text and alt_column_title:
-                # Add 'Copy Legacy Address' and 'Copy Cash Address' alternates if right-click is on column 0
-                menu.addAction(_("Copy {}").format(alt_column_title), lambda: doCopy(alt_copy_text))
             a = menu.addAction(_('Details') + "...", lambda: self.parent.show_address(addr))
             if col == 0:
                 where_to_insert_dupe_copy_cash_account = a
