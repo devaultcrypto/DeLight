@@ -31,7 +31,7 @@ if False:
         _("Enjoy high security"), _("without downloading the blockchain or running a full node."),
         _("Get Started"),
         _("Cancel"), _("Seed"), _("Next"), _("Back"),
-        _("Import"), _("Master Key"), _("Save Wallet"),
+        _("Save Wallet"),
     )
 
 
@@ -807,14 +807,9 @@ class NewWalletMenu(NewWalletMenuBase):
             navBar.addSubview_(self.lineHider)
         # translate UI
         self.navigationItem.title = _("New Wallet")
-        utils.uilabel_replace_attributed_text(lbl = self.blurb,
-                                              text = _("You can have as many wallets as you like! Choose from one of the options below:"),
-                                              template = self.blurb.attributedText)
         for state in UIControlState_ALL_RELEVANT_TUPLE:
             self.std.setTitle_forState_(_("Create New Standard Wallet"), state)
             self.restore.setTitle_forState_(_("Restore from Seed"), state)
-            self.imp.setTitle_forState_(_("Import Addresses or Private Keys"), state)
-            self.master.setTitle_forState_(_("Use a Master Key"), state)
 
     @objc_method
     def viewWillDisappear_(self, animated : bool) -> None:
@@ -1536,14 +1531,9 @@ class OnBoardingMenu(OnBoardingMenuBase):
         send_super(__class__, self, 'viewWillAppear:', animated, argtypes=[c_bool])
         # translate UI
         self.tit.text = _("Get started now")
-        utils.uilabel_replace_attributed_text(lbl = self.blurb,
-                                              text = _("and create your standard wallet or restore an existing one with any of the methods below"),
-                                              template = self.blurb.attributedText)
         for state in UIControlState_ALL_RELEVANT_TUPLE:
             self.std.setTitle_forState_(_("Create New Standard Wallet"), state)
             self.restore.setTitle_forState_(_("Restore from Seed"), state)
-            self.imp.setTitle_forState_(_("Import Addresses or Private Keys"), state)
-            self.master.setTitle_forState_(_("Use a Master Key"), state)
 
     @objc_method
     def jumpToMenu_(self, vcToPushIdentifier) -> None:

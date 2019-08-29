@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="14313.18" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
-    <device id="retina4_7" orientation="portrait">
-        <adaptation id="fullscreen"/>
-    </device>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="14854.2" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14283.14"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14806.4"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -32,7 +30,7 @@
                         <viewControllerLayoutGuide type="bottom" id="x1s-vf-ZhE"/>
                     </layoutGuides>
                     <view key="view" contentMode="scaleToFill" id="gET-pO-SCv">
-                        <rect key="frame" x="0.0" y="0.0" width="375" height="603"/>
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="623"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <view clipsSubviews="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="xTn-fY-y6D" userLabel="BlueBarTop">
@@ -54,7 +52,7 @@
                                 </connections>
                             </view>
                             <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Mg4-cl-SaW" userLabel="NoReqsView">
-                                <rect key="frame" x="89.5" y="223.5" width="196" height="107"/>
+                                <rect key="frame" x="89.5" y="233.5" width="196" height="107"/>
                                 <subviews>
                                     <imageView userInteractionEnabled="NO" tag="4040" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="empty_table_icon.png" translatesAutoresizingMaskIntoConstraints="NO" id="mu2-Qr-shs">
                                         <rect key="frame" x="67" y="0.0" width="62" height="36"/>
@@ -72,7 +70,7 @@
                                             <fragment content="No payment requests found. Feel free to create one.">
                                                 <attributes>
                                                     <color key="NSColor" red="0.80000000000000004" green="0.80000000000000004" blue="0.80000000000000004" alpha="1" colorSpace="deviceRGB"/>
-                                                    <font key="NSFont" size="14" name="SFProDisplay-Italic"/>
+                                                    <font key="NSFont" metaFont="menu" size="14"/>
                                                     <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="natural" lineSpacing="7" tighteningFactorForTruncation="0.0"/>
                                                 </attributes>
                                             </fragment>
@@ -96,7 +94,7 @@
                                 </connections>
                             </view>
                             <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="heh-Ue-jMi" userLabel="NoTXsView">
-                                <rect key="frame" x="89.5" y="223.5" width="196" height="107"/>
+                                <rect key="frame" x="89.5" y="233.5" width="196" height="107"/>
                                 <subviews>
                                     <imageView userInteractionEnabled="NO" tag="4040" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="empty_table_icon.png" translatesAutoresizingMaskIntoConstraints="NO" id="dNj-eP-Aky">
                                         <rect key="frame" x="67" y="0.0" width="62" height="36"/>
@@ -114,7 +112,7 @@
                                             <fragment content="There are no transactions for this wallet on the blockchain.">
                                                 <attributes>
                                                     <color key="NSColor" red="0.80000000000000004" green="0.80000000000000004" blue="0.80000000000000004" alpha="1" colorSpace="deviceRGB"/>
-                                                    <font key="NSFont" size="14" name="SFProDisplay-Italic"/>
+                                                    <font key="NSFont" metaFont="menu" size="14"/>
                                                     <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="truncatingTail" baseWritingDirection="natural" lineSpacing="7" tighteningFactorForTruncation="0.0"/>
                                                 </attributes>
                                             </fragment>
@@ -138,7 +136,7 @@
                                 </connections>
                             </view>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" style="plain" separatorStyle="default" rowHeight="76" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="u0V-Yv-emp" userLabel="TxsTableView">
-                                <rect key="frame" x="0.0" y="124" width="375" height="345"/>
+                                <rect key="frame" x="0.0" y="124" width="375" height="365"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                 <constraints>
                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="100" id="D8E-bI-U0a"/>
@@ -150,7 +148,7 @@
                                 </connections>
                             </tableView>
                             <tableView hidden="YES" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" style="plain" separatorStyle="default" rowHeight="105" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="SEd-Hd-vMb" userLabel="ReqsTableView">
-                                <rect key="frame" x="0.0" y="124" width="375" height="345"/>
+                                <rect key="frame" x="0.0" y="124" width="375" height="365"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                 <inset key="separatorInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
                                 <connections>
@@ -159,7 +157,7 @@
                                 </connections>
                             </tableView>
                             <button opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="rlV-nI-e8g">
-                                <rect key="frame" x="15" y="488" width="167" height="50"/>
+                                <rect key="frame" x="15" y="508" width="167" height="50"/>
                                 <color key="backgroundColor" red="0.33333333329999998" green="0.5450980392" blue="1" alpha="1" colorSpace="deviceRGB"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="50" id="HjB-FK-ybq"/>
@@ -178,7 +176,7 @@
                                 </connections>
                             </button>
                             <button opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ncr-lp-w8U">
-                                <rect key="frame" x="193" y="488" width="167" height="50"/>
+                                <rect key="frame" x="193" y="508" width="167" height="50"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="18"/>
                                 <state key="normal" title="Receive">
@@ -412,7 +410,7 @@
                 </viewController>
             </viewControllers>
             <toolbar key="toolbar" opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="MVg-ih-rly">
-                <rect key="frame" x="0.0" y="-64" width="0.0" height="0.0"/>
+                <rect key="frame" x="0.0" y="-44" width="0.0" height="0.0"/>
                 <autoresizingMask key="autoresizingMask"/>
             </toolbar>
             <connections>

@@ -251,6 +251,10 @@ fi
 # Clean up no-longer-needed electroncash/ dir that is outside of Xcode project
 rm -fr ${compact_name}/electroncash/*
 
+# Can add this back when it works uniformly without issues
+/usr/bin/env ruby update_project.rb
+
+
 echo ''
 echo '**************************************************************************'
 echo '*                                                                        *'
