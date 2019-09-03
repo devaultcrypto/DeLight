@@ -349,7 +349,7 @@ class AboutDialog : AlertDialogFragment() {
         with (builder) {
             val version = app.packageManager.getPackageInfo(app.packageName, 0).versionName
             setTitle(getString(R.string.app_name) + " " + version)
-            val message = SpannableStringBuilder(getString(R.string.copyright_2019) + "\n\n")
+            val message = SpannableStringBuilder(getString(R.string.copyright_2019) + "\n\n" + getString(R.string.copyrightec_2019) + "\n\n")
             @Suppress("DEPRECATION")
             message.append(Html.fromHtml(getString(R.string.made_with)))
             setMessage(message)
