@@ -21,10 +21,7 @@ android {
         applicationId "cc.devault.delight"
         minSdkVersion 16
 
-        // Before increasing this to 28, all layouts must be reviewed to see whether they need
-        // <requestFocus/> tags
-        // (https://developer.android.com/about/versions/pie/android-9.0-changes-28#focus).
-        targetSdkVersion 26
+        targetSdkVersion 28
 
         def ecVersion = null
         file("$REPO_ROOT/lib/version.py").eachLine {
