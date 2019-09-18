@@ -1,55 +1,47 @@
-Electron Cash - Lightweight Bitcoin Cash client
+DeLight - Lightweight DeVault client (an Electron-Cash fork)
 =====================================
 
 ::
 
   Licence: MIT Licence
-  Author: Jonald Fyookball
+  Author: The DeVault Developers
   Language: Python
-  Homepage: https://electroncash.org/
-
-
-.. image:: https://d322cqt584bo4o.cloudfront.net/electron-cash/localized.svg
-    :target: https://crowdin.com/project/electron-cash
-    :alt: Help translate Electron Cash online
-
-
-
+  Homepage: https://devault.cc/
 
 
 Getting started
 ===============
 
-*Note: If running from source, Python 3.6 or above is required to run Electron Cash. If your system lacks Python 3.6, 
-you have other options, such as the* `binary releases <https://github.com/Electron-Cash/Electron-Cash/releases/>`_.
+*Note: If running from source, Python 3.6 or above is required to run DeLight. If your system lacks Python 3.6, 
+you have other options, such as the* `binary releases <https://github.com/devaultcrypto/DeLight/releases/>`_.
 
-Electron Cash is a pure python application forked from Electrum. If you want to use the Qt interface, install the Qt dependencies::
+DeLight is a pure python application forked from Electrum. If you want to use the Qt interface, install the Qt dependencies::
 
     sudo apt-get install python3-pyqt5 python3-pyqt5.qtsvg
 
 If you downloaded the official package (tar.gz), you can run
-Electron Cash from its root directory (called Electrum), without installing it on your
+DeLight from its root directory (called Electrum), without installing it on your
 system; all the python dependencies are included in the 'packages'
-directory. To run Electron Cash from its root directory, just do::
+directory. To run DeLight from its root directory, just do::
 
-    ./electron-cash
+    ./delight
 
-You can also install Electron Cash on your system, by running this command::
+You can also install DeLight on your system, by running this command::
 
     sudo apt-get install python3-setuptools
     python3 setup.py install
 
 This will download and install the Python dependencies used by
-Electron Cash, instead of using the 'packages' directory.
+DeLight, instead of using the 'packages' directory.
 
 If you cloned the git repository, you need to compile extra files
-before you can run Electron Cash. Read the next section, "Development
+before you can run DeLight. Read the next section, "Development
 Version".
 
 Hardware Wallet - Ledger Nano S
 -------------------------------
 
-Electron Cash natively support Ledger Nano S hardware wallet. If you plan to use
+DeLight natively support Ledger Nano S hardware wallet. If you plan to use
 you need an additional dependency, namely btchip. To install it run this command::
 
     sudo pip3 install btchip-python
@@ -63,8 +55,8 @@ Development version
 
 Check out the code from Github::
 
-    git clone https://github.com/Electron-Cash/Electron-Cash
-    cd Electron-Cash
+    git clone https://github.com/devaultcrypto/DeLight
+    cd DeLight
 
 Run install (this should install dependencies)::
 
