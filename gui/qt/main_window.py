@@ -664,7 +664,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             icon = QIcon(":icons/cashacct-button-darkmode.png")
         else:
             icon = QIcon(":icons/cashacct-logo.png")
- #       tools_menu.addAction(icon, _("Lookup &Cash Account..."), self.lookup_cash_account_dialog, QKeySequence("Ctrl+L"))
+        tools_menu.addAction(icon, _("Lookup &Cash Account..."), self.lookup_cash_account_dialog, QKeySequence("Ctrl+L"))
         run_hook('init_menubar_tools', self, tools_menu)
 
         help_menu = menubar.addMenu(_("&Help"))
@@ -4199,7 +4199,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.wallet.thread.stop()
         self.wallet.thread.wait() # Join the thread to make sure it's really dead.
 
-        for w in [self.address_list, self.history_list, self.utxo_list, self.contact_list]:
+        for w in [self.address_list, self.history_list, self.utxo_list, self.cash_account_e, self.contact_list]:
             if w: w.clean_up()  # tell relevant widget to clean itself up, unregister callbacks, etc
 
         # We catch these errors with the understanding that there is no recovery at
