@@ -8,5 +8,5 @@ install:
 cache:
   - pip
 script:
-    - tox
-    - coveralls
+#    - tox
+#    - coveralls
