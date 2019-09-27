@@ -539,10 +539,8 @@ class Info(namedtuple("Info", "name, address, number, collision_hash, emoji, txi
 
 
 servers = [
-    "https://cashacct.imaginary.cash",  # Runs official 'cash-accounts' lookup server software
-    "https://api.cashaccount.info",     # Runs official 'cash-accounts' lookup server software
-    "https://cashacct.electroncash.dk", # Runs official 'cash-accounts' lookup server software
-    "https://electrum.imaginary.cash"   # Runs alternative server software: https://gitlab.com/paOol/lookup-server
+    "https://api.devaultid.com"     # Runs official 'cash-accounts' lookup server software
+
 ]
 
 debug = False  # network debug setting. Set to True when developing to see more verbose information about network operations.
