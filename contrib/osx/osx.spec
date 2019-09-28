@@ -3,10 +3,10 @@
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules, collect_dynamic_libs
 import sys, os
 
-PACKAGE='Electron-Cash'
+PACKAGE='DeLight'
 BUNDLE_IDENTIFIER='org.electroncash.' + PACKAGE # Used for info.plist
 PYPKG='electroncash'
-MAIN_SCRIPT='electron-cash'
+MAIN_SCRIPT='delight'
 ICONS_FILE='electron.icns'
 
 for i, x in enumerate(sys.argv):
