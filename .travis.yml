@@ -7,6 +7,6 @@ install:
   - pip install -r contrib/requirements/requirements-travis.txt
 cache:
   - pip
-script:
+#script:
 #    - tox
 #    - coveralls
