@@ -146,7 +146,7 @@ class TransactionDialog() : AlertDialogFragment() {
             val feeSpb = (fee.toDouble() / size.toDouble()).roundToInt()
             dialog.tvFee.text = String.format("%s (%s)",
                                               getString(R.string.sat_byte, feeSpb),
-                                              formatSatoshisAndUnit(fee))
+                                              formatSpocksAndUnit(fee))
         }
     }
 

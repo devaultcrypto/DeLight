@@ -56,6 +56,19 @@ fun formatSatoshisAndUnit(amount: Long): String {
     return "${formatSatoshis(amount)} $unitName"
 }
 
+fun formatSpocks(amount: Long, places: Int = unitPlaces): String {
+    val unit = Math.pow(10.0, places.toDouble())
+    var result = "%.3f".format(Locale.US, amount / unit).trimEnd('0')
+    if (result.endsWith(".")) {
+        result += "0"
+    }
+    return result
+}
+
+fun formatSpocksAndUnit(amount: Long): String {
+    return "${formatSpocks(amount)} $unitName"
+}
+
 
 fun showDialog(activity: FragmentActivity, frag: DialogFragment) {
     val fm = activity.supportFragmentManager
