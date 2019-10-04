@@ -65,7 +65,7 @@ msgid "&Amount"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:577
-msgid "&Cash Account Name"
+msgid "&DeVault ID Name"
 msgstr ""
 
 #: gui/qt/main_window.py:2417
@@ -225,7 +225,7 @@ msgid "&Refresh GUI"
 msgstr ""
 
 #: gui/qt/main_window.py:674
-msgid "&Register Cash Account..."
+msgid "&Register DeVault ID..."
 msgstr ""
 
 #: gui/qt/main_window.py:684
@@ -331,7 +331,7 @@ msgstr ""
 
 #: gui/qt/main_window.py:5101
 #, python-brace-format
-msgid "1 Cash Accounts registration ({cash_accounts_name})"
+msgid "1 DeVault IDs registration ({cash_accounts_name})"
 msgstr ""
 
 #: gui/qt/util.py:47
@@ -355,11 +355,11 @@ msgid "<b>BIP38 support is disabled because a requisite library is not installed
 msgstr ""
 
 #: gui/qt/contact_list.py:463
-msgid "<br>Add anyone's Cash Account to your Contacts"
+msgid "<br>Add anyone's DeVault ID to your Contacts"
 msgstr ""
 
 #: gui/qt/main_window.py:4858
-msgid "<p>How it works: <b>Cash Accounts</b> registrations work by issuing an <b>OP_RETURN</b> transaction to yourself, costing fractions of a penny.</p><p>The registrations are permanently written to the blockchain and associate a human-friendly name with your address.</p><p>After the registration transaction receives <i>1 confirmation</i>, you can use your new <b>Cash Account name</b> as if it were an address and give it out to other people (DeLight or another Cash Account enabled wallet is required).</p><p><span style=\"font-weight:100;\">You will be offered the opportunity to review the generated transaction before broadcasting it to the blockchain.</span></p>"
+msgid "<p>How it works: <b>DeVault IDs</b> registrations work by issuing an <b>OP_RETURN</b> transaction to yourself, costing fractions of a penny.</p><p>The registrations are permanently written to the blockchain and associate a human-friendly name with your address.</p><p>After the registration transaction receives <i>1 confirmation</i>, you can use your new <b>DeVault ID name</b> as if it were an address and give it out to other people (DeLight or another DeVault ID enabled wallet is required).</p><p><span style=\"font-weight:100;\">You will be offered the opportunity to review the generated transaction before broadcasting it to the blockchain.</span></p>"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:610
@@ -410,7 +410,7 @@ msgid "A network connectivity error occured. Please check your internet connecti
 msgstr ""
 
 #: gui/qt/cashacctqt.py:708
-msgid "A network timeout occurred while looking up this Cash Account. You may want to check that your internet connection is up and not saturated processing other requests."
+msgid "A network timeout occurred while looking up this DeVault ID. You may want to check that your internet connection is up and not saturated processing other requests."
 msgstr ""
 
 #: gui/qt/__init__.py:589
@@ -584,7 +584,7 @@ msgid "Advanced"
 msgstr ""
 
 #: gui/qt/main_window.py:4923
-msgid "After at least <i>1 confirmation</i>, you will be able to use your new <b>Cash Account</b>, and it will be visible in DeLight in the <b>Addresses</b> tab."
+msgid "After at least <i>1 confirmation</i>, you will be able to use your new <b>DeVault ID</b>, and it will be visible in DeLight in the <b>Addresses</b> tab."
 msgstr ""
 
 #: plugins/keepkey/qt.py:385 plugins/trezor/qt.py:351
@@ -1041,7 +1041,7 @@ msgid "Cannot start QR scanner, no usable camera resolution found."
 msgstr ""
 
 #: gui/qt/cashacctqt.py:139
-msgid "Cannot verify Cash Account as the network appears to be offline."
+msgid "Cannot verify DeVault ID as the network appears to be offline."
 msgstr ""
 
 #: gui/qt/main_window.py:1020
@@ -1051,50 +1051,50 @@ msgstr ""
 #: gui/qt/cashacctqt.py:875 gui/qt/contact_list.py:201
 #: gui/qt/contact_list.py:234 gui/qt/contact_list.py:383
 #: gui/qt/contact_list.py:384 gui/qt/contact_list.py:385
-msgid "Cash Account"
+msgid "DeVault ID"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:776
-msgid "Cash Account Details"
+msgid "DeVault ID Details"
 msgstr ""
 
 #: gui/qt/main_window.py:1064 gui/qt/cashacctqt.py:439 gui/qt/cashacctqt.py:838
-msgid "Cash Account copied to clipboard"
+msgid "DeVault ID copied to clipboard"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:570
-msgid "Cash Account e.g. satoshi#123.45"
+msgid "DeVault ID e.g. satoshi#123.45"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:885 gui/qt/address_list.py:463
 #: gui/qt/address_dialog.py:107
-msgid "Cash Account has been made the default for this address"
+msgid "DeVault ID has been made the default for this address"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:154
 #, python-brace-format
-msgid "Cash Account not found: {name}"
+msgid "DeVault ID not found: {name}"
 msgstr ""
 
 #: gui/qt/contact_list.py:430
-msgid "Cash Account pending confirmation and/or verification"
+msgid "DeVault ID pending confirmation and/or verification"
 msgstr ""
 
 #: gui/qt/contact_list.py:265
-msgid "Cash Account verification failure"
+msgid "DeVault ID verification failure"
 msgstr ""
 
 #: gui/qt/address_list.py:425
-msgid "Cash Account:"
+msgid "DeVault ID:"
 msgstr ""
 
 #: gui/qt/address_list.py:357
-msgid "Cash Accounts"
+msgid "DeVault IDs"
 msgstr ""
 
 #: gui/qt/main_window.py:4909
 #, python-brace-format
-msgid "Cash Accounts Registration: '{name}' -> {address}"
+msgid "DeVault IDs Registration: '{name}' -> {address}"
 msgstr ""
 
 #: gui/qt/address_list.py:297 gui/qt/utxo_list.py:215
@@ -1639,7 +1639,7 @@ msgstr ""
 
 #: gui/qt/address_list.py:365 gui/qt/utxo_list.py:229
 #: gui/qt/transaction_dialog.py:777
-msgid "Copy Cash Account"
+msgid "Copy DeVault ID"
 msgstr ""
 
 #: gui/qt/transaction_dialog.py:709
@@ -1733,7 +1733,7 @@ msgid "Could not dither or re-render image"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:155
-msgid "Could not find the Cash Account name specified. It either does not exist or there may have been a network connectivity error. Please double-check it and try again."
+msgid "Could not find the DeVault ID name specified. It either does not exist or there may have been a network connectivity error. Please double-check it and try again."
 msgstr ""
 
 #: plugins/trezor/qt.py:401 plugins/trezor/qt.py:437
@@ -2122,7 +2122,7 @@ msgid "DeLight connects to several nodes in order to download block headers and 
 msgstr ""
 
 #: gui/qt/cashacctqt.py:398
-msgid "DeLight currently only supports Cash Account types 1 & 2"
+msgid "DeLight currently only supports DeVault ID types 1 & 2"
 msgstr ""
 
 #: ios/ElectronCash/electroncash_gui/ios_native/newwallet.py:29
@@ -2347,7 +2347,7 @@ msgid "Enter Seed"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:577
-msgid "Enter a Cash Account name of the form Name#123.45, and DeLight will search for the contact and present you with its resolved address."
+msgid "Enter a DeVault ID name of the form Name#123.45, and DeLight will search for the contact and present you with its resolved address."
 msgstr ""
 
 #: gui/qt/main_window.py:521
@@ -3300,15 +3300,15 @@ msgstr ""
 
 #: gui/qt/cashacctqt.py:142
 #, python-brace-format
-msgid "Invalid Cash Account name specified: {name}"
+msgid "Invalid DeVault ID name specified: {name}"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:717
-msgid "Invalid Cash Account name, please try again"
+msgid "Invalid DeVault ID name, please try again"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:747
-msgid "Invalid Cash Account:"
+msgid "Invalid DeVault ID:"
 msgstr ""
 
 #: gui/text.py:336 gui/stdio.py:179
@@ -3528,11 +3528,11 @@ msgid "Lookup"
 msgstr ""
 
 #: gui/qt/main_window.py:673
-msgid "Lookup &Cash Account..."
+msgid "Lookup &DeVault ID..."
 msgstr ""
 
 #: gui/qt/cashacctqt.py:543
-msgid "Lookup Cash Account"
+msgid "Lookup DeVault ID"
 msgstr ""
 
 #: gui/qt/main_window.py:3265
@@ -3569,7 +3569,7 @@ msgid "Make sure you own the seed phrase or the private keys, before you request
 msgstr ""
 
 #: gui/qt/cashacctqt.py:884
-msgid "Make this Cash Account the default for this address"
+msgid "Make this DeVault ID the default for this address"
 msgstr ""
 
 #: ios/ElectronCash/electroncash_gui/ios_native/send.py:738
@@ -3752,7 +3752,7 @@ msgid "Never type it on a website."
 msgstr ""
 
 #: gui/qt/contact_list.py:462
-msgid "New Cash Account Contact"
+msgid "New DeVault ID Contact"
 msgstr ""
 
 #: gui/qt/main_window.py:2856 gui/qt/main_window.py:2858
@@ -3805,7 +3805,7 @@ msgid "No"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:253 gui/qt/address_list.py:379
-msgid "No Cash Accounts"
+msgid "No DeVault IDs"
 msgstr ""
 
 #: ios/ElectronCash/electroncash_gui/ios_native/addresses.py:429
@@ -3892,7 +3892,7 @@ msgid "No receiving address"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:704
-msgid "No results found. However, your wallet is busy updating. This can interfere with Cash Account lookups. You may want to try again when it is done."
+msgid "No results found. However, your wallet is busy updating. This can interfere with DeVault ID lookups. You may want to try again when it is done."
 msgstr ""
 
 #: lib/network.py:1693
@@ -4818,15 +4818,15 @@ msgstr ""
 
 #: gui/qt/main_window.py:4837 gui/qt/main_window.py:4867
 #: gui/qt/main_window.py:4933
-msgid "Register A New Cash Account"
+msgid "Register A New DeVault ID"
 msgstr ""
 
 #: gui/qt/contact_list.py:238
-msgid "Register Cash Account..."
+msgid "Register DeVault ID..."
 msgstr ""
 
 #: gui/qt/main_window.py:1031
-msgid "Register a new Cash Account for this address"
+msgid "Register a new DeVault ID for this address"
 msgstr ""
 
 #: gui/qt/address_list.py:380
@@ -5118,7 +5118,7 @@ msgid "Select All"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:503
-msgid "Select Cash Account"
+msgid "Select DeVault ID"
 msgstr ""
 
 #: gui/qt/external_plugins_window.py:326
@@ -5334,7 +5334,7 @@ msgid "Show All Transactions"
 msgstr ""
 
 #: gui/qt/utxo_list.py:278
-msgid "Show Cash Accounts"
+msgid "Show DeVault IDs"
 msgstr ""
 
 #: ios/ElectronCash/electroncash_gui/ios_native/txdetail.py:317
@@ -5355,7 +5355,7 @@ msgid "Show Fiat balance for addresses"
 msgstr ""
 
 #: gui/qt/contact_list.py:247
-msgid "Show My Cash Accounts"
+msgid "Show My DeVault IDs"
 msgstr ""
 
 #: gui/qt/transaction_dialog.py:708
@@ -5734,13 +5734,13 @@ msgid "The DeVault address never expires and will always be part of this DeLight
 msgstr ""
 
 #: gui/qt/main_window.py:1019
-msgid "The Cash Account (if any) associated with this address. It doesn't get saved with the request, but it is shown here for your convenience.\n\n"
-"You may use the Cash Accounts button to register a new Cash Account for this address."
+msgid "The DeVault ID (if any) associated with this address. It doesn't get saved with the request, but it is shown here for your convenience.\n\n"
+"You may use the DeVault IDs button to register a new DeVault ID for this address."
 msgstr ""
 
 #: gui/qt/cashacctqt.py:168 gui/qt/cashacctqt.py:772
 #, python-brace-format
-msgid "The Cash Account {name} uses an account type that is not supported by DeLight."
+msgid "The DeVault ID {name} uses an account type that is not supported by DeLight."
 msgstr ""
 
 #: plugins/digitalbitbox/digitalbitbox.py:212
@@ -5772,7 +5772,7 @@ msgid "The QR code does not appear to be a valid DVT address.\n"
 msgstr ""
 
 #: gui/qt/main_window.py:4920
-msgid "The Send Tab has been filled-in with your <b>Cash Accounts</b> registration data."
+msgid "The Send Tab has been filled-in with your <b>DeVault IDs</b> registration data."
 msgstr ""
 
 #: gui/qt/bip38_importer.py:136
@@ -5936,7 +5936,7 @@ msgid "The signature for the provided message has been pasted into the signature
 msgstr ""
 
 #: gui/qt/cashacctqt.py:700
-msgid "The specified Cash Account does not appear to be associated with any address"
+msgid "The specified DeVault ID does not appear to be associated with any address"
 msgstr ""
 
 #: lib/wallet.py:137
@@ -5944,7 +5944,7 @@ msgid "The specified WIF key '{}' is a p2sh WIF key. These key types cannot be s
 msgstr ""
 
 #: gui/qt/main_window.py:4881
-msgid "The specified name cannot be used for a Cash Accounts registration. You must specify 1-99 alphanumeric (ASCII) characters, without spaces (underscores are permitted as well)."
+msgid "The specified name cannot be used for a DeVault IDs registration. You must specify 1-99 alphanumeric (ASCII) characters, without spaces (underscores are permitted as well)."
 msgstr ""
 
 #: ios/ElectronCash/electroncash_gui/ios_native/sign_decrypt_dialog.py:339
@@ -6705,7 +6705,7 @@ msgstr ""
 
 #: gui/qt/contact_list.py:423
 #, python-brace-format
-msgid "Validated Cash Account: <b><pre>{emoji} {account_string}</pre></b>"
+msgid "Validated DeVault ID: <b><pre>{emoji} {account_string}</pre></b>"
 msgstr ""
 
 #: gui/qt/main_window.py:3070
@@ -6722,17 +6722,17 @@ msgstr ""
 
 #: gui/qt/contact_list.py:270
 #, python-brace-format
-msgid "Verify {count} Cash Account"
-msgid_plural "Verify {count} Cash Accounts"
+msgid "Verify {count} DeVault ID"
+msgid_plural "Verify {count} DeVault IDs"
 msgstr[0] ""
 
 #: gui/qt/cashacctqt.py:56
-msgid "Verifying Cash Account"
+msgid "Verifying DeVault ID"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:148 gui/qt/cashacctqt.py:691
 #, python-brace-format
-msgid "Verifying Cash Account {name} please wait ..."
+msgid "Verifying DeVault ID {name} please wait ..."
 msgstr ""
 
 #: gui/qt/cashacctqt.py:106
@@ -6904,7 +6904,7 @@ msgid "Warning: The next address will not be recovered automatically if you rest
 msgstr ""
 
 #: gui/qt/contact_list.py:432
-msgid "Warning: This Cash Account is not verified"
+msgid "Warning: This DeVault ID is not verified"
 msgstr ""
 
 #: plugins/virtualkeyboard/__init__.py:4
@@ -7021,7 +7021,7 @@ msgstr ""
 
 #: gui/qt/main_window.py:4868
 #, python-brace-format
-msgid "You are registering a new <a href='ca'>Cash Account</a> for your address <a href='addr'><b><pre>{address}</pre></b></a>"
+msgid "You are registering a new <a href='ca'>DeVault ID</a> for your address <a href='addr'><b><pre>{address}</pre></b></a>"
 msgstr ""
 
 #: ios/ElectronCash/electroncash_gui/ios_native/gui.py:1746
@@ -7085,7 +7085,7 @@ msgid "You have selected non-SSL mode for your server settings."
 msgstr ""
 
 #: gui/qt/main_window.py:1453
-msgid "You may enter:<ul><li> DeVault <b>Address</b> <b>★</b><li> Bitcoin Legacy <b>Address</b> <b>★</b><li> <b>Cash Account</b> <b>★</b> e.g. <i>satoshi#123</i><li> <b>Contact name</b> <b>★</b> from the Contacts tab<li> <b>CoinText</b> e.g. <i>cointext:+1234567</i><li> <b>OpenAlias</b> e.g. <i>satoshi@domain.com</i></ul><br>&nbsp;&nbsp;&nbsp;<b>★</b> = Supports <b>pay-to-many</b>, where you may optionally enter multiple lines of the form:</span><br><pre>    recipient1, amount1 \n"
+msgid "You may enter:<ul><li> DeVault <b>Address</b> <b>★</b><li> Bitcoin Legacy <b>Address</b> <b>★</b><li> <b>DeVault ID</b> <b>★</b> e.g. <i>satoshi#123</i><li> <b>Contact name</b> <b>★</b> from the Contacts tab<li> <b>CoinText</b> e.g. <i>cointext:+1234567</i><li> <b>OpenAlias</b> e.g. <i>satoshi@domain.com</i></ul><br>&nbsp;&nbsp;&nbsp;<b>★</b> = Supports <b>pay-to-many</b>, where you may optionally enter multiple lines of the form:</span><br><pre>    recipient1, amount1 \n"
 "    recipient2, amount2 \n"
 "    etc...</pre>"
 msgstr ""
@@ -7200,11 +7200,11 @@ msgid "Your new imported wallet has been successfully created. Would you like to
 msgstr ""
 
 #: gui/qt/contact_list.py:297
-msgid "Your own Cash Accounts are now hidden"
+msgid "Your own DeVault IDs are now hidden"
 msgstr ""
 
 #: gui/qt/contact_list.py:295
-msgid "Your own Cash Accounts are now shown"
+msgid "Your own DeVault IDs are now shown"
 msgstr ""
 
 #: gui/qt/seed_dialog.py:158
@@ -7483,13 +7483,13 @@ msgstr[0] ""
 
 #: gui/qt/main_window.py:5098
 #, python-brace-format
-msgid "{number_of_cashaccounts} Cash Accounts registrations"
+msgid "{number_of_cashaccounts} DeVault IDs registrations"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:261 gui/qt/cashacctqt.py:714
 #, python-brace-format
-msgid "{number} Cash Account"
-msgid_plural "{number} Cash Accounts"
+msgid "{number} DeVault ID"
+msgid_plural "{number} DeVault IDs"
 msgstr[0] ""
 
 #: gui/qt/main_window.py:783
