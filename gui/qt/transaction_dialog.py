@@ -600,7 +600,7 @@ class TxDialog(QDialog, MessageBoxMixin, PrintError):
                         # "forget" the script in this case so we don't keep
                         # processing it further below..
                         ca_script = None
-            # Format Cash Accounts address *in* script to be highlighted with
+            # Format DeVault IDs address *in* script to be highlighted with
             # our preferred yellow/green for change/receiving and also
             # linkify it.
             addrstr = addr.to_ui_string()
@@ -612,7 +612,7 @@ class TxDialog(QDialog, MessageBoxMixin, PrintError):
                 cursor.insertText(addrstr[idx:len2], text_format(my_addr_in_script))
                 cursor.insertText(addrstr[len2:], text_format(addr))
             else:
-                # Regular format. Was not a Cash Accounts script, just
+                # Regular format. Was not a DeVault IDs script, just
                 # any old Address/ScriptOutput/PublicKey output.
                 cursor.insertText(addrstr, text_format(addr))
             # /CashAccounts support
@@ -628,26 +628,26 @@ class TxDialog(QDialog, MessageBoxMixin, PrintError):
             cursor.insertBlock()
             # /Mark B. Lundeberg's patented output formatting logic™
 
-        # Cash Accounts support
+        # DeVault IDs support
         if ca_script:
             # This branch is taken if script.is_complete() was False initially above...
-            if opret_ct == 1:  # <-- make sure only 1 OP_RETURN appears in the tx as per Cash Accounts spec
+            if opret_ct == 1:  # <-- make sure only 1 OP_RETURN appears in the tx as per DeVault IDs spec
                 if ca_script.is_complete():
                     # add tx to cashaccts ext tx's and verify, since user initiated
                     # a UI action to open the TX, so maybe they are interested
                     # in this particular cashacct registration
-                    self.print_error("adding ext tx to Cash Accounts")
+                    self.print_error("adding ext tx to DeVault IDs")
                     self.wallet.cashacct.add_ext_tx(self.tx_hash, ca_script)
                 else:
                     # Not complete -- kick off ext verifier anyway
                     # We will get an update() signal should it verify ok...
                     # At which point it may become is_complete() and UI can
                     # display all the info.
-                    self.print_error("adding incomplete tx to Cash Accounts")
+                    self.print_error("adding incomplete tx to DeVault IDs")
                     self.wallet.cashacct.add_ext_incomplete_tx(self.tx_hash, self.tx_height, ca_script)
             else:
-                self.print_error(f"Encountered more than 1 OP_RETURN script in TX {self.tx_hash} with Cash Accounts registrations in it, ignoring registration script")
-        # /Cash Accounts support
+                self.print_error(f"Encountered more than 1 OP_RETURN script in TX {self.tx_hash} with DeVault IDs registrations in it, ignoring registration script")
+        # /DeVault IDs support
 
         # make the change & receive legends appear only if we used that color
         self.recv_legend.setVisible(bool(rec_ct))
@@ -774,7 +774,7 @@ class TxDialog(QDialog, MessageBoxMixin, PrintError):
                 if ca_script.is_complete() and self.tx_hash:
                     text_getter = lambda: self.wallet.cashacct.fmt_info(cashacct.Info.from_script(ca_script, self.tx_hash), emoji=True)
                     text_getter()  # go out to network to cache the shortest encoding for cash account name ahead of time...
-                    copy_list += [ ( _("Copy Cash Account"), lambda: self._copy_to_clipboard(text_getter(), o_text) ) ]
+                    copy_list += [ ( _("Copy DeVault ID"), lambda: self._copy_to_clipboard(text_getter(), o_text) ) ]
         except (TypeError, ValueError, IndexError, KeyError) as e:
             self.print_error("Outputs right-click menu exception:", repr(e))
 

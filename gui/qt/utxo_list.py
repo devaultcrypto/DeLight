@@ -221,7 +221,7 @@ class UTXOList(MyTreeWidget):
                     menu.addAction(_("Copy {}").format(alt_column_title), lambda: QApplication.instance().clipboard().setText(alt_copy_text))
                 if ca_info:
                     self.wallet.cashacct.fmt_info(ca_info)  # paranoia: pre-cache minimal chash (may go out to network)
-                    menu.addAction(_("Copy Cash Account"), lambda: self.wallet and QApplication.instance().clipboard().setText(self.wallet.cashacct.fmt_info(ca_info, emoji=True)))
+                    menu.addAction(_("Copy DeVault ID"), lambda: self.wallet and QApplication.instance().clipboard().setText(self.wallet.cashacct.fmt_info(ca_info, emoji=True)))
 
                 # single selection, offer them the "Details" option and also coin/address "freeze" status, if any
                 txid = list(selected.keys())[0].split(':')[0]
@@ -270,7 +270,7 @@ class UTXOList(MyTreeWidget):
         menu.addSeparator()
         def toggle():
             self.show_cash_accounts = not self.show_cash_accounts
-        a = menu.addAction(_("Show Cash Accounts"), toggle)
+        a = menu.addAction(_("Show DeVault IDs"), toggle)
         a.setCheckable(True)
         a.setChecked(self.show_cash_accounts)
 

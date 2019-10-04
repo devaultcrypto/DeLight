@@ -23,7 +23,7 @@
 # THE SOFTWARE.
 
 '''
-Cash Accounts related classes and functions - Qt UI related.
+DeVault IDs related classes and functions - Qt UI related.
 '''
 
 # TODO: whittle these * imports down to what we actually use
@@ -53,7 +53,7 @@ class VerifyingDialog(WaitingDialog):
         super().__init__(parent, message, task, on_success=on_success,
                          on_error=on_error, auto_cleanup=auto_cleanup,
                          auto_show=False, auto_exec=False,
-                         title=title or _('Verifying Cash Account'),
+                         title=title or _('Verifying DeVault ID'),
                          disable_escape_key=disable_escape_key)
         hbox = QHBoxLayout()
         self._vbox.removeWidget(self._label)
@@ -74,7 +74,7 @@ class VerifyingDialog(WaitingDialog):
 
 def verify_multiple_blocks(blocks : List[int], parent : MessageBoxMixin, wallet : Abstract_Wallet, timeout=10.0) -> int:
     ''' Pass a list of blocks and will attempt to verify them all in 1 pass.
-    This is used by the Contacts tab to verify unverified Cash Accounts that
+    This is used by the Contacts tab to verify unverified DeVault IDs that
     may have been imported. Returns the number of successfully verified blocks
     or None on user cancel. '''
     if not len(blocks):
@@ -112,13 +112,13 @@ def verify_multiple_blocks(blocks : List[int], parent : MessageBoxMixin, wallet 
 
 
 def resolve_cashacct(parent : MessageBoxMixin, name : str, wallet : Abstract_Wallet = None) -> Tuple[cashacct.Info, str]:
-    ''' Throws up a WaitingDialog while it resolves a Cash Account.
+    ''' Throws up a WaitingDialog while it resolves a DeVault ID.
 
     Goes out to network, verifies all tx's.
 
     Returns: a tuple of: (Info, Minimally_Encoded_Formatted_AccountName)
 
-    Argument `name` should be a Cash Account name string of the form:
+    Argument `name` should be a DeVault ID name string of the form:
 
       name#number.123
       name#number
@@ -126,7 +126,7 @@ def resolve_cashacct(parent : MessageBoxMixin, name : str, wallet : Abstract_Wal
 
     If the result would be ambigious, that is considered an error, so enough
     of the account name#number.collision_hash needs to be specified to
-    unambiguously resolve the Cash Account.
+    unambiguously resolve the DeVault ID.
 
     On failure throws up an error window and returns None.'''
     from .main_window import ElectrumWindow
@@ -136,23 +136,23 @@ def resolve_cashacct(parent : MessageBoxMixin, name : str, wallet : Abstract_Wal
     class Bad(Exception): pass
     try:
         if not wallet.network or not wallet.network.interface:
-            raise Bad(_("Cannot verify Cash Account as the network appears to be offline."))
+            raise Bad(_("Cannot verify DeVault ID as the network appears to be offline."))
         ca_tup = wallet.cashacct.parse_string(name)
         if not ca_tup:
-            raise Bad(_("Invalid Cash Account name specified: {name}").format(name=name))
+            raise Bad(_("Invalid DeVault ID name specified: {name}").format(name=name))
         results = None
         def resolve_verify():
             nonlocal results
             results = wallet.cashacct.resolve_verify(name)
         code = VerifyingDialog(parent.top_level_window(),
-                               _("Verifying Cash Account {name} please wait ...").format(name=name),
+                               _("Verifying DeVault ID {name} please wait ...").format(name=name),
                                resolve_verify, on_error=lambda e: parent.show_error(str(e)), auto_show=False).exec_()
         if code == QDialog.Rejected:
             # user cancel operation
             return
         if not results:
-            raise Bad(_("Cash Account not found: {name}").format(name=name) + "\n\n"
-                      + _("Could not find the Cash Account name specified. "
+            raise Bad(_("DeVault ID not found: {name}").format(name=name) + "\n\n"
+                      + _("Could not find the DeVault ID name specified. "
                           "It either does not exist or there may have been a network connectivity error. "
                           "Please double-check it and try again."))
         if len(results) > 1:
@@ -165,7 +165,7 @@ def resolve_cashacct(parent : MessageBoxMixin, name : str, wallet : Abstract_Wal
         name = wallet.cashacct.fmt_info(info, mch)
         if not isinstance(info.address, Address):
             raise Bad(_("Unsupported payment data type.") + "\n\n"
-                      + _("The Cash Account {name} uses an account type that "
+                      + _("The DeVault ID {name} uses an account type that "
                           "is not supported by Electron Cash.").format(name=name))
         return info, name
     except Bad as e:
@@ -250,7 +250,7 @@ class InfoGroupBox(PrintError, QGroupBox):
         self.vbox.setContentsMargins(0,0,0,0)
         self.vbox.addWidget(self.w)
         self._but_grp = QButtonGroup(self)  # client code shouldn't use this but instead use selectedItems(), etc
-        self.no_items_text = _('No Cash Accounts')  # client code may set this directly
+        self.no_items_text = _('No DeVault IDs')  # client code may set this directly
 
     def setItems(self,
                  items : List[Tuple[cashacct.Info, str, str]],  # list of 2 or 3 tuple : Info, minimal_chash[, formatted_string]
@@ -258,7 +258,7 @@ class InfoGroupBox(PrintError, QGroupBox):
                  button_type : ButtonType = ButtonType.Radio):
         items = items or []
         nitems = len(items)
-        title = ngettext("{number} Cash Account", "{number} Cash Accounts", nitems).format(number=nitems) if title is None else title
+        title = ngettext("{number} DeVault ID", "{number} DeVault IDs", nitems).format(number=nitems) if title is None else title
         wallet = self.wallet
         if items and (sort or len(items[0]) != 3):
             # sort items by formatted cash account string, also adding the string to
@@ -395,7 +395,7 @@ class InfoGroupBox(PrintError, QGroupBox):
             if not isinstance(info.address, Address):
                 rb.setDisabled(True)
                 is_valid = False
-                rb.setToolTip(_('Electron Cash currently only supports Cash Account types 1 & 2'))
+                rb.setToolTip(_('Electron Cash currently only supports DeVault ID types 1 & 2'))
             elif wallet.is_mine(info.address):
                 is_mine = True
                 is_change = wallet.is_change(info.address)
@@ -406,7 +406,7 @@ class InfoGroupBox(PrintError, QGroupBox):
             if not min_chash:
                 chash_extra = "." + chash_extra
 
-            # Cash Account name
+            # DeVault ID name
             ca_lbl = ButtonAssociatedLabel(f'<b>{pretty_string}</b><font size=-1><i>{chash_extra}</i></font><b>;</b>', button=rb)
             grid.addWidget(ca_lbl, row*3, col*5+1, 1, 1)
 
@@ -436,7 +436,7 @@ class InfoGroupBox(PrintError, QGroupBox):
             if isinstance(parent, ElectrumWindow):
                 view_tx_lbl.linkActivated.connect(view_tx_link_activated)
                 copy_but.clicked.connect(lambda ignored=None, ca_string_em=ca_string_em, copy_but=copy_but:
-                                             parent.copy_to_clipboard(text=ca_string_em, tooltip=_('Cash Account copied to clipboard'), widget=copy_but) )
+                                             parent.copy_to_clipboard(text=ca_string_em, tooltip=_('DeVault ID copied to clipboard'), widget=copy_but) )
                 copy_but.setToolTip('<span style="white-space:nowrap">'
                                     + _("Copy <b>{cash_account_name}</b>").format(cash_account_name=ca_string_em)
                                     + '</span>')
@@ -500,7 +500,7 @@ def multiple_result_picker(parent, results, wallet=None, msg=None, title=None, g
     assert isinstance(wallet, Abstract_Wallet)
 
     msg = msg or _('Multiple results were found, please select an option from the items below:')
-    title = title or _("Select Cash Account")
+    title = title or _("Select DeVault ID")
 
     d = WindowModalDialog(parent, title)
     util.finalization_print_error(d)  # track object lifecycle
@@ -530,17 +530,17 @@ def multiple_result_picker(parent, results, wallet=None, msg=None, title=None, g
 
 def lookup_cash_account_dialog(
     parent, wallet, *,  # parent and wallet are required and parent must be an ElectrumWindow instance.
-        title: str = None,  # the title to use, defaults to "Lookup Cash Account" (translated) and is bold and larger. Can be rich text.
+        title: str = None,  # the title to use, defaults to "Lookup DeVault ID" (translated) and is bold and larger. Can be rich text.
         blurb: str = None,  # will appear in the same label, can be rich text, will get concatenated to title.
         title_label_link_activated_slot: Callable[[str], None] = None,  # if you embed links in the blub, pass a callback to handle them
         button_type: InfoGroupBox.ButtonType = InfoGroupBox.ButtonType.NoButton,  #  see InfoGroupBox
         add_to_contacts_button: bool = False,  # if true, the button bar will include an add to contacts button
         pay_to_button: bool = False  # if true, the button bar will include a "pay to" button
 ) -> List[Tuple[cashacct.Info, str, str]]:  # Returns a list of tuples
-    ''' Shows the generic Cash Account lookup interface. '''
+    ''' Shows the generic DeVault ID lookup interface. '''
     from .main_window import ElectrumWindow
     ok_disables = button_type != InfoGroupBox.ButtonType.NoButton
-    title = title or _("Lookup Cash Account")
+    title = title or _("Lookup DeVault ID")
     blurb = blurb or ''
     assert isinstance(parent, ElectrumWindow) and isinstance(wallet, Abstract_Wallet)
     if parent.gui_object.warn_if_no_network(parent):
@@ -567,14 +567,14 @@ def lookup_cash_account_dialog(
     grid = QGridLayout()
     grid.setContentsMargins(62, 32, 12, 12)
     acct = QLineEdit()
-    acct.setPlaceholderText(_("Cash Account e.g. satoshi#123.45"))
+    acct.setPlaceholderText(_("DeVault ID e.g. satoshi#123.45"))
     acct.setMinimumWidth(280)
-    label2 = WWLabel('<a href="https://www.cashaccount.info/#lookup">' + _("Search online...") + "</a>")
+    label2 = WWLabel('<a href="https://www.devaultid.com/#lookup">' + _("Search online...") + "</a>")
     label2.linkActivated.connect(webopen)
 
 
     #acct.setFixedWidth(280)
-    label = HelpLabel(_("&Cash Account Name"), _("Enter a Cash Account name of the form Name#123.45, and Electron Cash will search for the contact and present you with its resolved address."))
+    label = HelpLabel(_("&DeVault ID Name"), _("Enter a DeVault ID name of the form Name#123.45, and Electron Cash will search for the contact and present you with its resolved address."))
     label.setBuddy(acct)
     search = QPushButton(_("Lookup"))
     search.setEnabled(False)
@@ -688,7 +688,7 @@ def lookup_cash_account_dialog(
                 nonlocal results
                 results = wallet.cashacct.resolve_verify(name, exc=exc)
             code = VerifyingDialog(parent.top_level_window(),
-                                   _("Verifying Cash Account {name} please wait ...").format(name=name),
+                                   _("Verifying DeVault ID {name} please wait ...").format(name=name),
                                    resolve_verify, auto_show=False).exec_()
             if code == QDialog.Rejected:
                 # user cancel -- the waiting dialog thread will continue to run in the background but that's ok.. it will be a no-op
@@ -697,24 +697,24 @@ def lookup_cash_account_dialog(
             if results:
                 ca.setItems(results, auto_resize_parent=False, title='', button_type = button_type)  # suppress groupbox title
             else:
-                ca_msg(_("The specified Cash Account does not appear to be associated with any address"), True)
+                ca_msg(_("The specified DeVault ID does not appear to be associated with any address"), True)
                 if time.time()-t0 >= cashacct.timeout:
                     if (wallet.verifier and wallet.synchronizer and  # check these are still alive: these could potentially go away from under us if wallet is stopped when we get here.
                             (not wallet.verifier.is_up_to_date() or not wallet.synchronizer.is_up_to_date())):
                         parent.show_message(_("No results found. However, your wallet is busy updating."
-                                              " This can interfere with Cash Account lookups."
+                                              " This can interfere with DeVault ID lookups."
                                               " You may want to try again when it is done."))
                     else:
-                        parent.show_message(_("A network timeout occurred while looking up this Cash Account. "
+                        parent.show_message(_("A network timeout occurred while looking up this DeVault ID. "
                                               "You may want to check that your internet connection is up and "
                                               "not saturated processing other requests."))
                 elif exc and isinstance(exc[-1], requests.ConnectionError):
                     parent.show_error(_("A network connectivity error occured. Please check your internet connection and try again."))
             nres = len(results or [])
-            title =  "<b>" + name + "</b> - " + ngettext("{number} Cash Account", "{number} Cash Accounts", nres).format(number=nres)
+            title =  "<b>" + name + "</b> - " + ngettext("{number} DeVault ID", "{number} DeVault IDs", nres).format(number=nres)
             tit_lbl.setText(title)
         else:
-            ca_msg(_("Invalid Cash Account name, please try again"), True)
+            ca_msg(_("Invalid DeVault ID name, please try again"), True)
 
     acct.textChanged.connect(on_text_changed)
     search.clicked.connect(on_search)
@@ -732,9 +732,9 @@ def cash_account_detail_dialog(parent : MessageBoxMixin,  # Should be an Electru
                                ca_string : str,  # Cash acount string eg: "satoshi#123.1
                                *, title : str = None  # The modal dialog window title
     ) -> bool:  # returns True on success, False on failure
-    ''' Shows the Cash Account details for any cash account.
+    ''' Shows the DeVault ID details for any cash account.
     Note that parent should be a ElectrumWindow instance.
-    `ca_string` is just a Cash Account string of the form:
+    `ca_string` is just a DeVault ID string of the form:
         name#number[.collision_hash_prefix]
     Returns False on failure or True on success. User is presented with an error
     message box on False return.'''
@@ -744,7 +744,7 @@ def cash_account_detail_dialog(parent : MessageBoxMixin,  # Should be an Electru
     assert isinstance(wallet, Abstract_Wallet)
 
     if not wallet.cashacct.parse_string(ca_string):
-        parent.show_error(_("Invalid Cash Account:") + f" {ca_string}")
+        parent.show_error(_("Invalid DeVault ID:") + f" {ca_string}")
         return False
 
     ca_string = wallet.cashacct.strip_emoji(ca_string)
@@ -769,11 +769,11 @@ def cash_account_detail_dialog(parent : MessageBoxMixin,  # Should be an Electru
     # file assumes info.address is an Address.
     if not isinstance(info.address, Address):
         parent.show_error(_("Unsupported payment data type.") + "\n\n"
-                          + _("The Cash Account {name} uses an account type that "
+                          + _("The DeVault ID {name} uses an account type that "
                               "is not supported by Electron Cash.").format(name=ca_string))
         return False
 
-    title = title or _("Cash Account Details")
+    title = title or _("DeVault ID Details")
     # create dialog window
     d = WindowModalDialog(parent.top_level_window(), title)
     d.setObjectName("WindowModalDialog - " + title)
@@ -835,7 +835,7 @@ def cash_account_detail_dialog(parent : MessageBoxMixin,  # Should be an Electru
                                 + _("Copy <b>{cash_account_name}</b>").format(cash_account_name=ca_string_em)
                                 + '</span>')
     copy_name_but.clicked.connect(lambda ignored=None, ca_string_em=ca_string_em, copy_but=copy_name_but:
-                                    parent.copy_to_clipboard(text=ca_string_em, tooltip=_('Cash Account copied to clipboard'), widget=copy_but) )
+                                    parent.copy_to_clipboard(text=ca_string_em, tooltip=_('DeVault ID copied to clipboard'), widget=copy_but) )
     grid.addWidget(copy_name_but, 0, 2, 1, 1)
     # address label
     addr_lbl = QLabel(f'<span style="white-space:nowrap; font-size:15pt;"><a href="{info.address.to_ui_string()}"><pre>{info.address.to_ui_string()}</pre></a></span>')
@@ -872,7 +872,7 @@ def cash_account_detail_dialog(parent : MessageBoxMixin,  # Should be an Electru
     tabs.addTab(qr_address, _("Address"))
     qr_ca_string = QRCodeWidget(ca_string, fixedSize=True)
     qr_ca_string.setToolTip(ca_string)
-    tabs.addTab(qr_ca_string, _("Cash Account"))
+    tabs.addTab(qr_ca_string, _("DeVault ID"))
     qr_address.setMinimumSize(300, 300)
     qr_ca_string.setMinimumSize(300, 300)
 
@@ -881,8 +881,8 @@ def cash_account_detail_dialog(parent : MessageBoxMixin,  # Should be an Electru
     def_but = QPushButton()
     mk_def_txt = _("Make default for address")
     is_def_txt = _("Is default for address")
-    mk_def_tt = _("Make this Cash Account the default for this address")
-    is_def_tt = _("Cash Account has been made the default for this address")
+    mk_def_tt = _("Make this DeVault ID the default for this address")
+    is_def_tt = _("DeVault ID has been made the default for this address")
     def make_default():
         wallet.cashacct.set_address_default(info)
         parent.ca_address_default_changed_signal.emit(info)  # updates all concerned widgets, including self

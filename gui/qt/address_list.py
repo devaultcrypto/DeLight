@@ -60,7 +60,7 @@ class AddressList(MyTreeWidget):
         assert self.wallet
         self.cleaned_up = False
 
-        # Cash Accounts support
+        # DeVault IDs support
         self._ca_cb_registered = False
         self._ca_minimal_chash_updated_signal.connect(self._ca_update_chash)
 
@@ -169,7 +169,7 @@ class AddressList(MyTreeWidget):
             used_item = QTreeWidgetItem( [ _("Used"), '', '', '', '', ''] )
             used_flag = False
             addr_list = change_addresses if is_change else receiving_addresses
-            # Cash Account support - we do this here with the already-prepared addr_list for performance reasons
+            # DeVault ID support - we do this here with the already-prepared addr_list for performance reasons
             ca_list_all = self.wallet.cashacct.get_cashaccounts(addr_list)
             ca_by_addr = defaultdict(list)
             for info in ca_list_all:
@@ -181,10 +181,10 @@ class AddressList(MyTreeWidget):
                 is_used = self.wallet.is_used(address)
                 balance = sum(self.wallet.get_addr_balance(address))
                 address_text = address.to_ui_string()
-                # Cash Accounts
+                # DeVault IDs
                 ca_info, ca_list = None, ca_by_addr.get(address)
                 if ca_list:
-                    # Add Cash Account emoji -- the emoji used is the most
+                    # Add DeVault ID emoji -- the emoji used is the most
                     # recent cash account registration for said address
                     ca_list.sort(key=lambda x: ((x.number or 0), str(x.collision_hash)))
                     for ca in ca_list:
@@ -193,7 +193,7 @@ class AddressList(MyTreeWidget):
                     ca_info = self._ca_get_default(ca_list)
                     if ca_info:
                         address_text = ca_info.emoji + " " + address_text
-                # /Cash Accounts
+                # /DeVault IDs
                 label = self.wallet.labels.get(address.to_storage_string(), '')
                 balance_text = self.parent.format_amount(balance, whitespaces=True)
                 columns = [address_text, str(n), label, balance_text, str(num)]
@@ -203,7 +203,7 @@ class AddressList(MyTreeWidget):
                     columns.insert(4, fiat_balance)
                 address_item = SortableTreeWidgetItem(columns)
                 if ca_info:
-                    # Set Cash Accounts: tool tip.. this will read the minimal_chash attribute we added to this object above
+                    # Set DeVault IDs: tool tip.. this will read the minimal_chash attribute we added to this object above
                     self._ca_set_item_tooltip(address_item, ca_info)
                 address_item.setTextAlignment(3, Qt.AlignRight)
                 address_item.setFont(3, self.monospace_font)
@@ -333,11 +333,11 @@ class AddressList(MyTreeWidget):
             menu.addAction(_("Spend from"),
                            partial(self.parent.spend_coins, coins))
 
-        # Add Cash Accounts section at the end, if relevant
+        # Add DeVault IDs section at the end, if relevant
         if not multi_select:
             ca_list = item.data(0, self.DataRoles.cash_accounts)
             menu.addSeparator()
-            a1 = menu.addAction(_("Cash Accounts"), lambda: None)
+            a1 = menu.addAction(_("DeVault IDs"), lambda: None)
             a1.setDisabled(True)
             if ca_list:
                 ca_default = self._ca_get_default(ca_list)
@@ -345,13 +345,13 @@ class AddressList(MyTreeWidget):
                     ca_text = self.wallet.cashacct.fmt_info(ca_info, ca_info.minimal_chash)
                     ca_text_em = self.wallet.cashacct.fmt_info(ca_info, ca_info.minimal_chash, emoji=True)
                     m = menu.addMenu(ca_info.emoji + " " + ca_text)
-                    a_ca_copy = m.addAction(_("Copy Cash Account"), lambda x=None, text=ca_text_em: doCopy(text))
+                    a_ca_copy = m.addAction(_("Copy DeVault ID"), lambda x=None, text=ca_text_em: doCopy(text))
                     a = m.addAction(_("Details") + "...", lambda x=None,ca_text=ca_text: cashacctqt.cash_account_detail_dialog(self.parent, ca_text))
                     a = m.addAction(_("View registration tx") + "...", lambda x=None, ca=ca_info: self.parent.do_process_from_txid(txid=ca.txid))
                     a = a_def = m.addAction(_("Make default for address"), lambda x=None, ca=ca_info: self._ca_set_default(ca, True))
                     if ca_info == ca_default:
                         if where_to_insert_dupe_copy_cash_account and a_ca_copy:
-                            # insert a dupe of "Copy Cash Account" for the default cash account for this address in the top-level menu
+                            # insert a dupe of "Copy DeVault ID" for the default cash account for this address in the top-level menu
                             menu.insertAction(where_to_insert_dupe_copy_cash_account, a_ca_copy)
                         m.setTitle(m.title() + "    " + "★")
                         a_def.setDisabled(True)
@@ -359,7 +359,7 @@ class AddressList(MyTreeWidget):
                         a_def.setChecked(True)
                         a_def.setText(_("Is default for address"))
             else:
-                a1.setText(_("No Cash Accounts"))
+                a1.setText(_("No DeVault IDs"))
             a_new = menu.addAction(_("Register new..."), lambda x=None, addr=addr: self.parent.register_new_cash_account(addr))
             if not ca_list and __class__._cashacct_icon:
                 # we only add an icon if there are no cashaccounts
@@ -404,12 +404,12 @@ class AddressList(MyTreeWidget):
                 self.parent.show_address(addr)
 
     #########################
-    # Cash Accounts related #
+    # DeVault IDs related #
     #########################
     def _ca_set_item_tooltip(self, item, ca_info):
         minimal_chash = getattr(ca_info, 'minimal_chash', None)
         info_str = self.wallet.cashacct.fmt_info(ca_info, minimal_chash)
-        item.setToolTip(0, "<i>" + _("Cash Account:") + "</i><p>&nbsp;&nbsp;<b>"
+        item.setToolTip(0, "<i>" + _("DeVault ID:") + "</i><p>&nbsp;&nbsp;<b>"
                            + f"{info_str}</b>")
 
     def _ca_update_chash(self, ca_info, minimal_chash):
@@ -448,7 +448,7 @@ class AddressList(MyTreeWidget):
         shows a tooltip optionally, and updates self. '''
         self.wallet.cashacct.set_address_default(ca_info)
         if show_tip:
-            QToolTip.showText(QCursor.pos(), _("Cash Account has been made the default for this address"), self)
+            QToolTip.showText(QCursor.pos(), _("DeVault ID has been made the default for this address"), self)
         self.parent.ca_address_default_changed_signal.emit(ca_info)  # eventually calls self.update
 
     def _ca_on_address_default_change(self, ignored):

@@ -23,7 +23,7 @@
 # THE SOFTWARE.
 
 '''
-Cash Accounts related classes and functions.
+DeVault IDs related classes and functions.
 
 Note that this file also contains a unique class called `ScriptOutput` (which
 inherits from address.py's own ScriptOutput), so always import this file
@@ -47,7 +47,7 @@ from . import verifier
 from . import blockchain
 from . import caches
 
-# Cash Accounts protocol code prefix is 0x01010101
+# DeVault IDs protocol code prefix is 0x01010101
 # See OP_RETURN prefix guideline: https://github.com/devaultorg/devault.org/blob/master/spec/op_return-prefix-guideline.md
 protocol_code = bytes.fromhex("01010101")
 
@@ -80,7 +80,7 @@ class ArgumentError(ValueError):
     out of spec.'''
 
 class ScriptOutput(ScriptOutputBase):
-    '''A class to encapsulate a Cash Accounts script output. Use the __new__ or
+    '''A class to encapsulate a DeVault IDs script output. Use the __new__ or
     @classmethod factory methods to create instances. Suitable for including in
     a Transaction as an output.
 
@@ -110,7 +110,7 @@ class ScriptOutput(ScriptOutputBase):
 
     @classmethod
     def protocol_match(cls, script_bytes):
-        '''Returns true iff the `script_bytes` is a valid Cash Accounts
+        '''Returns true iff the `script_bytes` is a valid DeVault IDs
         registration script (has all the requisite fields, etc).'''
         try:
             res = cls.parse_script(script_bytes)
@@ -623,7 +623,7 @@ def lookup(server, number, name=None, collision_prefix=None, timeout=timeout, ex
             util.print_error(f"lookup: Warning for block number {number}: got "
                              f"{len(res)} transactions from the server but "
                              f"unable to parse {len(unparseable)} of them."
-                             " See if the Cash Accounts spec has changed!", unparseable)
+                             " See if the DeVault IDs spec has changed!", unparseable)
         if debug:
             util.print_error(f"lookup: found {len(ret)} reg txs at block height {block} (number={number})")
         return block_hash, ret
@@ -950,7 +950,7 @@ class CashAcct(util.PrintError, verifier.SPVDelegate):
         return name, number, collision_prefix
 
     def resolve_verify(self, ca_string : str, timeout: float = timeout, exc: list = None) -> List[Tuple[Info, str]]:
-        ''' Blocking resolver for Cash Account names. Given a ca_string of the
+        ''' Blocking resolver for DeVault ID names. Given a ca_string of the
         form: name#number[.123], will verify the block it is on and do other
         magic. It will return a list of tuple of (Info, minimal_chash).
 
@@ -1374,7 +1374,7 @@ class CashAcct(util.PrintError, verifier.SPVDelegate):
         if len(pb.reg_txs) == 0:
             self.print_error(f"Warning, received a block from server with number {number}"
                              "but we didn't recognize any tx's in it. "
-                             "To the dev reading this: See if the Cash Account spec has changed!")
+                             "To the dev reading this: See if the DeVault ID spec has changed!")
         # REORG or BAD SERVER CHECK
         def check_sanity_detect_reorg_etc():
             minimal_ch_removed = []
@@ -1485,7 +1485,7 @@ class CashAcct(util.PrintError, verifier.SPVDelegate):
 
     def set_address_default(self, info : Info):
         ''' Set the default CashAccount for a particular address. Pass the Info
-        object pertaining to the Cash Account / Address in question. '''
+        object pertaining to the DeVault ID / Address in question. '''
         if not isinstance(info.address, Address):
             self.print_error("Warning: Info object does not have an Address", info)
             return

@@ -664,7 +664,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             icon = QIcon(":icons/cashacct-button-darkmode.png")
         else:
             icon = QIcon(":icons/cashacct-logo.png")
-        tools_menu.addAction(icon, _("Lookup &Cash Account..."), self.lookup_cash_account_dialog, QKeySequence("Ctrl+L"))
+        tools_menu.addAction(icon, _("Lookup &DeVault ID..."), self.lookup_cash_account_dialog, QKeySequence("Ctrl+L"))
         run_hook('init_menubar_tools', self, tools_menu)
 
         help_menu = menubar.addMenu(_("&Help"))
@@ -1010,12 +1010,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(label, 0, 0)
         grid.addWidget(self.receive_address_e, 0, 1, 1, -1)
 
-        # Cash Account for this address (if any)
-        msg = _("The Cash Account (if any) associated with this address. It doesn't get saved with the request, but it is shown here for your convenience.\n\nYou may use the Cash Accounts button to register a new Cash Account for this address.")
+        # DeVault ID for this address (if any)
+        msg = _("The DeVault ID (if any) associated with this address. It doesn't get saved with the request, but it is shown here for your convenience.\n\nYou may use the DeVault IDs button to register a new DeVault ID for this address.")
         label = HelpLabel(_('Cash Accoun&t'), msg)
         class CashAcctE(ButtonsLineEdit):
             my_network_signal = pyqtSignal(str, object)
-            ''' Inner class encapsulating the Cash Account Edit.s
+            ''' Inner class encapsulating the DeVault ID Edit.s
             Note:
                  - `slf` in this class is this instance.
                  - `self` is wrapping class instance. '''
@@ -1023,7 +1023,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 super().__init__(*args)
                 slf.font_default_size = slf.font().pointSize()
                 icon = ":icons/cashacct-button-darkmode.png" if ColorScheme.dark_scheme else ":icons/cashacct-logo.png"
-                slf.ca_but = slf.addButton(icon, self.register_new_cash_account, _("Register a new Cash Account for this address"))
+                slf.ca_but = slf.addButton(icon, self.register_new_cash_account, _("Register a new DeVault ID for this address"))
                 slf.ca_copy_b = slf.addCopyButton()
                 slf.setReadOnly(True)
                 slf.info = None
@@ -1054,7 +1054,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             def on_copy(slf):
                 ''' overrides super class '''
                 QApplication.instance().clipboard().setText(slf.text()[3:] + ' ' + slf.text()[:1]) # cut off the leading emoji, and add it to the end
-                QToolTip.showText(QCursor.pos(), _("Cash Account copied to clipboard"), slf)
+                QToolTip.showText(QCursor.pos(), _("DeVault ID copied to clipboard"), slf)
             def on_network_qt(slf, event, args=None):
                 ''' pick up cash account changes and update receive tab. Called
                 from GUI thread. '''
@@ -1446,7 +1446,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
               _("You may enter:"
                 "<ul>"
                 "<li> DeVault <b>Address</b> <b>★</b>"
-                "<li> <b>Cash Account</b> <b>★</b> e.g. <i>satoshi#123</i>"
+                "<li> <b>DeVault ID</b> <b>★</b> e.g. <i>satoshi#123</i>"
                 "<li> <b>Contact name</b> <b>★</b> from the Contacts tab"
                 "<li> <b>CoinText</b> e.g. <i>cointext:+1234567</i>"
                 "<li> <b>OpenAlias</b> e.g. <i>satoshi@domain.com</i>"
@@ -2460,13 +2460,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.payto_e.setFocus()
 
     def resolve_cashacct(self, name):
-        ''' Throws up a WaitingDialog while it resolves a Cash Account.
+        ''' Throws up a WaitingDialog while it resolves a DeVault ID.
 
         Goes out to network, verifies all tx's.
 
         Returns: a tuple of: (Info, Minimally_Encoded_Formatted_AccountName)
 
-        Argument `name` should be a Cash Account name string of the form:
+        Argument `name` should be a DeVault ID name string of the form:
 
           name#number.123
           name#number
@@ -2474,7 +2474,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         If the result would be ambigious, that is considered an error, so enough
         of the account name#number.collision_hash needs to be specified to
-        unambiguously resolve the Cash Account.
+        unambiguously resolve the DeVault ID.
 
         On failure throws up an error window and returns None.'''
         return cashacctqt.resolve_cashacct(self, name)
@@ -4614,13 +4614,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.print_error("register_new_cash_account: no receive address specified")
             return
         def on_link(ignored):
-            webopen('https://www.cashaccount.info/')
+            webopen('https://www.devaultid.com/')
         name, placeholder = '', 'Satoshi_Nakamoto'
         while True:
             lh = self.wallet.get_local_height()
-            name = line_dialog(self, _("Register A New Cash Account"),
-                               (_("You are registering a new <a href='ca'>Cash Account</a> for your address <b><pre>{address}</pre></b>").format(address=addr.to_ui_string())
-                                + "<<br>" + _("How it works: <a href='ca'>Cash Accounts</a> registrations work by issuing an <b>OP_RETURN</b> transaction to yourself, costing fractions of a penny. "
+            name = line_dialog(self, _("Register A New DeVault ID"),
+                               (_("You are registering a new <a href='ca'>DeVault ID</a> for your address <b><pre>{address}</pre></b>").format(address=addr.to_ui_string())
+                                + "<<br>" + _("How it works: <a href='ca'>DeVault IDs</a> registrations work by issuing an <b>OP_RETURN</b> transaction to yourself, costing fractions of a penny. "
                                               "You will be offered the opportunity to review the generated transaction before broadcasting it to the blockchain.")
                                 + "<br><br>" + _("The current block height is <b><i>{block_height}</i></b>, so the new cash account will likely look like: <b><u><i>AccountName<i>#{number}</u></b>.")
                                 .format(block_height=lh or '???', number=max(cashacct.bh2num(lh or 0)+1, 0) or '???')
@@ -4633,7 +4633,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 return
             name = name.strip()
             if not cashacct.name_accept_re.match(name):
-                self.show_error(_("The specified name cannot be used for a Cash Accounts registration. You must specify 1-99 alphanumeric (ASCII) characters, without spaces (underscores are permitted as well)."))
+                self.show_error(_("The specified name cannot be used for a DeVault IDs registration. You must specify 1-99 alphanumeric (ASCII) characters, without spaces (underscores are permitted as well)."))
                 continue
             self._reg_new_cash_account(name, addr)
             return
@@ -4661,7 +4661,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         # Set a default description -- this we allow them to edit
         self.message_e.setText(
-            _("Cash Accounts Registration: '{name}' -> {address}").format(
+            _("DeVault IDs Registration: '{name}' -> {address}").format(
                 name=name, address=addr.to_ui_string()
             )
         )
@@ -4672,10 +4672,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         if not cashaccounts_never_show_send_tab_hint:
             msg1 = (
-                _("The Send Tab has been filled-in with your <b>Cash Accounts</b> registration data.")
+                _("The Send Tab has been filled-in with your <b>DeVault IDs</b> registration data.")
                 + "<br><br>" + _("Please review the transaction, save it, and/or broadcast it at your leisure.")
             )
-            msg2 = ( _("After at least <i>1 confirmation</i>, you will be able to use your new <b>Cash Account</b>, and it will be visible in DeLight in the <b>Addresses</b> tab.")
+            msg2 = ( _("After at least <i>1 confirmation</i>, you will be able to use your new <b>DeVault ID</b>, and it will be visible in DeLight in the <b>Addresses</b> tab.")
             )
             msg3 = _("If you wish to control which specific coins are used to "
                      "fund this registration transaction, feel free to use the "
@@ -4685,7 +4685,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             res = self.msg_box(
                 # TODO: get SVG icon..
                 parent = self, icon=QIcon(":icons/cashacct-logo.png").pixmap(75, 75),
-                title=_('Register A New Cash Account'), rich_text=True,
+                title=_('Register A New DeVault ID'), rich_text=True,
                 text = msg1, informative_text = msg2, detail_text = msg3,
                 checkbox_text=_("Never show this again"), checkbox_ischecked=False
             )
@@ -4809,7 +4809,7 @@ class TxUpdateMgr(QObject, PrintError):
                     if tx:
                         is_relevant, is_mine, v, fee = parent.wallet.get_wallet_delta(tx)
                         for _typ, addr, val in tx.outputs():
-                            # Find Cash Account registrations that are for addresses *in* this wallet
+                            # Find DeVault ID registrations that are for addresses *in* this wallet
                             if isinstance(addr, cashacct.ScriptOutput) and parent.wallet.is_mine(addr.address):
                                 n_cashacct += 1
                                 last_seen_ca_name = addr.name
@@ -4840,10 +4840,10 @@ class TxUpdateMgr(QObject, PrintError):
                     ca_text = ''
                     if n_cashacct > 1:
                         # plural
-                        ca_text = " + " + _("{number_of_cashaccounts} Cash Accounts registrations").format(number_of_cashaccounts = n_cashacct)
+                        ca_text = " + " + _("{number_of_cashaccounts} DeVault IDs registrations").format(number_of_cashaccounts = n_cashacct)
                     elif n_cashacct == 1:
                         # singular
-                        ca_text = " + " + _("1 Cash Accounts registration ({cash_accounts_name})").format(cash_accounts_name = last_seen_ca_name)
+                        ca_text = " + " + _("1 DeVault IDs registration ({cash_accounts_name})").format(cash_accounts_name = last_seen_ca_name)
                     if total_amount > 0:
                         self.print_error("Notifying GUI %d tx"%(max(n_ok, n_cashacct)))
                         if max(n_ok, n_cashacct) > 1:
