@@ -3108,7 +3108,7 @@ msgid "Import Addresses or Private Keys"
 msgstr ""
 
 #: lib/base_wizard.py:135
-msgid "Import Bitcoin Addresses"
+msgid "Import DeVault Addresses"
 msgstr "Importa indirizzi Bitcoin"
 
 #: ios/ElectronCash/electroncash_gui/ios_native/newwallet.py:853

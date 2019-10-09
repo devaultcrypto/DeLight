@@ -132,7 +132,7 @@ class BaseWizard(object):
 
     def import_addresses_or_keys(self):
         v = lambda x: keystore.is_address_list(x) or keystore.is_private_key_list(x, allow_bip38=True)
-        title = _("Import Bitcoin Addresses")
+        title = _("Import DeVault Addresses")
         message = _("Enter a list of DeVault addresses (this will create a watching-only wallet), or a list of private keys.")
         if bitcoin.is_bip38_available():
             message += " " + _("BIP38 encrpted keys are supported.")
