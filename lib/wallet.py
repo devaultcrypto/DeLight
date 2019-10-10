@@ -970,7 +970,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
 
             # Invoke the cashacct add hook (if defined) here at the end, with
             # the lock held. We accept the cashacct.ScriptOutput only iff
-            # op_return_ct == 1 as per the Cash Accounts spec.
+            # op_return_ct == 1 as per the DeVault IDs spec.
             # See: https://gitlab.com/cash-accounts/lookup-server/blob/master/routes/parser.js#L253
             if op_return_ct == 1 and deferred_cashacct_add:
                 deferred_cashacct_add()
@@ -1278,7 +1278,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
         tx_in_bytes=tx.estimated_size()
         fee_in_satoshis=tx.get_fee()
         sats_per_byte=fee_in_satoshis/tx_in_bytes
-        if (sats_per_byte > 5000):
+        if (sats_per_byte > 500000):
             raise ExcessiveFee()
             return
 

@@ -454,22 +454,22 @@ class PayToEdit(PrintError, ScanQRTextEdit):
         main_window.py function `timer_actions`.
 
         It will resolve OpenAliases in the send tab and will also alternatively
-        resolve Cash Accounts by attempting to verify them in the background
+        resolve DeVault IDs by attempting to verify them in the background
         and rewriting the payto field with completed information.
 
         Note that OpenAlias is assumed to be a single-line payto. Also note
-        that OpenAlias blocks the GUI thread whereas Cash Accounts does this
+        that OpenAlias blocks the GUI thread whereas DeVault IDs does this
         by throwing up a WaitingDialog (which may be aborted/cancelled and
         doesn't lock the UI event loop).
 
         TODO/FIXME: Make OpenAlias also use a Waiting Dialog
 
-        Cash Accounts supports full multiline with mixed address/cash accounts
+        DeVault IDs supports full multiline with mixed address/cash accounts
         in the payto lines.
 
         OpenAlias and other payto types are mutually exclusive (that is, if
         OpenAlias, you are such with 1 payee which is OpenAlias, and cannot
-        mix with regular and/or Cash Accounts).
+        mix with regular and/or DeVault IDs).
 
         Note that this mechanism was piggy-backed onto code we inherited from
         Electrum.  It's my opinion that this mechanism is a bit complex for what

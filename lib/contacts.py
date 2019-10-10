@@ -45,7 +45,7 @@ class Contacts(util.PrintError):
     '''Electron Cash Contacts subsystem 2.0. Lightweight class for saving/laoding
     contacts to/from storage. This system replaces the old system which was
     a dict keyed off address, and which was limited to 1 contact per address
-    and thus unusable for Cash Accounts and other features.
+    and thus unusable for DeVault IDs and other features.
 
     Instead we model the contact list as a list, keyed off index. Multiple
     entries with the same name or address in the list are ok now. '''

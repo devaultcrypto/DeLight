@@ -22,7 +22,7 @@
 # THE SOFTWARE.
 
 '''
-Cash Accounts tests.
+DeVault IDs tests.
 '''
 import unittest
 import random
