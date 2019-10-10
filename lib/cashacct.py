@@ -51,8 +51,8 @@ from . import caches
 # See OP_RETURN prefix guideline: https://github.com/devaultorg/devault.org/blob/master/spec/op_return-prefix-guideline.md
 protocol_code = bytes.fromhex("01010101")
 
-activation_height = 72013  # all cash acct registrations are invalid if they appear before this block height
-height_modification = activation_height - 100  # compute the cashacct.number by subtracting this value from tx block height
+activation_height = 84001  # all cash acct registrations are invalid if they appear before this block height
+height_modification = activation_height - 1  # compute the cashacct.number by subtracting this value from tx block height
 collision_hash_length = 10  # DO NOT MODIFY -- this is hard-coded in spec
 
 # This RE is used to accept/reject names
@@ -174,8 +174,8 @@ class ScriptOutput(ScriptOutputBase):
     def _check_number_collision_hash(number, collision_hash):
         '''Raises ArgumentError if either number or collision_hash aren't to spec.'''
         if number is not None:  # We don't raise on None
-            if not isinstance(number, int) or number < 100:
-                raise ArgumentError('Number must be an int >= 100')
+            if not isinstance(number, int) or number < 1:
+                raise ArgumentError('Number must be an int >= 1')
         if collision_hash is not None:  # We don't raise on None
             if isinstance(collision_hash, int): collision_hash = str(collision_hash)  # grr.. it was an int
             if not isinstance(collision_hash, str) or not collision_hash_accept_re.match(collision_hash):
@@ -587,7 +587,7 @@ def lookup(server, number, name=None, collision_prefix=None, timeout=timeout, ex
         bnumber = bh2num(block)
         if bnumber != number:
             raise RuntimeError('Bad response')
-        if not isinstance(res, list) or number < 100:
+        if not isinstance(res, list) or number < 1:
             raise RuntimeError('Bad response')
         block_hash, header_prev = None, None
         unparseable = set()
@@ -894,7 +894,7 @@ class CashAcct(util.PrintError, verifier.SPVDelegate):
         return f"{name}#{number}{minimal_chash};{emojipart}"
 
 
-    _number_re = re.compile(r'^[0-9]{3,}$')
+    _number_re = re.compile(r'^[0-9]{1,}$')
     _collision_re = re.compile(r'^[0-9]{0,10}$')
 
     @staticmethod
@@ -945,7 +945,7 @@ class CashAcct(util.PrintError, verifier.SPVDelegate):
             number = int(number)
         except:
             return None
-        if number < 100:
+        if number < 1:
             return None
         return name, number, collision_prefix
 
@@ -1179,7 +1179,7 @@ class CashAcct(util.PrintError, verifier.SPVDelegate):
         d = self.ext_reg_tx.copy()
         d.update(self.wallet_reg_tx)
         for txid, item in d.items():
-            if txid not in self.v_tx and item.script.number is not None and item.script.number >= 100:
+            if txid not in self.v_tx and item.script.number is not None and item.script.number >= 1:
                 self.ext_unverif[txid] = num2bh(item.script.number)
 
         # Note that 'wallet.load_transactions' will be called after this point
@@ -1290,7 +1290,7 @@ class CashAcct(util.PrintError, verifier.SPVDelegate):
         if not isinstance(script, ScriptOutput) or not isinstance(block_height, (int, float)) or not txid or not isinstance(txid, str):
             raise ArgumentError("bad args to add_ext_incomplete_tx")
         script.number = bh2num(block_height)
-        if script.number < 100:
+        if script.number < 1:
             raise ArgumentError("bad block height")
         with self.lock:
             self.ext_incomplete_tx[txid] = self.RegTx(txid, script)
@@ -1299,8 +1299,8 @@ class CashAcct(util.PrintError, verifier.SPVDelegate):
 
     @staticmethod
     def _do_verify_block_argchecks(network, number, exc=[], server='https://unknown'):
-        if not isinstance(number, int) or number < 100:
-            raise ArgumentError('number must be >= 100')
+        if not isinstance(number, int) or number < 1:
+            raise ArgumentError('number must be >= 1')
         if not isinstance(server, str) or not server:
             raise ArgumentError('bad server arg')
         if not isinstance(exc, list):
@@ -1888,7 +1888,7 @@ class CashAcct(util.PrintError, verifier.SPVDelegate):
     # Experimental Methods (stuff we may not use) #
     ###############################################
 
-    def scan_servers_for_registrations(self, start=100, stop=None, progress_cb=None, error_cb=None, timeout=timeout,
+    def scan_servers_for_registrations(self, start=1, stop=None, progress_cb=None, error_cb=None, timeout=timeout,
                                        add_only_mine=True, debug=debug):
         ''' This is slow and not particularly useful.  Will maybe delete this
         code soon. I used it for testing to populate wallet.
@@ -1907,7 +1907,7 @@ class CashAcct(util.PrintError, verifier.SPVDelegate):
             return
         cancel_evt = threading.Event()
         stop = num2bh(stop) if stop is not None else stop
-        start = num2bh(max(start or 0, 100))
+        start = num2bh(max(start or 0, 1))
         def stop_height():
             return stop or self.wallet.get_local_height()+1
         def progress(h, added):
