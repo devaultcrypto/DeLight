@@ -1047,7 +1047,7 @@ msgid "Cannot verify DeVault ID as the network appears to be offline."
 msgstr ""
 
 #: gui/qt/main_window.py:1020
-msgid "Cash Accoun&t"
+msgid "DeVault ID"
 msgstr ""
 
 #: gui/qt/cashacctqt.py:875 gui/qt/contact_list.py:201

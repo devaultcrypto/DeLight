@@ -1012,7 +1012,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         # DeVault ID for this address (if any)
         msg = _("The DeVault ID (if any) associated with this address. It doesn't get saved with the request, but it is shown here for your convenience.\n\nYou may use the DeVault IDs button to register a new DeVault ID for this address.")
-        label = HelpLabel(_('Cash Accoun&t'), msg)
+        label = HelpLabel(_('DeVault ID'), msg)
         class CashAcctE(ButtonsLineEdit):
             my_network_signal = pyqtSignal(str, object)
             ''' Inner class encapsulating the DeVault ID Edit.s
