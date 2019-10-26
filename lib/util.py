@@ -452,6 +452,12 @@ def format_satoshis_plain(x, decimal_point = 8):
     point and has no thousands separator"""
     scale_factor = pow(10, decimal_point)
     return "{:.8f}".format(PyDecimal(x) / scale_factor).rstrip('0').rstrip('.')
+  
+def format_spocks_plain(x, decimal_point = 3):
+    """Display a satoshi amount scaled.  Always uses a '.' as a decimal
+    point and has no thousands separator"""
+    scale_factor = pow(10, decimal_point)
+    return "{:.3f}".format(PyDecimal(x) / scale_factor).rstrip('0').rstrip('.')    
 
 _cached_dp = None
 from .caches import ExpiringCache
@@ -493,8 +499,46 @@ def format_satoshis(x, num_zeros=0, decimal_point=8, precision=None, is_diff=Fal
     _fmt_sats_cache.put(cache_key, result)
     return result
 
+def format_spocks(x, num_zeros=0, decimal_point=3, precision=None, is_diff=False, whitespaces=False):
+    global _cached_dp
+    if x is None:
+        return 'unknown'
+    if precision is None:
+        precision = decimal_point
+    cache_key = (x,num_zeros,decimal_point,precision,is_diff,whitespaces)
+    result = _fmt_sats_cache.get(cache_key)
+    if result is not None:
+        return result
+    decimal_format = ".0" + str(precision) if precision > 0 else ""
+    if is_diff:
+        decimal_format = '+' + decimal_format
+    try:
+        result = ("{:" + decimal_format + "f}").format(x / pow(10, decimal_point)).rstrip('0')
+    except ArithmeticError:
+        # Normally doesn't happen but if x is a huge int, we may get
+        # OverflowError or other ArithmeticError subclass exception. See #1024.
+        return 'unknown'
+    integer_part, fract_part = result.split(".")
+    if not _cached_dp:
+        # We lazy init this here rather than at module level because iOS sets
+        # locale at startup -- so we should initialize this variable on
+        # first run through this function rather than at module load time.
+        _cached_dp = localeconv().get('decimal_point') or '.'
+    dp = _cached_dp
+    if len(fract_part) < num_zeros:
+        fract_part += "0" * (num_zeros - len(fract_part))
+    result = integer_part + dp + fract_part
+    if whitespaces:
+        result += " " * (decimal_point - len(fract_part))
+        result = " " * (15 - len(result)) + result
+    _fmt_sats_cache.put(cache_key, result)
+    return result
+
 def format_fee_satoshis(fee, num_zeros=0):
     return format_satoshis(fee, num_zeros, 0, precision=num_zeros)
+    
+def format_fee_spocks(fee, num_zeros=0):
+    return format_spocks(fee, num_zeros, 0, precision=num_zeros)    
 
 def timestamp_to_datetime(timestamp):
     try:
