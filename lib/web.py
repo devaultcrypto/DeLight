@@ -31,7 +31,7 @@ import urllib
 from .address import Address
 from . import bitcoin
 from . import networks
-from .util import format_satoshis_plain, bh2u, print_error
+from .util import format_spocks_plain, bh2u, print_error
 
 
 DEFAULT_EXPLORER = "exploredvt.com"
@@ -94,7 +94,7 @@ def create_URI(addr, amount, message, *, op_return=None, op_return_raw=None):
     scheme, path = addr.to_URI_components()
     query = []
     if amount:
-        query.append('amount=%s'%format_satoshis_plain(amount))
+        query.append('amount=%s'%format_spocks_plain(amount))
     if message:
         query.append('message=%s'%urllib.parse.quote(message))
     if op_return:

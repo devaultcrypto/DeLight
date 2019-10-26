@@ -33,7 +33,7 @@ from functools import wraps
 from decimal import Decimal as PyDecimal  # Qt 5.12 also exports Decimal
 
 from .import util
-from .util import bfh, bh2u, format_satoshis, json_decode, print_error, to_bytes
+from .util import bfh, bh2u, format_spocks, json_decode, print_error, to_bytes
 from .import bitcoin
 from .address import Address
 from .bitcoin import hash_160, COIN, TYPE_ADDRESS
@@ -556,7 +556,7 @@ class Commands:
             if labels or balance:
                 item = (item,)
             if balance:
-                item += (format_satoshis(sum(self.wallet.get_addr_balance(addr))),)
+                item += (format_spocks(sum(self.wallet.get_addr_balance(addr))),)
             if labels:
                 item += (repr(self.wallet.labels.get(addr.to_storage_string(), '')),)
             out.append(item)
@@ -608,7 +608,7 @@ class Commands:
             PR_EXPIRED: 'Expired',
         }
         out['address'] = out.get('address').to_ui_string()
-        out['amount (DVT)'] = format_satoshis(out.get('amount'))
+        out['amount (DVT)'] = format_spocks(out.get('amount'))
         out['status'] = pr_str[out.get('status', PR_UNKNOWN)]
         return out
 

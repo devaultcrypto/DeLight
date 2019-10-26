@@ -40,7 +40,7 @@ from decimal import Decimal as PyDecimal  # Qt 5.12 also exports Decimal
 from functools import partial
 
 from .i18n import ngettext
-from .util import NotEnoughFunds, ExcessiveFee, PrintError, UserCancelled, profiler, format_satoshis, format_time, finalization_print_error
+from .util import NotEnoughFunds, ExcessiveFee, PrintError, UserCancelled, profiler, format_spocks, format_time, finalization_print_error
 
 from .address import Address, Script, ScriptOutput, PublicKey, OpCodes
 from .bitcoin import *
@@ -1107,9 +1107,9 @@ class Abstract_Wallet(PrintError, SPVDelegate):
                 'height':height,
                 'confirmations':conf,
                 'timestamp':timestamp,
-                'value': (format_satoshis(value, decimal_point=decimal_point, is_diff=True)
+                'value': (format_spocks(value, decimal_point=decimal_point, is_diff=True)
                           if value is not None else '--'),
-                'balance': format_satoshis(balance, decimal_point=decimal_point)
+                'balance': format_spocks(balance, decimal_point=decimal_point)
             }
             if item['height']>0:
                 date_str = format_time(timestamp) if timestamp is not None else _("unverified")
@@ -1621,7 +1621,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
             return
         out = copy.copy(r)
         addr_text = addr.to_ui_string()
-        amount_text = format_satoshis(r['amount'])
+        amount_text = format_spocks(r['amount'])
         out['URI'] = '{}:{}?amount={}'.format(networks.net.CASHADDR_PREFIX,
                                               addr_text, amount_text)
         status, conf = self.get_request_status(addr)
