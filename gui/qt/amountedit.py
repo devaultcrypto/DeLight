@@ -5,7 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import (QLineEdit, QStyle, QStyleOptionFrame)
 
 from decimal import Decimal as PyDecimal  # Qt 5.12 also exports Decimal
-from electroncash.util import format_satoshis_plain, inv_base_units
+from electroncash.util import format_spocks_plain, inv_base_units
 from .util import ColorScheme
 
 class MyLineEdit(QLineEdit):
@@ -93,7 +93,7 @@ class BTCAmountEdit(AmountEdit):
         if amount is None:
             self.setText(" ") # Space forces repaint in case units changed
         else:
-            self.setText(format_satoshis_plain(amount, self.decimal_point()))
+            self.setText(format_spocks_plain(amount, self.decimal_point()))
 
 class BTCkBEdit(BTCAmountEdit):
     def _base_unit(self):

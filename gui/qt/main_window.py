@@ -43,10 +43,10 @@ from electroncash.bitcoin import COIN, TYPE_ADDRESS, TYPE_SCRIPT, MIN_AMOUNT
 from electroncash import networks
 from electroncash.plugins import run_hook
 from electroncash.i18n import _, ngettext
-from electroncash.util import (format_time, format_satoshis, PrintError,
-                               format_satoshis_plain, NotEnoughFunds,
+from electroncash.util import (format_time, format_spocks, PrintError,
+                               format_spocks_plain, NotEnoughFunds,
                                ExcessiveFee, UserCancelled, InvalidPassword,
-                               bh2u, bfh, format_fee_satoshis, Weak,
+                               bh2u, bfh, format_fee_spocks, Weak,
                                print_error)
 import electroncash.web as web
 from electroncash import Transaction
@@ -764,7 +764,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.on_timer_signal.emit()
 
     def format_amount(self, x, is_diff=False, whitespaces=False):
-        return format_satoshis(x, self.num_zeros, self.decimal_point, is_diff=is_diff, whitespaces=whitespaces)
+        return format_spocks(x, self.num_zeros, self.decimal_point, is_diff=is_diff, whitespaces=whitespaces)
 
     def format_amount_and_units(self, amount, is_diff=False):
         text = self.format_amount(amount, is_diff=is_diff) + ' '+ self.base_unit()
@@ -774,7 +774,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return text
 
     def format_fee_rate(self, fee_rate):
-        sats_per_byte = format_fee_satoshis(fee_rate/1000, max(self.num_zeros, 1))
+        sats_per_byte = format_fee_spocks(fee_rate/1000, max(self.num_zeros, 1))
         return _('{sats_per_byte} sat/byte').format(sats_per_byte=sats_per_byte)
 
     def get_decimal_point(self):
@@ -2252,7 +2252,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         else:
             self.payto_e.setExpired()
         self.payto_e.setText(pr.get_requestor())
-        self.amount_e.setText(format_satoshis_plain(pr.get_amount(), self.decimal_point))
+        self.amount_e.setText(format_spocks_plain(pr.get_amount(), self.decimal_point))
         self.message_e.setText(pr.get_memo())
         # signal to set fee
         self.amount_e.textEdited.emit("")
