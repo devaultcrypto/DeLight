@@ -499,7 +499,7 @@ def format_satoshis(x, num_zeros=0, decimal_point=8, precision=None, is_diff=Fal
     _fmt_sats_cache.put(cache_key, result)
     return result
 
-def format_spocks(x, num_zeros=0, decimal_point=3, precision=None, is_diff=False, whitespaces=False):
+def format_spocks(x, num_zeros=0, decimal_point=3, precision=3, is_diff=False, whitespaces=False):
     global _cached_dp
     if x is None:
         return 'unknown'
