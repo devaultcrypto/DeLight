@@ -63,7 +63,7 @@ class UpdateChecker(QWidget, PrintError):
     _dl_prog = pyqtSignal(object, int) # [0 -> 100] range
 
     #url = "https://www.c3-soft.com/downloads/BitcoinCash/Electron-Cash/update_check" # Testing URL
-    url = "https://raw.githubusercontent.com/devaultcrypto/Electron-Cash/master/contrib/update_checker/releases.json" # Release URL
+    url = "https://raw.githubusercontent.com/devaultcrypto/DeLight/master/contrib/update_checker/releases.json" # Release URL
     download_url = "https://github.com/devaultcrypto/DeLight/releases"
 
     VERSION_ANNOUNCEMENT_SIGNING_ADDRESSES = (

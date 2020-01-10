@@ -6,7 +6,7 @@ This directory contains the `releases.json` file that the Electron Cash update c
 #### Update Checker Overview
 As of version 3.3.6 of Electron Cash, there is an update-checking facility built-in to the Qt desktop app. The facility basically functions as follows:
 
-1. When the user selects "Check for updates...", Electron Cash connects to the URL hard-coded in `gui/qt/update_checker.py` (currently: https://raw.github.com/Electron-Cash/Electron-Cash/master/contrib/update_checker/releases.json)
+1. When the user selects "Check for updates...", Electron Cash connects to the URL hard-coded in `gui/qt/update_checker.py` (currently: https://raw.github.com/devaultcrypto/DeLight/master/contrib/update_checker/releases.json)
 2. It downloads `releases.json` (the file in this directory)
 3. It checks the versions seen in `releases.json` -- if they are newer than the version in the running app, and if the signed message is valid and is signed with one of the addresses hard-coded in `update_checker.py`, it then informs the user that an update is available.
 
