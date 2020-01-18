@@ -5,7 +5,7 @@ import getpass
 
 import electroncash
 from electroncash.address import Address
-from electroncash.util import format_spocks, set_verbosity
+from electroncash.util import format_satoshis, set_verbosity
 from electroncash.bitcoin import COIN, TYPE_ADDRESS
 from electroncash import Wallet, WalletStorage
 
@@ -122,7 +122,7 @@ class ElectrumGui:
             label = self.wallet.get_label(tx_hash)
             if len(label) > 40:
                 label = label[0:37] + '...'
-            self.history.append( format_str%( time_str, label, format_spocks(value, whitespaces=True), format_spocks(balance, whitespaces=True) ) )
+            self.history.append( format_str%( time_str, label, format_satoshis(value, whitespaces=True), format_satoshis(balance, whitespaces=True) ) )
 
 
     def print_balance(self):

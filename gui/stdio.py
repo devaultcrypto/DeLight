@@ -2,7 +2,7 @@ from decimal import Decimal as PyDecimal
 _ = lambda x:x
 #from i18n import _
 from electroncash import WalletStorage, Wallet
-from electroncash.util import format_spocks, set_verbosity
+from electroncash.util import format_satoshis, set_verbosity
 from electroncash.address import Address
 from electroncash.bitcoin import COIN, TYPE_ADDRESS
 import getpass, datetime
@@ -99,7 +99,7 @@ class ElectrumGui:
                 time_str = 'unconfirmed'
 
             label = self.wallet.get_label(tx_hash)
-            messages.append( format_str%( time_str, label, format_spocks(delta, whitespaces=True), format_spocks(balance, whitespaces=True) ) )
+            messages.append( format_str%( time_str, label, format_satoshis(delta, whitespaces=True), format_satoshis(balance, whitespaces=True) ) )
 
         self.print_list(messages[::-1], format_str%( _("Date"), _("Description"), _("Amount"), _("Balance")))
 
