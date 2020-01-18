@@ -319,6 +319,8 @@ class SimpleConfig(PrintError):
 
     def estimate_fee(self, size):
         calc = int(self.fee_per_kb() * size / 1000.)
+        # above was for BTC/BCH, we must remove 5 decimal places to get 3 bit precision for DVT
+        calc = 100000 * int(calc / 100000)
         if (calc < MIN_AMOUNT): calc = MIN_AMOUNT
         return calc
 

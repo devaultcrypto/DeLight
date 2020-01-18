@@ -29,7 +29,7 @@ class AmountEdit(MyLineEdit):
         self.is_shortcut = False
 
     def decimal_point(self):
-        return 8
+        return 3
 
     def numbify(self):
         text = self.text().strip()
