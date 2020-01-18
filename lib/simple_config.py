@@ -3,6 +3,7 @@ import threading
 import time
 import os
 import stat
+import math
 
 from . import util
 from copy import deepcopy
@@ -320,7 +321,7 @@ class SimpleConfig(PrintError):
     def estimate_fee(self, size):
         calc = int(self.fee_per_kb() * size / 1000.)
         # above was for BTC/BCH, we must remove 5 decimal places to get 3 bit precision for DVT
-        calc = 100000 * int(calc / 100000)
+        calc = 100000 * math.ceil(calc / 100000.0)
         if (calc < MIN_AMOUNT): calc = MIN_AMOUNT
         return calc
 
