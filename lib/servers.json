@@ -1,11 +1,11 @@
 {
-    "electron.exploredvt.com": {
+    "delight.exploredvt.com": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
         "version": "1.10.1"
     },	
-    "electrum.dvtapi.com": {	
+    "delight.dvtapi.com": {	
         "pruning": "-",	
         "s": "50002",	
         "t": "50001",	
