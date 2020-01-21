@@ -39,7 +39,7 @@ class SendDialog : AlertDialogFragment() {
                    .asList().isEmpty()) {
             // At least one receiving address is needed to call wallet.dummy_address.
             throw ToastException(
-                R.string.electron_cash_is_generating_your_addresses__please_wait_)
+                R.string.delight_is_generating_your_addresses__please_wait_)
         }
     }
 

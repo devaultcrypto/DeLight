@@ -39,7 +39,7 @@ fun toSatoshis(s: String, places: Int = unitPlaces) : Long {
     try {
         return Math.round(s.toDouble() * unit)
     } catch (e: NumberFormatException) {
-        throw ToastException(R.string.Invalid_amount)
+        throw ToastException(R.string.invalid_amount)
     }
 }
 

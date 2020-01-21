@@ -8,9 +8,9 @@
         android:title="@string/Restore_from_seed"/>
 
     <item android:id="@+id/menuImport"
-        android:title="@string/Import_addresses"/>
+        android:title="@string/import_addresses"/>
 
     <item android:id="@+id/menuImportMaster"
-        android:title="@string/Use_a_master"/>
+        android:title="@string/use_a_master"/>
 
 </menu>

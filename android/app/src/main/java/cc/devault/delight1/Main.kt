@@ -374,7 +374,7 @@ class AboutDialog : AlertDialogFragment() {
             val version = app.packageManager.getPackageInfo(app.packageName, 0).versionName
             setTitle(getString(R.string.app_name) + " " + version)
             val message = SpannableStringBuilder()
-            listOf(R.string.copyright_2017, R.string.made_with, R.string.for_support)
+            listOf(R.string.copyright_2019, R.string.made_with, R.string.for_support)
                 .forEachIndexed { i, stringId ->
                     if (i != 0) {
                         message.append("\n\n")

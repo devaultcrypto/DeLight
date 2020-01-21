@@ -79,7 +79,7 @@ fun validateWalletName(name: String) {
         throw ToastException(R.string.wallet_name_is_too)
     }
     if (daemonModel.listWallets().contains(name)) {
-        throw ToastException(R.string.a_wallet_with_that_name_already_exists_please_enter)
+        throw ToastException(R.string.a_wallet_with_that_name_already_exists_please)
     }
 }
 
@@ -179,7 +179,7 @@ class NewWalletImportDialog : NewWalletDialog2() {
 
     override fun onShowDialog() {
         super.onShowDialog()
-        tvPrompt.setText(R.string.enter_a_list_of_bitcoin)
+        tvPrompt.setText(R.string.enter_a_list_of_devault)
         dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener { scanQR(this) }
     }
 
