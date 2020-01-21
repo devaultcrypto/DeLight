@@ -1,40 +1,27 @@
 package cc.devault.delight1
 
-import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.Observer
 import android.os.Bundle
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentActivity
-import android.support.v7.app.AlertDialog
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.observe
 import com.chaquo.python.PyObject
 import kotlinx.android.synthetic.main.amount_box.*
 import kotlinx.android.synthetic.main.request_detail.*
 import kotlinx.android.synthetic.main.requests.*
 
 
-val requestsUpdate = MutableLiveData<Unit>().apply { value = Unit }
-
-
-class RequestsFragment : Fragment(), MainFragment {
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.requests, container, false)
-    }
-
+class RequestsFragment : Fragment(R.layout.requests), MainFragment {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         setupVerticalList(rvRequests)
         rvRequests.adapter = RequestsAdapter(activity!!)
-
-        daemonUpdate.observe(viewLifecycleOwner, Observer { refresh() })
-        requestsUpdate.observe(viewLifecycleOwner, Observer { refresh() })
-        settings.getString("base_unit").observe(viewLifecycleOwner, Observer {
-            rvRequests.adapter?.notifyDataSetChanged()
-        })
+        TriggerLiveData().apply {
+            addSource(daemonUpdate)
+            addSource(settings.getString("base_unit"))
+        }.observe(viewLifecycleOwner, { refresh() })
 
         btnAdd.setOnClickListener { newRequest(activity!!) }
     }
@@ -127,42 +114,42 @@ class RequestDialog() : AlertDialogFragment() {
         }
     }
 
-    override fun onShowDialog(dialog: AlertDialog) {
-        dialog.btnCopy.setOnClickListener {
+    override fun onShowDialog() {
+        btnCopy.setOnClickListener {
             copyToClipboard(getUri(), R.string.request_uri)
         }
-        dialog.tvAddress.text = address.callAttr("to_ui_string").toString()
-        dialog.tvUnit.text = unitName
+        tvAddress.text = address.callAttr("to_ui_string").toString()
+        tvUnit.text = unitName
 
         val tw = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) { updateUI() }
         }
-        for (et in listOf(dialog.etAmount, dialog.etDescription)) {
+        for (et in listOf(etAmount, etDescription)) {
             et.addTextChangedListener(tw)
         }
-        fiatUpdate.observe(this, Observer { updateUI() })
+        fiatUpdate.observe(this, { updateUI() })
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { onOK() }
 
         if (existingRequest != null) {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                showDialog(activity!!, DeleteRequestDialog(address))
+                showDialog(this, RequestDeleteDialog(address))
             }
         }
     }
 
-    override fun onFirstShowDialog(dialog: AlertDialog) {
+    override fun onFirstShowDialog() {
         val request = existingRequest
         if (request != null) {
             val model = RequestModel(request)
-            dialog.etAmount.setText(model.amount)
-            dialog.etDescription.setText(model.description)
+            etAmount.setText(model.amount)
+            etDescription.setText(model.description)
         }
     }
 
     private fun updateUI() {
-        showQR(dialog.imgQR, getUri())
+        showQR(imgQR, getUri())
         amountBoxUpdate(dialog)
     }
 
@@ -181,17 +168,17 @@ class RequestDialog() : AlertDialogFragment() {
                 "add_payment_request",
                 wallet.callAttr("make_payment_request", address, amount, description),
                 daemonModel.config)
-            requestsUpdate.setValue(Unit)
+            daemonUpdate.setValue(Unit)
             dismiss()
         } catch (e: ToastException) { e.show() }
     }
 
     val description
-        get() = dialog.etDescription.text.toString()
+        get() = etDescription.text.toString()
 }
 
 
-class DeleteRequestDialog() : AlertDialogFragment() {
+class RequestDeleteDialog() : AlertDialogFragment() {
     constructor(addr: PyObject) : this() {
         arguments = Bundle().apply {
             putString("address", addr.callAttr("to_storage_string").toString())
@@ -205,8 +192,8 @@ class DeleteRequestDialog() : AlertDialogFragment() {
                 daemonModel.wallet!!.callAttr("remove_payment_request",
                                               makeAddress(arguments!!.getString("address")!!),
                                               daemonModel.config)
-                requestsUpdate.setValue(Unit)
-                findDialog(activity!!, RequestDialog::class)!!.dismiss()
+                daemonUpdate.setValue(Unit)
+                (targetFragment as RequestDialog).dismiss()
             }
             .setNegativeButton(android.R.string.cancel, null)
     }

@@ -1,20 +1,11 @@
 package cc.devault.delight1
 
-import android.arch.lifecycle.MutableLiveData
+import androidx.lifecycle.MutableLiveData
 import android.widget.Toast
 import com.chaquo.python.PyException
 import com.chaquo.python.PyObject
-import com.chaquo.python.Python
-import com.chaquo.python.android.AndroidPlatform
 
 
-val py by lazy {
-    Python.start(AndroidPlatform(app))
-    Python.getInstance()
-}
-fun libMod(name: String) = py.getModule("electroncash.$name")!!
-fun guiMod(name: String) = py.getModule("electroncash_gui.android.$name")!!
-val libNetworks by lazy { libMod("networks") }
 val guiDaemon by lazy { guiMod("daemon") }
 
 val WATCHDOG_INTERVAL = 1000L
@@ -105,4 +96,5 @@ fun setDescription(key: String, description: String) {
     val wallet = daemonModel.wallet!!
     wallet.callAttr("set_label", key, description)
     wallet.get("storage")!!.callAttr("write")
+    daemonUpdate.postValue(Unit)
 }

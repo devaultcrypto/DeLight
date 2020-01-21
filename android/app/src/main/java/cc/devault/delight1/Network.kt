@@ -1,25 +1,22 @@
 package cc.devault.delight1
 
 import android.app.Dialog
-import android.arch.lifecycle.Observer
 import android.content.Context
 import android.os.Bundle
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentActivity
-import android.support.v7.app.AlertDialog
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.preference.EditTextPreference
-import android.support.v7.preference.EditTextPreferenceDialogFragmentCompat
 import android.text.InputType
 import android.util.AttributeSet
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.observe
+import androidx.preference.EditTextPreference
+import androidx.preference.EditTextPreferenceDialogFragmentCompat
 import com.chaquo.python.PyException
 import com.chaquo.python.PyObject
 import kotlinx.android.synthetic.main.network.*
@@ -31,7 +28,10 @@ val libNetwork by lazy { libMod("network") }
 
 
 fun initNetwork() {
-    settings.getBoolean("auto_connect").observeForever { updateNetwork() }
+    settings.getBoolean("auto_connect").observeForever { autoConnect ->
+        daemonModel.network.callAttr("set_whitelist_only", autoConnect)  // See #1636.
+        updateNetwork()
+    }
     settings.getString("server").observeForever { updateNetwork() }
 }
 
@@ -41,25 +41,12 @@ private fun updateNetwork() {
 }
 
 
-class NetworkActivity : AppCompatActivity() {
+class NetworkActivity : AppCompatActivity(R.layout.network) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        supportFragmentManager.beginTransaction()
-            .replace(android.R.id.content, NetworkFragment()).commit()
-    }
-}
-
-
-class NetworkFragment : Fragment() {
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.network, container, false)
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         setupVerticalList(rvIfaces)
-        rvIfaces.adapter = IfacesAdapter(activity!!)
-        daemonUpdate.observe(viewLifecycleOwner, Observer { refresh() })
+        rvIfaces.adapter = IfacesAdapter(this)
+        daemonUpdate.observe(this, { refresh() })
     }
 
     fun refresh() {

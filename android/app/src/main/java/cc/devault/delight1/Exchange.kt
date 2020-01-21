@@ -1,6 +1,6 @@
 package cc.devault.delight1
 
-import android.arch.lifecycle.MediatorLiveData
+import androidx.lifecycle.MediatorLiveData
 
 
 val EXCHANGE_CALLBACKS = setOf("on_quotes", "on_history")

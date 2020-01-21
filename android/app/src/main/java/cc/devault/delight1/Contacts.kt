@@ -1,16 +1,13 @@
 package cc.devault.delight1
 
-import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.Observer
 import android.content.Intent
 import android.os.Bundle
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentActivity
-import android.support.v7.app.AlertDialog
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.observe
 import com.chaquo.python.PyObject
 import com.google.zxing.integration.android.IntentIntegrator
 import kotlinx.android.synthetic.main.contact_detail.*
@@ -19,24 +16,15 @@ import kotlinx.android.synthetic.main.contacts.*
 
 val libContacts by lazy { libMod("contacts") }
 
-val contactsUpdate = MutableLiveData<Unit>().apply { value = Unit }
 
-
-class ContactsFragment : Fragment(), MainFragment {
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.contacts, container, false)
-    }
-
+class ContactsFragment : Fragment(R.layout.contacts), MainFragment {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         setupVerticalList(rvContacts)
         rvContacts.adapter = ContactsAdapter(activity!!)
-
-        daemonUpdate.observe(viewLifecycleOwner, Observer { refresh() })
-        contactsUpdate.observe(viewLifecycleOwner, Observer { refresh() })
-        settings.getBoolean("cashaddr_format").observe(viewLifecycleOwner, Observer {
-            rvContacts.adapter?.notifyDataSetChanged()
-        })
+        TriggerLiveData().apply {
+            addSource(daemonUpdate)
+            addSource(settings.getBoolean("cashaddr_format"))
+        }.observe(viewLifecycleOwner, { refresh() })
 
         btnAdd.setOnClickListener { showDialog(activity!!, ContactDialog()) }
     }
@@ -97,20 +85,20 @@ class ContactDialog : AlertDialogFragment() {
         }
     }
 
-    override fun onShowDialog(dialog: AlertDialog) {
+    override fun onShowDialog() {
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { onOK() }
 
         val contact = existingContact
         if (contact == null) {
-            for (btn in listOf(dialog.btnExplore, dialog.btnSend)) {
+            for (btn in listOf(btnExplore, btnSend)) {
                 (btn as View).visibility = View.INVISIBLE
             }
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener { scanQR(this) }
         } else {
-            dialog.btnExplore.setOnClickListener {
+            btnExplore.setOnClickListener {
                 exploreAddress(activity!!, contact.addr)
             }
-            dialog.btnSend.setOnClickListener {
+            btnSend.setOnClickListener {
                 try {
                     showDialog(activity!!, SendDialog().apply {
                         arguments = Bundle().apply {
@@ -121,33 +109,33 @@ class ContactDialog : AlertDialogFragment() {
                 } catch (e: ToastException) { e.show() }
             }
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                showDialog(activity!!, DeleteContactDialog().apply {
+                showDialog(this, ContactDeleteDialog().apply {
                     arguments = contact.toBundle()
                 })
             }
         }
     }
 
-    override fun onFirstShowDialog(dialog: AlertDialog) {
+    override fun onFirstShowDialog() {
         val contact = existingContact
         if (contact != null) {
-            dialog.etName.setText(contact.name)
-            dialog.etAddress.setText(contact.addrUiString)
+            etName.setText(contact.name)
+            etAddress.setText(contact.addrUiString)
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
         if (result != null && result.contents != null) {
-            dialog.etAddress.setText(result.contents)
+            etAddress.setText(result.contents)
         } else {
             super.onActivityResult(requestCode, resultCode, data)
         }
     }
 
     fun onOK() {
-        val name = dialog.etName.text.toString()
-        val address = dialog.etAddress.text.toString()
+        val name = etName.text.toString()
+        val address = etAddress.text.toString()
         try {
             if (name.isEmpty()) {
                 throw ToastException(R.string.name_is, Toast.LENGTH_SHORT)
@@ -159,14 +147,14 @@ class ContactDialog : AlertDialogFragment() {
             val wallet = daemonModel.wallet!!
             wallet.get("contacts")!!.callAttr("add", newContact, oldContact)
             wallet.get("storage")!!.callAttr("write")
-            contactsUpdate.setValue(Unit)
+            daemonUpdate.setValue(Unit)
             dismiss()
         } catch (e: ToastException) { e.show() }
     }
 }
 
 
-class DeleteContactDialog : AlertDialogFragment() {
+class ContactDeleteDialog : AlertDialogFragment() {
     override fun onBuildDialog(builder: AlertDialog.Builder) {
         val contact = ContactModel(arguments!!)
         builder.setTitle(R.string.confirm_delete)
@@ -176,8 +164,8 @@ class DeleteContactDialog : AlertDialogFragment() {
                 wallet.get("contacts")!!.callAttr(
                     "remove", makeContact(contact.name, contact.addr))
                 wallet.get("storage")!!.callAttr("write")
-                contactsUpdate.setValue(Unit)
-                findDialog(activity!!, ContactDialog::class)!!.dismiss()
+                daemonUpdate.setValue(Unit)
+                (targetFragment as ContactDialog).dismiss()
             }
             .setNegativeButton(android.R.string.cancel, null)
     }
