@@ -2,16 +2,7 @@ package cc.devault.delight1
 
 import android.content.ClipboardManager
 import android.content.Context
-import android.databinding.DataBindingUtil
-import android.databinding.ViewDataBinding
-import android.support.v4.app.DialogFragment
-import android.support.v4.app.FragmentActivity
-import android.support.v4.content.ContextCompat
-import android.support.v7.widget.DividerItemDecoration
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.view.ContextThemeWrapper
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -19,6 +10,17 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.PopupMenu
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.databinding.DataBindingUtil
+import androidx.databinding.ViewDataBinding
+import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import java.util.*
 import kotlin.reflect.KClass
 
@@ -56,31 +58,22 @@ fun formatSatoshisAndUnit(amount: Long): String {
     return "${formatSatoshis(amount)} $unitName"
 }
 
-fun formatSpocks(amount: Long, places: Int = unitPlaces): String {
-    val unit = Math.pow(10.0, places.toDouble())
-    var result = "%.3f".format(Locale.US, amount / unit).trimEnd('0')
-    if (result.endsWith(".")) {
-        result += "0"
-    }
-    return result
+
+fun showDialog(target: Fragment, frag: DialogFragment) {
+    showDialog(target.activity!!, frag, target)
 }
 
-fun formatSpocksAndUnit(amount: Long): String {
-    return "${formatSpocks(amount)} $unitName"
-}
-
-
-fun showDialog(activity: FragmentActivity, frag: DialogFragment) {
+fun showDialog(activity: FragmentActivity, frag: DialogFragment, target: Fragment? = null) {
     val fm = activity.supportFragmentManager
     val tag = frag::class.java.name
     if (fm.findFragmentByTag(tag) == null) {
-        frag.show(fm, tag)
+        if (target != null) {
+            frag.setTargetFragment(target, 0)
+        }
+        frag.showNow(fm, tag)
     }
 }
 
-fun <T: DialogFragment> dismissDialog(activity: FragmentActivity, fragClass: KClass<T>) {
-    findDialog(activity, fragClass)?.dismiss()
-}
 
 fun <T: DialogFragment> findDialog(activity: FragmentActivity, fragClass: KClass<T>) : T? {
     val tag = fragClass.java.name
@@ -94,65 +87,6 @@ fun <T: DialogFragment> findDialog(activity: FragmentActivity, fragClass: KClass
         @Suppress("UNCHECKED_CAST")
         return frag as T?
     }
-}
-
-
-// Error messages are likely to be surprising, so give the user more time to read them.
-val TOAST_DEFAULT_DURATION = Toast.LENGTH_LONG
-
-// The default gravity of BOTTOM would show the toast over the keyboard if it's visible. If the
-// keyboard color happens to be the same as the toast background, the user might not notice it
-// at all.
-val TOAST_DEFAULT_GRAVITY =  Gravity.CENTER
-
-
-class ToastException(message: String?, cause: Throwable?,
-                     val duration: Int = TOAST_DEFAULT_DURATION,
-                     val gravity: Int = TOAST_DEFAULT_GRAVITY)
-    : Exception(message, cause) {
-
-    constructor(message: String?, duration: Int = TOAST_DEFAULT_DURATION,
-                gravity: Int = TOAST_DEFAULT_GRAVITY)
-        : this(message, null, duration, gravity)
-
-    constructor(resId: Int, duration: Int = TOAST_DEFAULT_DURATION,
-                gravity: Int = TOAST_DEFAULT_GRAVITY)
-        : this(app.getString(resId), duration, gravity)
-
-    constructor(cause: Throwable, duration: Int = TOAST_DEFAULT_DURATION,
-                gravity: Int = TOAST_DEFAULT_GRAVITY)
-        : this(cause.message, cause, duration, gravity)
-
-    fun show() { toast(message!!, duration, gravity) }
-}
-
-
-// Prevent toasts repeated in quick succession from staying on screen for a long time. If a
-// message has variable text, use the `key` argument to replace any existing toast with the
-// same key.
-//
-// This cache is never cleared, but since it only contains references to the application context,
-// this should be fine as long as the `key` argument is used where necessary.
-val toastCache = HashMap<String, Toast>()
-
-fun toast(text: CharSequence, duration: Int = TOAST_DEFAULT_DURATION,
-          gravity: Int = TOAST_DEFAULT_GRAVITY, key: String? = null) {
-    if (!onUiThread()) {
-        runOnUiThread { toast(text, duration, gravity, key) }
-    } else {
-        val cacheKey = key ?: text.toString()
-        toastCache.get(cacheKey)?.cancel()
-        // Creating a new Toast each time is more robust than attempting to reuse the existing one.
-        val toast = Toast.makeText(app, text, duration)
-        toast.setGravity(gravity, 0, 0)
-        toastCache.put(cacheKey, toast)
-        toast.show()
-    }
-}
-
-fun toast(resId: Int, duration: Int = TOAST_DEFAULT_DURATION,
-          gravity: Int = TOAST_DEFAULT_GRAVITY, key: String? = null) {
-    toast(app.getString(resId), duration, gravity, key)
 }
 
 
@@ -176,7 +110,7 @@ fun setupVerticalList(rv: RecyclerView) {
     // Dialog theme has listDivider set to null, so use the base app theme instead.
     rv.addItemDecoration(
         DividerItemDecoration(ContextThemeWrapper(rv.context, R.style.AppTheme),
-                              DividerItemDecoration.VERTICAL))
+                                                           DividerItemDecoration.VERTICAL))
 }
 
 
@@ -251,4 +185,34 @@ private fun menuToList(menu: Menu): List<String> {
         result.add(menu.getItem(i).title.toString())
     }
     return result
+}
+
+
+// When the TriggerLiveData becomes active, it will call its observers at most once, no matter
+// how many sources it has.
+class TriggerLiveData : MediatorLiveData<Unit>() {
+    enum class State {
+        NORMAL, ACTIVATING, ACTIVE
+    }
+    private var state = State.NORMAL
+
+    // Using postValue would also call observers at most once, but some observers need to be
+    // called synchronously. For example, postponing the setup of a RecyclerView adapter would
+    // cause the view to lose its scroll position on rotation.
+    fun addSource(source: LiveData<*>) {
+        addSource(source, {
+            if (state != State.ACTIVE) {
+                setValue(Unit)
+                if (state == State.ACTIVATING) {
+                    state = State.ACTIVE
+                }
+            }
+        })
+    }
+
+    override fun onActive() {
+        state = State.ACTIVATING
+        super.onActive()
+        state = State.NORMAL
+    }
 }

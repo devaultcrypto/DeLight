@@ -6,6 +6,8 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.os.Handler
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 import org.acra.ACRA
 import org.acra.annotation.AcraCore
 import org.acra.annotation.AcraDialog
@@ -17,6 +19,15 @@ lateinit var app: App
 lateinit var mainHandler: Handler
 
 
+val py by lazy {
+    Python.start(AndroidPlatform(app))
+    Python.getInstance()
+}
+fun libMod(name: String) = py.getModule("electroncash.$name")!!
+fun guiMod(name: String) = py.getModule("electroncash_gui.android.$name")!!
+val libNetworks by lazy { libMod("networks") }
+
+
 // Not using reportFields: it doesn't noticably reduce response time.
 @AcraCore(reportSenderFactoryClasses = [CrashhubSenderFactory::class])
 @AcraDialog(reportDialogClass = CrashhubDialog::class, resTitle = R.string.sorry,
@@ -24,31 +35,34 @@ lateinit var mainHandler: Handler
 class App : Application() {
 
     override fun attachBaseContext(base: Context?) {
+        // Set these variables as early as possible, in case ACRA.init tries to send a
+        // saved crash report.
+        app = this
+        mainHandler = Handler()
+
         super.attachBaseContext(base)
         ACRA.init(this)
     }
 
     override fun onCreate() {
         super.onCreate()
-        app = this
-        mainHandler = Handler()
-
         if (Build.VERSION.SDK_INT >= 26) {
             getSystemService(NotificationManager::class).createNotificationChannel(
                 NotificationChannel(DEFAULT_CHANNEL, "Default",
                                     NotificationManager.IMPORTANCE_DEFAULT))
         }
 
+        // The rest of this method should run in the main process only.
+        if (ACRA.isACRASenderServiceProcess()) return
+
         if (BuildConfig.testnet) {
             libNetworks.callAttr("set_testnet")
         }
 
-        if (!ACRA.isACRASenderServiceProcess()) {
-            initSettings()
-            initDaemon()
-            initNetwork()
-            initExchange()
-        }
+        initSettings()
+        initDaemon()
+        initNetwork()
+        initExchange()
     }
 
 }

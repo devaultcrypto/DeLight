@@ -1,17 +1,14 @@
 package cc.devault.delight1
 
-import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.Observer
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentActivity
-import android.support.v4.content.ContextCompat
-import android.support.v7.app.AlertDialog
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.observe
 import com.chaquo.python.Kwarg
 import com.chaquo.python.PyObject
 import kotlinx.android.synthetic.main.transaction_detail.*
@@ -19,22 +16,14 @@ import kotlinx.android.synthetic.main.transactions.*
 import kotlin.math.roundToInt
 
 
-val transactionsUpdate = MutableLiveData<Unit>().apply { value = Unit }
-
-
-class TransactionsFragment : Fragment(), MainFragment {
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.transactions, container, false)
-    }
-
+class TransactionsFragment : Fragment(R.layout.transactions), MainFragment {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         setupVerticalList(rvTransactions)
         rvTransactions.adapter = TransactionsAdapter(activity!!)
-
-        daemonUpdate.observe(viewLifecycleOwner, Observer { refresh() })
-        transactionsUpdate.observe(viewLifecycleOwner, Observer { refresh() })
-        settings.getString("base_unit").observe(viewLifecycleOwner, Observer { refresh() })
+        TriggerLiveData().apply {
+            addSource(daemonUpdate)
+            addSource(settings.getString("base_unit"))
+        }.observe(viewLifecycleOwner, { refresh() })
 
         btnSend.setOnClickListener {
             try {
@@ -119,38 +108,37 @@ class TransactionDialog() : AlertDialogFragment() {
         builder.setView(R.layout.transaction_detail)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok, {_, _ ->
-                setDescription(txid, dialog.etDescription.text.toString())
-                transactionsUpdate.setValue(Unit)
+                setDescription(txid, etDescription.text.toString())
             })
     }
 
-    override fun onShowDialog(dialog: AlertDialog) {
-        dialog.btnExplore.setOnClickListener { exploreTransaction(activity!!, txid) }
-        dialog.btnCopy.setOnClickListener { copyToClipboard(txid, R.string.transaction_id) }
+    override fun onShowDialog() {
+        btnExplore.setOnClickListener { exploreTransaction(activity!!, txid) }
+        btnCopy.setOnClickListener { copyToClipboard(txid, R.string.transaction_id) }
 
-        dialog.tvTxid.text = txid
+        tvTxid.text = txid
 
         val timestamp = txInfo.get(8).toLong()
-        dialog.tvTimestamp.text = if (timestamp == 0L) getString(R.string.Unknown)
+        tvTimestamp.text = if (timestamp == 0L) getString(R.string.Unknown)
                                   else libUtil.callAttr("format_time", timestamp).toString()
 
-        dialog.tvStatus.text = txInfo.get(1)!!.toString()
+        tvStatus.text = txInfo.get(1)!!.toString()
 
         val size = tx.callAttr("estimated_size").toInt()
-        dialog.tvSize.text = getString(R.string.bytes, size)
+        tvSize.text = getString(R.string.bytes, size)
 
         val fee = txInfo.get(5)?.toLong()
         if (fee == null) {
-            dialog.tvFee.text = getString(R.string.Unknown)
+            tvFee.text = getString(R.string.Unknown)
         } else {
             val feeSpb = (fee.toDouble() / size.toDouble()).roundToInt()
-            dialog.tvFee.text = String.format("%s (%s)",
+            tvFee.text = String.format("%s (%s)",
                                               getString(R.string.sat_byte, feeSpb),
-                                              formatSpocksAndUnit(fee))
+                                              formatSatoshisAndUnit(fee))
         }
     }
 
-    override fun onFirstShowDialog(dialog: AlertDialog) {
-        dialog.etDescription.setText(txInfo.get(2)!!.toString())
+    override fun onFirstShowDialog() {
+        etDescription.setText(txInfo.get(2)!!.toString())
     }
 }

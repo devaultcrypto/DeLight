@@ -1,26 +1,24 @@
 package cc.devault.delight1
 
-import android.arch.lifecycle.LiveData
-import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModel
-import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentActivity
-import android.support.v7.app.AlertDialog
 import android.text.SpannableString
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
+import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.observe
 import com.chaquo.python.PyObject
 import kotlinx.android.synthetic.main.address_detail.*
 import kotlinx.android.synthetic.main.addresses.*
@@ -31,36 +29,27 @@ import kotlin.reflect.KClass
 val libAddress by lazy { libMod("address") }
 val clsAddress by lazy { libAddress["Address"]!! }
 
-val addressLabelUpdate = MutableLiveData<Unit>().apply { value = Unit }
 
-
-class AddressesFragment : Fragment(), MainFragment {
-    
+class AddressesFragment : Fragment(R.layout.addresses), MainFragment {
     class Model : ViewModel() {
         val filterType = MutableLiveData<Int>().apply { value = R.id.filterAll }
         val filterStatus = MutableLiveData<Int>().apply { value = R.id.filterAll }
     }
-    val model by lazy { ViewModelProviders.of(this).get(Model::class.java) }
+    val model: Model by viewModels()
     
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.addresses, container, false)
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         btnType.setOnClickListener { showFilterDialog(FilterTypeDialog::class) }
         btnStatus.setOnClickListener { showFilterDialog(FilterStatusDialog::class) }
 
         setupVerticalList(rvAddresses)
         rvAddresses.adapter = AddressesAdapter(activity!!)
-        daemonUpdate.observe(viewLifecycleOwner, Observer { refresh() })
-        for (filter in listOf(model.filterType, model.filterStatus)) {
-            filter.observe(viewLifecycleOwner, Observer { refresh() })
-        }
-
-        addressLabelUpdate.observe(viewLifecycleOwner, Observer { rebind() })
-        settings.getBoolean("cashaddr_format").observe(viewLifecycleOwner, Observer { rebind() })
-        settings.getString("base_unit").observe(viewLifecycleOwner, Observer { rebind() })
+        TriggerLiveData().apply {
+            addSource(daemonUpdate)
+            addSource(model.filterType)
+            addSource(model.filterStatus)
+            addSource(settings.getBoolean("cashaddr_format"))
+            addSource(settings.getString("base_unit"))
+        }.observe(viewLifecycleOwner, { refresh() })
     }
 
     fun refresh() {
@@ -84,10 +73,6 @@ class AddressesFragment : Fragment(), MainFragment {
         val frag = cls.java.newInstance()
         frag.setTargetFragment(this, 0)
         showDialog(activity!!, frag)
-    }
-
-    fun rebind() {
-        rvAddresses.adapter?.notifyDataSetChanged()
     }
 
     fun passesFilter(am: AddressModel): Boolean {
@@ -162,23 +147,22 @@ class AddressDialog() : AlertDialogFragment() {
             setNegativeButton(android.R.string.cancel, null)
             setPositiveButton(android.R.string.ok, { _, _  ->
                 setDescription(addrModel.toString("storage"),
-                               dialog.etDescription.text.toString())
-                addressLabelUpdate.setValue(Unit)
+                               etDescription.text.toString())
             })
         }
     }
 
-    override fun onShowDialog(dialog: AlertDialog) {
-        dialog.btnExplore.setOnClickListener {
+    override fun onShowDialog() {
+        btnExplore.setOnClickListener {
             exploreAddress(activity!!, addrModel.addr)
         }
-        dialog.btnCopy.setOnClickListener {
+        btnCopy.setOnClickListener {
             copyToClipboard(addrModel.toString("full_ui"), R.string.address)
         }
 
-        showQR(dialog.imgQR, addrModel.toString("full_ui"))
-        dialog.tvAddress.text = addrModel.toString("ui")
-        dialog.tvType.text = addrModel.type
+        showQR(imgQR, addrModel.toString("full_ui"))
+        tvAddress.text = addrModel.toString("ui")
+        tvType.text = addrModel.type
 
         with (SpannableStringBuilder()) {
             append(addrModel.history.size.toString())
@@ -194,15 +178,15 @@ class AddressDialog() : AlertDialogFragment() {
                 append(link)
                 append(")")
             }
-            dialog.tvTxCount.text = this
+            tvTxCount.text = this
         }
-        dialog.tvTxCount.movementMethod = LinkMovementMethod.getInstance()
+        tvTxCount.movementMethod = LinkMovementMethod.getInstance()
 
-        dialog.tvBalance.text = formatSatoshisAndFiat(addrModel.balance)
+        tvBalance.text = formatSatoshisAndFiat(addrModel.balance)
     }
 
-    override fun onFirstShowDialog(dialog: AlertDialog) {
-        dialog.etDescription.setText(addrModel.description)
+    override fun onFirstShowDialog() {
+        etDescription.setText(addrModel.description)
     }
 }
 
@@ -219,20 +203,20 @@ class AddressTransactionsDialog() : AlertDialogFragment() {
         }
     }
 
-    override fun onShowDialog(dialog: AlertDialog) {
+    override fun onShowDialog() {
         // Remove buttons and bottom padding.
-        dialog.btnSend.hide()
-        dialog.btnRequest.hide()
-        dialog.rvTransactions.setPadding(0, 0, 0, 0)
+        btnSend.hide()
+        btnRequest.hide()
+        rvTransactions.setPadding(0, 0, 0, 0)
 
-        setupVerticalList(dialog.rvTransactions)
-        dialog.rvTransactions.adapter = TransactionsAdapter(activity!!)
-        transactionsUpdate.observe(this, Observer { refresh() })
+        setupVerticalList(rvTransactions)
+        rvTransactions.adapter = TransactionsAdapter(activity!!)
+        daemonUpdate.observe(this, { refresh() })
     }
 
     fun refresh() {
         val addr = clsAddress.callAttr("from_string", arguments!!.getString("address")!!)
-        (dialog.rvTransactions.adapter as TransactionsAdapter).submitList(
+        (rvTransactions.adapter as TransactionsAdapter).submitList(
             TransactionsList(daemonModel.wallet!!, addr))
     }
 }

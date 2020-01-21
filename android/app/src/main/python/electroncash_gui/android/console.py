@@ -1,14 +1,14 @@
 from __future__ import absolute_import, division, print_function
 
 from code import InteractiveConsole
-from fnmatch import fnmatch
 import json
 import os
-from os.path import exists, join
-import pkg_resources
+from os.path import dirname, exists, join, split
+import pkgutil
+from shutil import copyfile
 import unittest
 
-from electroncash import commands, daemon, keystore, simple_config, storage, util
+from electroncash import commands, daemon, keystore, simple_config, storage, tests, util
 from electroncash.i18n import _
 from electroncash.storage import WalletStorage
 from electroncash.wallet import (ImportedAddressWallet, ImportedPrivkeyWallet, Standard_Wallet,
@@ -83,7 +83,7 @@ class AndroidCommands(commands.Commands):
 
         # Initialize here rather than in start() so the DaemonModel has a chance to register
         # its callback before the daemon threads start.
-        self.daemon = daemon.Daemon(self.config, fd, False)
+        self.daemon = daemon.Daemon(self.config, fd, False, None)
         self.network = self.daemon.network
         self.network.register_callback(self._on_callback, CALLBACKS)
         self.daemon_running = False
@@ -125,24 +125,10 @@ class AndroidCommands(commands.Commands):
             wallet.start_threads(self.network)
             self.daemon.add_wallet(wallet)
 
-        self.wallet = wallet
-        self.network.trigger_callback("wallet_updated", self.wallet)
-        return wallet
-
     def close_wallet(self, name=None):
         """Close a wallet"""
         self._assert_daemon_running()
-        if not name:
-            if not self.wallet:
-                print("Wallet not loaded")  # Same wording as in commands.py.
-                return
-            path = self.wallet.storage.path
-        else:
-            path = self._wallet_path(name)
-        self.daemon.stop_wallet(path)
-        if self.wallet and (path == self.wallet.storage.path):
-            self.wallet = None
-            self.network.trigger_callback("wallet_updated", self.wallet)
+        self.daemon.stop_wallet(self._wallet_path(name))
 
     def create(self, name, password, seed=None, passphrase="", bip39_derivation=None,
                master=None, addresses=None, privkeys=None):
@@ -176,27 +162,60 @@ class AndroidCommands(commands.Commands):
 
     # BEGIN commands which only exist here.
 
+    def select_wallet(self, name):
+        if name is None:
+            self.wallet = None
+        else:
+            self.wallet = self.daemon.wallets[self._wallet_path(name)]
+        self.network.trigger_callback("wallet_updated", self.wallet)
+
     def list_wallets(self):
         """List available wallets"""
         return sorted([name for name in os.listdir(self._wallet_path())
                        if not name.endswith(storage.TMP_SUFFIX)])
 
-    def delete_wallet(self, name):
+    def delete_wallet(self, name=None):
         """Delete a wallet"""
-        path = self._wallet_path(name)
-        if self.wallet and (path == self.wallet.storage.path):
-            self.close_wallet()
-        os.remove(path)
+        os.remove(self._wallet_path(name))
+
+    def rename_wallet(self, name, new_name):
+        if name == new_name:
+            return
+        original_path = self._wallet_path(name)
+        if not exists(original_path):
+            raise FileNotFoundError(original_path)
+        new_path = join(split(original_path)[0], new_name)
+        if exists(new_path):
+            raise FileExistsError(new_path)
+        if self.wallet is not None and self.wallet.storage.path == original_path:
+            # We are renaming the currently loaded wallet. Close it before renaming it.
+            self.close_wallet(name)
+            self.select_wallet(None)
+        os.rename(original_path, new_path)
+
+    def copy_wallet(self, name, destination_path, overwrite=True, create_dir=True):
+        original_path = self._wallet_path(name)
+        if not exists(original_path):
+            raise FileNotFoundError(original_path)
+        destination_dir = dirname(destination_path)
+        if not exists(destination_dir):
+            if create_dir:
+                os.makedirs(destination_dir)
+            else:
+                raise FileNotFoundError(destination_dir)
+        if not overwrite:
+            if exists(destination_path):
+                raise FileExistsError(destination_path)
+        copyfile(original_path, destination_path)
 
     def unit_test(self):
         """Run all unit tests. Expect failures with functionality not present on Android,
         such as Trezor.
         """
-        test_pkg = "electroncash.tests"
         suite = unittest.defaultTestLoader.loadTestsFromNames(
-            [test_pkg + "." + filename[:-3]
-             for filename in pkg_resources.resource_listdir(test_pkg, "")
-             if fnmatch(filename, "test_*.py")])
+            tests.__name__ + "." + info.name
+            for info in pkgutil.iter_modules(tests.__path__)
+            if info.name.startswith("test_"))
         unittest.TextTestRunner(verbosity=2).run(suite)
 
     # END commands which only exist here.
@@ -210,9 +229,14 @@ class AndroidCommands(commands.Commands):
         util.print_stderr("[Callback] " + ", ".join(repr(x) for x in args))
 
     def _wallet_path(self, name=""):
-        wallets_dir = join(util.user_dir(), "wallets")
-        util.make_dir(wallets_dir)
-        return util.standardize_path(join(wallets_dir, name))
+        if name is None:
+            if not self.wallet:
+                raise ValueError("No wallet selected")
+            return self.wallet.storage.path
+        else:
+            wallets_dir = join(util.user_dir(), "wallets")
+            util.make_dir(wallets_dir)
+            return util.standardize_path(join(wallets_dir, name))
 
 
 all_commands = commands.known_commands.copy()
