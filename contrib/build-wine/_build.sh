@@ -182,9 +182,9 @@ prepare_wine() {
             wine msiexec /i "${msifile}.msi" /qb TARGETDIR=C:/python$PYTHON_VERSION || fail "Failed to install Python component: ${msifile}"
         done
 
-        info "Upgrading pip ..."
+    #    info "Upgrading pip ..."
         # upgrade pip
-        $PYTHON -m pip install pip --upgrade
+    #    $PYTHON -m pip install pip --upgrade
 
         # The below requirements-wine-build.txt uses hashed packages that we
         # need for pyinstaller and other parts of the build.  Using a hashed
