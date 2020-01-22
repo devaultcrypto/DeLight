@@ -1,4 +1,4 @@
-pip
+pip<20
 setuptools
 altgraph>=0.15
 future
