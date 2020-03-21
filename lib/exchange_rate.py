@@ -357,7 +357,7 @@ class FxThread(ThreadJob):
 
     def get_fiat_status_text(self, btc_balance, base_unit, decimal_point):
         rate = self.exchange_rate()
-        default_prec = 2
+        default_prec = 5
         if base_unit == inv_base_units.get(2):  # if base_unit == 'bits', increase precision on fiat as bits is pretty tiny as of 2019
             default_prec = 4
         return _("  (No FX rate available)") if rate is None else " 1 %s~%s %s" % (base_unit,
