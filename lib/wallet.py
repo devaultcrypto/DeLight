@@ -82,8 +82,8 @@ from .i18n import _
 DEFAULT_CONFIRMED_ONLY = False
 
 def relayfee(network):
-    RELAY_FEE = 5000
-    MAX_RELAY_FEE = 50000
+    RELAY_FEE = 20000000
+    MAX_RELAY_FEE = 200000000
     f = network.relay_fee if network and network.relay_fee else RELAY_FEE
     return min(f, MAX_RELAY_FEE)
 
@@ -1278,7 +1278,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
         tx_in_bytes=tx.estimated_size()
         fee_in_satoshis=tx.get_fee()
         sats_per_byte=fee_in_satoshis/tx_in_bytes
-        if (sats_per_byte > 500000):
+        if (sats_per_byte > 500000000):
             raise ExcessiveFee()
             return
 
