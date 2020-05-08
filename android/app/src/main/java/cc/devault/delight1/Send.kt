@@ -23,7 +23,7 @@ import kotlin.properties.Delegates.notNull
 
 val libPaymentRequest by lazy { libMod("paymentrequest") }
 
-val MIN_FEE = 100  // sat/byte
+val MIN_FEE = 500000  // sat/byte
 
 
 class SendDialog : AlertDialogFragment() {
