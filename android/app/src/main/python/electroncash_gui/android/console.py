@@ -83,7 +83,7 @@ class AndroidCommands(commands.Commands):
 
         # Initialize here rather than in start() so the DaemonModel has a chance to register
         # its callback before the daemon threads start.
-        self.daemon = daemon.Daemon(self.config, fd, False, None)
+        self.daemon = daemon.Daemon(self.config, fd, False)
         self.network = self.daemon.network
         self.network.register_callback(self._on_callback, CALLBACKS)
         self.daemon_running = False
