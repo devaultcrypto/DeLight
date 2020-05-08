@@ -55,7 +55,7 @@ class CrashReporterVC(CrashReporterBase):
         self.reportTit.setText_withKerning_(_("Report Contents"), utils._kern)
         self.descTit.setText_withKerning_(_("Please briefly describe what led to the error (optional):").translate({ord(':'):None}), utils._kern)
         utils.uilabel_replace_attributed_text(self.errMsg,
-                                               _('Sorry!')  + " " + _('Something went wrong running Electron Cash.') + " " + _('To help us diagnose and fix the problem, you can send us a bug report that contains useful debug information:').translate({ord(':'):None}),
+                                               _('Sorry!')  + " " + _('Something went wrong running DeLight.') + " " + _('To help us diagnose and fix the problem, you can send us a bug report that contains useful debug information:').translate({ord(':'):None}),
                                                font = UIFont.italicSystemFontOfSize_(12.0)
                                               )
         self.descDel.placeholderFont = UIFont.italicSystemFontOfSize_(14.0)
