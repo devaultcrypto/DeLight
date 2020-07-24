@@ -37,7 +37,7 @@ from .util import format_spocks_plain, bh2u, print_error
 DEFAULT_EXPLORER = "exploredvt.com"
 
 mainnet_block_explorers = {
-    'exploredvt.com': ('https://exploredvt.com/#/DVT/mainnet',
+    'exploredvt.com': ('https://exploredvt.com',
                        Address.FMT_CASHADDR,
                        {'tx': 'tx', 'addr': 'address', 'block' : 'block'}),
 }
@@ -45,7 +45,7 @@ mainnet_block_explorers = {
 DEFAULT_EXPLORER_TESTNET = 'exploredvt.com'
 
 testnet_block_explorers = {
-    'exploredvt.com'   : ('https://exploredvt.com/#/DVT/testnet',
+    'exploredvt.com'   : ('https://explore.devault.cc/#/DVT/testnet',
                        Address.FMT_CASHADDR,
                        {'tx': 'tx', 'addr': 'address', 'block' : 'block'}),
 }
