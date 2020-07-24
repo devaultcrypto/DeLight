@@ -80,7 +80,7 @@ def BE_URL(config, kind, item):
     if kind == 'addr':
         assert isinstance(item, Address)
         item = item.to_string(addr_fmt)
-    return "/".join(part for part in (url_base, kind_str, item) if part)
+    return "/".join(part for part in (url_base, kind_str, "devault:" + item) if part)
 
 def BE_sorted_list():
     return sorted(BE_info())
