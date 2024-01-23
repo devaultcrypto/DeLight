@@ -56,6 +56,7 @@ def bits_to_target(bits):
         return word << (8 * (size - 3))
 
 def target_to_bits(target):
+    target = int(target)
     if target == 0:
         return 0
     target = min(target, MAX_TARGET)
