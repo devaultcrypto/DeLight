@@ -236,8 +236,8 @@ class PayToEdit(PrintError, ScanQRTextEdit):
         h = docHeight + self.verticalMargins
         h = min(max(h, self.heightMin), self.heightMax)
 
-        self.setMinimumHeight(h)
-        self.setMaximumHeight(h)
+        self.setMinimumHeight(int(h))
+        self.setMaximumHeight(int(h))
 
         self.verticalScrollBar().setHidden(docHeight + self.verticalMargins < self.heightMax)
 
