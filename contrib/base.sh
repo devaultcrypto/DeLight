@@ -91,8 +91,8 @@ function retry() {
 # Now, some variables that affect all build scripts
 
 export PYTHONHASHSEED=22
-PYTHON_VERSION=3.6.8  # Windows, OSX & Linux AppImage use this to determine what to download/build
-PYTHON_SRC_TARBALL_HASH="35446241e995773b1bed7d196f4b624dadcadc8429f26282e756b2fb8a351193"  # If you change PYTHON_VERSION above, update this by downloading the tarball manually and doing a sha256sum on it.
+PYTHON_VERSION=3.8.9  # Windows, OSX & Linux AppImage use this to determine what to download/build
+PYTHON_SRC_TARBALL_HASH="5e391f3ec45da2954419cab0beaefd8be38895ea5ce33577c3ec14940c4b9572"  # If you change PYTHON_VERSION above, update this by downloading the tarball manually and doing a sha256sum on it.
 DEFAULT_GIT_REPO=https://github.com/devaultcrypto/DeLight
 if [ -z "$GIT_REPO" ] ; then
     # If no override from env is present, use default. Support for overrides
