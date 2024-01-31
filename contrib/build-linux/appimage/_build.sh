@@ -8,7 +8,7 @@ DISTDIR="$PROJECT_ROOT/dist"
 BUILDDIR="$CONTRIB/build-linux/appimage/build/appimage"
 APPDIR="$BUILDDIR/DeLight.AppDir"
 CACHEDIR="$CONTRIB/build-linux/appimage/.cache/appimage"
-PYDIR="$APPDIR"/usr/lib/python3.6
+PYDIR="$APPDIR"/usr/lib/python3.8
 
 # pinned versions
 SQUASHFSKIT_COMMIT="ae0d656efa2d0df2fcac795b6823b44462f19386"
@@ -97,7 +97,7 @@ appdir_python() {
   env \
     PYTHONNOUSERSITE=1 \
     LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH+:$LD_LIBRARY_PATH}" \
-    "$APPDIR/usr/bin/python3.6" "$@"
+    "$APPDIR/usr/bin/python3.8" "$@"
 }
 
 python='appdir_python'
@@ -184,7 +184,7 @@ strip_binaries()
 {
   chmod u+w -R "$APPDIR"
   {
-    printf '%s\0' "$APPDIR/usr/bin/python3.6"
+    printf '%s\0' "$APPDIR/usr/bin/python3.8"
     find "$APPDIR" -type f -regex '.*\.so\(\.[0-9.]+\)?$' -print0
   } | xargs -0 --no-run-if-empty --verbose -n1 strip -R .note.gnu.build-id
 }
