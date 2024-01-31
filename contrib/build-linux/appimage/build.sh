@@ -28,7 +28,7 @@ if [ "$?" != 0 ]; then
     echo '$ sudo apt-get update'
     echo '$ sudo apt-get install -y docker-ce'
     echo ''
-    fail "Docker is required to build for Windows"
+    fail "Docker is required to build the AppImage"
 fi
 
 set -e
