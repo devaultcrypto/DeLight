@@ -692,7 +692,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def show_about(self):
         QMessageBox.about(self, "DeLight",
             "<p><font size=+3><b>DeLight</b></font></p><p>" + _("Version") + f" {self.wallet.electrum_version}" + "</p>" +
-            '<p><span style="font-size:11pt; font-weight:500;">' + "Copyright © 2019<br>The DeVault Developers" + "</span></p>" +
+            '<p><span style="font-size:11pt; font-weight:500;">' + "Copyright © 2019-2024<br>The DeVault Developers" + "</span></p>" +
             '<p><span style="font-weight:200;">' +
             '<p><span style="font-size:11pt; font-weight:500;">' + "Copyright © 2017-2019<br>Electron Cash LLC &amp; The Electron Cash Developers" + "</span></p>" +
             '<p><span style="font-weight:200;">' +            
