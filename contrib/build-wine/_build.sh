@@ -58,7 +58,7 @@ build_secp256k1() {
         }
 
         pushd "$here"/../secp256k1 || fail "Could not chdir to secp256k1"
-        LIBSECP_VERSION="a9752bb2d1c1f5abb30e5bde7a1fad582629e46d"  # According to Mark B. Lundeberg, using a commit hash guarantees no repository man-in-the-middle funny business as git is secure when verifying hashes.
+        LIBSECP_VERSION="b8038e3edf903fd945c0e9156bec42107380aba3"  # According to Mark B. Lundeberg, using a commit hash guarantees no repository man-in-the-middle funny business as git is secure when verifying hashes.
         git checkout $LIBSECP_VERSION || fail "Could not check out secp256k1 $LIBSECP_VERSION"
         git clean -f -x -q
 
