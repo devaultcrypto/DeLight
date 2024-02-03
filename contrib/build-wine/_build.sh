@@ -132,14 +132,14 @@ prepare_wine() {
         pushd "$here"
         here=`pwd`
         # Please update these carefully, some versions won't work under Wine
-        NSIS_URL='https://github.com/cculianu/Electron-Cash-Build-Tools/releases/download/v1.0/nsis-3.02.1-setup.exe'
-        NSIS_SHA256=736c9062a02e297e335f82252e648a883171c98e0d5120439f538c81d429552e
+        NSIS_URL='https://prdownloads.sourceforge.net/nsis/nsis-3.06.1-setup.exe'
+        NSIS_SHA256=f60488a676308079bfdf6845dc7114cfd4bbff47b66be4db827b89bb8d7fdc52
 
         LIBUSB_URL='https://github.com/cculianu/Electron-Cash-Build-Tools/releases/download/v1.0/libusb-1.0.21.7z'
         LIBUSB_SHA256=acdde63a40b1477898aee6153f9d91d1a2e8a5d93f832ca8ab876498f3a6d2b8
 
         PYINSTALLER_REPO='https://github.com/EchterAgo/pyinstaller.git'
-        PYINSTALLER_COMMIT=1a8b2d47c277c451f4e358d926a47c096a5615ec
+        PYINSTALLER_COMMIT=d6f3d02365ba68ffc84169c56c292701f346110e # Version 4.2 + a patch to drop an unused .rc file
 
         ## These settings probably don't need change
         export WINEPREFIX=/opt/wine64
