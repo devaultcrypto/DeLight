@@ -30,11 +30,11 @@ RUN echo deb ${UBUNTU_MIRROR} bionic main restricted universe multiverse > /etc/
     echo "6e4ab6a3731a1f66dbdbe036968ccea64da0c423d312e35b9f8209bb1c82a0a7 /tmp/opensuse.key" | sha256sum -c - && \
     apt-key add /tmp/opensuse.key && \
     apt-add-repository https://dl.winehq.org/wine-builds/ubuntu/ && \
-    apt-add-repository 'deb https://download.opensuse.org/repositories/Emulators:/Wine:/Debian/xUbuntu_18.04/ ./' && \
+    #apt-add-repository 'deb https://download.opensuse.org/repositories/Emulators:/Wine:/Debian/xUbuntu_18.04/ ./' && \
     apt-get update -q && \
     apt-get install -qy \
         wget=1.19.4-1ubuntu2.2 \
-        git=1:2.17.1-1ubuntu0.9 \
+        git \
         p7zip-full=16.02+dfsg-6 \
         make=4.1-9.1ubuntu1 \
         autotools-dev=20180224.1 \
@@ -45,10 +45,10 @@ RUN echo deb ${UBUNTU_MIRROR} bionic main restricted universe multiverse > /etc/
         mingw-w64=5.0.3-1 \
         mingw-w64-tools=5.0.3-1 \
         win-iconv-mingw-w64-dev=0.0.8-2 \
-        wine-stable-amd64:amd64=6.0.0~bionic-1 \
-        wine-stable-i386:i386=6.0.0~bionic-1 \
-        wine-stable:amd64=6.0.0~bionic-1 \
-        winehq-stable:amd64=6.0.0~bionic-1 && \
+        wine-stable-amd64:amd64 \
+        wine-stable-i386:i386 \
+        wine-stable:amd64 \
+        winehq-stable:amd64 && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get autoremove -y && \
     apt-get clean
