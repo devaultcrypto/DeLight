@@ -7,7 +7,7 @@ import setuptools.command.sdist
 import os
 import sys
 import platform
-import imp
+import importlib.util
 import argparse
 
 with open('contrib/requirements/requirements.txt') as f:
@@ -16,7 +16,13 @@ with open('contrib/requirements/requirements.txt') as f:
 with open('contrib/requirements/requirements-hw.txt') as f:
     requirements_hw = f.read().splitlines()
 
-version = imp.load_source('version', 'lib/version.py')
+def load_source(module_name, module_path):
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+version = load_source('version', 'lib/version.py')
 
 if sys.version_info[:3] < (3, 5, 2):
     sys.exit("Error: Electron Cash requires Python version >= 3.5.2...")
