@@ -30,3 +30,6 @@ xcuserdata/
 
 # IntelliJ Pycharm IDE
 /.idea
+
+# joe backup files
+*~

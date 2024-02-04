@@ -91,12 +91,43 @@ def check_imports():
 if not is_android:  # Avoid unnecessarily slowing down app startup.
     check_imports()
 
+
+import importlib.util
+import sys
+from pathlib import Path
+
+def load_module_from_path(name, path):
+    """Load a module from a given path, adjusting for relative paths and packages."""
+    # Ensure path is a Path object for easier manipulation
+    path = Path(path)
+
+    # Add './' prefix if not present (for relative paths)
+    if not path.is_absolute():
+        path = Path('./') / path
+
+    # Append '/__init__.py' if it's a directory (thus, a package) and not specified
+    if path.is_dir():
+        path = path / '__init__.py'
+    elif not path.suffix:  # Assuming it's a directory without explicit '/__init__.py'
+        path = path / '__init__.py'
+
+    # Convert path back to string as spec_from_file_location expects a string path
+    path_str = str(path.resolve())
+
+    spec = importlib.util.spec_from_file_location(name, path_str)
+    if spec is None:
+        raise ModuleNotFoundError(f"Could not find module {name} at {path_str}")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module  # Optional: Add to sys.modules
+    spec.loader.exec_module(module)
+    return module
+
 # load local lib etc modules as electroncash*
 if is_local:
-    import imp
-    imp.load_module('electroncash', *imp.find_module('lib'))
-    imp.load_module('electroncash_gui', *imp.find_module('gui'))
-    imp.load_module('electroncash_plugins', *imp.find_module('plugins'))
+    electroncash = load_module_from_path('electroncash', 'lib')
+    electroncash_gui = load_module_from_path('electroncash_gui', 'gui')
+    electroncash_plugins = load_module_from_path('electroncash_plugins', 'plugins')
 
 from electroncash import bitcoin, util
 from electroncash import SimpleConfig, Network
