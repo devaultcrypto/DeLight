@@ -53,7 +53,6 @@ tar xf "$CACHEDIR/Python-$PYTHON_VERSION.tar.xz" -C "$BUILDDIR"
       --prefix="$APPDIR/usr" \
       --enable-ipv6 \
       --enable-shared \
-      --with-threads \
       -q || fail "Python configure failed"
     make -j 4 -s || fail "Could not build Python"
     make -s install > /dev/null || fail "Failed to install Python"
@@ -218,7 +217,7 @@ for component in Bluetooth Concurrent Designer Help Location NetworkAuth Nfc Pos
     rm -rf "$PYDIR"/site-packages/PyQt5/Qt/lib/libQt5${component}*
     rm -rf "$PYDIR"/site-packages/PyQt5/Qt${component}*
 done
-rm -rf "$PYDIR"/site-packages/PyQt5/Qt.so
+rm -rf "$PYDIR"/site-packages/PyQt5/Qt.*
 
 # these are deleted as they were not deterministic; and are not needed anyway
 find "$APPDIR" -path '*/__pycache__*' -delete
