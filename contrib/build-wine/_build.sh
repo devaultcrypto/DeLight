@@ -190,7 +190,7 @@ prepare_wine() {
         # need for pyinstaller and other parts of the build.  Using a hashed
         # requirements file hardens the build against dependency attacks.
         info "Installing build requirements from requirements-wine-build.txt ..."
-        $PYTHON -m pip install --no-warn-script-location -I -r $here/requirements-wine-build.txt || fail "Failed to install build requirements"
+        $PYTHON -m pip install --no-deps --no-warn-script-location -I -r $here/requirements-wine-build.txt || fail "Failed to install build requirements"
 
         info "Compiling PyInstaller bootloader with AntiVirus False-Positive Protection™ ..."
         mkdir pyinstaller
@@ -214,12 +214,12 @@ prepare_wine() {
             [ -e PyInstaller/bootloader/Windows-32bit/runw.exe ] || fail "Could not find runw.exe in target dir!"
         ) || fail "PyInstaller bootloader build failed"
         info "Installing PyInstaller ..."
-        $PYTHON -m pip install --no-warn-script-location ./pyinstaller || fail "PyInstaller install failed"
+        $PYTHON -m pip install --no-deps --no-warn-script-location ./pyinstaller || fail "PyInstaller install failed"
 
         wine "C:/python$PYTHON_VERSION/scripts/pyinstaller.exe" -v || fail "Pyinstaller installed but cannot be run."
 
         info "Installing Packages from requirements-binaries ..."
-        $PYTHON -m pip install --no-warn-script-location -r ../../deterministic-build/requirements-binaries.txt || fail "Failed to install requirements-binaries"
+        $PYTHON -m pip install --no-deps --no-warn-script-location -r ../../deterministic-build/requirements-binaries.txt || fail "Failed to install requirements-binaries"
 
         info "Installing NSIS ..."
         # Install NSIS installer
@@ -293,8 +293,8 @@ build_the_app() {
 
         # Install frozen dependencies
         info "Installing frozen dependencies ..."
-        $PYTHON -m pip install --no-warn-script-location -r "$here"/../deterministic-build/requirements.txt || fail "Failed to install requirements"
-        $PYTHON -m pip install --no-warn-script-location -r "$here"/../deterministic-build/requirements-hw.txt || fail "Failed to install requirements-hw"
+        $PYTHON -m pip install --no-deps --no-warn-script-location -r "$here"/../deterministic-build/requirements.txt || fail "Failed to install requirements"
+        $PYTHON -m pip install --no-deps --no-warn-script-location -r "$here"/../deterministic-build/requirements-hw.txt || fail "Failed to install requirements-hw"
 
         pushd $WINEPREFIX/drive_c/delight
         $PYTHON setup.py install || fail "Failed setup.py install"
