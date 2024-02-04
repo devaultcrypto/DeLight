@@ -212,6 +212,7 @@ prepare_wine() {
             # If we switch to 64-bit, edit this path below.
             popd
             [ -e PyInstaller/bootloader/Windows-32bit/runw.exe ] || fail "Could not find runw.exe in target dir!"
+            rm -fv pyinstaller.py # workaround for https://github.com/pyinstaller/pyinstaller/pull/6701
         ) || fail "PyInstaller bootloader build failed"
         info "Installing PyInstaller ..."
         $PYTHON -m pip install --no-deps --no-warn-script-location ./pyinstaller || fail "PyInstaller install failed"
