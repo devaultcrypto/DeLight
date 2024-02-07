@@ -16,6 +16,18 @@
         "s": "50002",	
         "t": "50001",	
         "version": "1.10.1"	
+    },	
+    "delight.exploredvt.com": {	
+        "pruning": "-",	
+        "s": "50002",	
+        "t": "50001",	
+        "version": "1.10.1"	
+    },	
+    "delight.proteanx.com": {	
+        "pruning": "-",	
+        "s": "50002",	
+        "t": "50001",	
+        "version": "1.10.1"	
     }
 }
 
