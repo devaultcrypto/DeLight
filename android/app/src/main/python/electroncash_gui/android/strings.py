@@ -10,7 +10,7 @@ def _(s):
 
 _("Are you sure you want to delete your wallet \'%s\'?")
 _("Block explorer")
-_("Copyright 2019 the DeVault developers.")
+_("Copyright 2019-2024 the DeVault developers.")
 _("Cannot specify private keys and addresses in the same wallet.")
 _("Change password")
 _("Close wallet")
