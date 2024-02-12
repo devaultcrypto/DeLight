@@ -50,14 +50,14 @@ issue_template = """<h2>Traceback</h2>
 
 <h2>Additional information</h2>
 <ul>
-  <li>Electron Cash version: {app_version}</li>
+  <li>DeLight version: {app_version}</li>
   <li>Python version: {python_version}</li>
   <li>Operating system: {os}</li>
   <li>Wallet type: {wallet_type}</li>
   <li>Locale: {locale}</li>
 </ul>
 """
-report_server = "https://crashhub.devault.cc/crash"
+report_server = "https://crashhub.exploredvt.com/crash"
 
 
 class Exception_Window(QWidget):
@@ -67,7 +67,7 @@ class Exception_Window(QWidget):
         super().__init__(None) # Top-level window. Note PyQt top level windows are kept alive by strong references, hence _active_window
         self.exc_args = (exctype, value, tb)
         self.config = config
-        self.setWindowTitle('Electron Cash - ' + _('An Error Occurred'))
+        self.setWindowTitle('DeLight - ' + _('An Error Occurred'))
         self.setMinimumSize(600, 300)
 
         main_box = QVBoxLayout()
