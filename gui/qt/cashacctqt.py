@@ -395,7 +395,7 @@ class InfoGroupBox(PrintError, QGroupBox):
             if not isinstance(info.address, Address):
                 rb.setDisabled(True)
                 is_valid = False
-                rb.setToolTip(_('Electron Cash currently only supports DeVault ID types 1 & 2'))
+                rb.setToolTip(_('DeLight currently only supports DeVault ID types 1 & 2'))
             elif wallet.is_mine(info.address):
                 is_mine = True
                 is_change = wallet.is_change(info.address)
@@ -569,7 +569,7 @@ def lookup_cash_account_dialog(
     acct = QLineEdit()
     acct.setPlaceholderText(_("DeVault ID e.g. satoshi#123.45"))
     acct.setMinimumWidth(280)
-    label2 = WWLabel('<a href="https://www.devaultid.com/#lookup">' + _("Search online...") + "</a>")
+    label2 = WWLabel('<a href="https://devault.id/#lookup">' + _("Search online...") + "</a>")
     label2.linkActivated.connect(webopen)
 
 

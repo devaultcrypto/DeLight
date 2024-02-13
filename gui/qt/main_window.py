@@ -4611,10 +4611,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         If addr is none, will use self.receive_address. '''
         addr = addr or self.receive_address or self.wallet.get_receiving_address()
         if not addr:
-            self.print_error("register_new_cash_account: no receive address specified")
+            self.print_error("register_new_devault_id: no receive address specified")
             return
         def on_link(ignored):
-            webopen('https://www.devaultid.com/')
+            webopen('https://devault.id/')
         name, placeholder = '', 'Satoshi_Nakamoto'
         while True:
             lh = self.wallet.get_local_height()
