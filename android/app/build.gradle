@@ -12,16 +12,16 @@ android {
     }
     compileOptions {
         // Required by ACRA.
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
-    compileSdkVersion 29
+    compileSdkVersion 34
 
     defaultConfig {
         applicationId "cc.devault.delight"
         minSdkVersion 16
 
-        targetSdkVersion 29
+        targetSdkVersion 34
 
         def ecVersion = null
         file("$REPO_ROOT/lib/version.py").eachLine {
