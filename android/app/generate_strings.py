@@ -7,15 +7,17 @@
 # the package `requests`, and the external commands `xgettext` and `msgfmt`.
 
 import argparse
-import babel
 from collections import Counter, defaultdict
 from datetime import datetime
 import os
 from os.path import abspath, basename, dirname, isdir, join
-import polib
 import re
 from subprocess import run
 import sys
+
+# We use polib because we need msgid_plural, which the standard library gettext module discards
+# during parsing of .mo files.
+import polib
 
 
 SCRIPT_NAME = basename(__file__)
@@ -23,12 +25,12 @@ EC_ROOT = abspath(join(dirname(__file__), "../.."))
 
 
 JAVA_KEYWORDS = set([
-    "_", "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class",
-    "const", "continue", "default", "do", "double ", "else", "enum", "extends", "false", "final",
+    "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class",
+    "const", "continue", "default", "do", "double ", "else", "enum", "extends", "final",
     "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int",
-    "interface ", "long", "native", "new", "null", "package", "private", "protected", "public",
+    "interface ", "long", "native", "new", "package", "private", "protected", "public",
     "return", "short", "static", "strictfp", "super", "switch ", "synchronized", "this",
-    "throw", "throws", "transient", "true", "try", "void", "volatile", "while"])
+    "throw", "throws", "transient", "try", "void", "volatile", "while"])
 
 KOTLIN_KEYWORDS = set([  # "Hard" keywords only.
     "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in",
@@ -36,6 +38,36 @@ KOTLIN_KEYWORDS = set([  # "Hard" keywords only.
     "true", "try", "typealias", "typeof" "val", "var", "when", "while"])
 
 KEYWORDS = JAVA_KEYWORDS | KOTLIN_KEYWORDS
+
+
+# Map from gettext plural formula to Android quantity keywords. This will have to be extended
+# as plural translations are added in more languages. Android uses the CLDR rules from
+# http://www.unicode.org/cldr/charts/25/supplemental/language_plural_rules.html.
+QUANTITIES = {
+    # e.g. zh
+    "0": {
+        0: "other"
+    },
+
+    # e.g. de
+    "(n != 1)": {
+        0: "one",
+        1: "other"
+    },
+
+    # e.g. fr
+    "(n > 1)": {
+        0: "one",   # For these languages, "one" includes zero (see CLDR link above).
+        1: "other"
+    },
+
+    # e.g. ro
+    "(n==1 ? 0 : (n==0 || (n%100>0 && n%100<20)) ? 1 : 2)": {
+        0: "one",
+        1: "few",
+        2: "other"
+    },
+}
 
 
 def main():
@@ -49,51 +81,36 @@ def main():
     for lang_region in [name for name in os.listdir(locale_dir)
                         if isdir(join(locale_dir, name)) and name != '__pycache__']:
         lang, region = lang_region.split("_")
-        catalog = read_catalog(join(locale_dir, lang_region, "LC_MESSAGES", "electron-cash.mo"),
-                               lang, region)
+        catalog = read_catalog(join(locale_dir, lang_region, "LC_MESSAGES",
+                                    "electron-cash.mo"))
         lang_strings[lang].append((region, catalog))
 
-    src_strings = read_catalog(join(locale_dir, "messages.pot"), "en", "US")
+    src_strings = read_catalog(join(locale_dir, "messages.pot"))
     ids = make_ids(src_strings)
-
-    log(f"Writing to {args.res_dir}")
     for lang, region_strings in lang_strings.items():
         region_strings.sort(key=region_order, reverse=True)
         for i, (region, strings) in enumerate(region_strings):
-            write_xml(args.res_dir, lang if i == 0 else "{}-r{}".format(lang, region),
+            write_xml(lang if i == 0 else "{}-r{}".format(lang, region),
                       strings, ids)
 
     # The main strings.xml should be generated last, because this script will only be
     # automatically run if it's missing.
-    write_xml(args.res_dir, "", src_strings, ids)
+    write_xml("", src_strings, ids)
 
 
-def read_catalog(filename, lang, region):
+def read_catalog(filename):
     try:
         is_pot = filename.endswith(".pot")
         f = (polib.mofile if filename.endswith(".mo") else polib.pofile)(filename)
         pf = f.metadata.get("Plural-Forms")
         if pf is None:
             quantities = None
-        elif is_pot:
-            quantities = ["one", "other"]
         else:
-            match = re.search(r"nplurals=(\d+);", pf)
+            match = re.search(r"plural=(.+?);", pf)
             if not match:
                 raise Exception("Failed to parse Plural-Forms")
-            nplurals = int(match.group(1))
-
-            try:
-                locale = babel.Locale("{}_{}".format(lang, region))
-            except babel.UnknownLocaleError:
-                locale = babel.Locale(lang)
-
-            quantities = sorted(locale.plural_form.tags | {"other"},
-                                key=["zero", "one", "two", "few", "many", "other"].index)
-            if len(quantities) != nplurals:
-                raise Exception("Plural-Forms says nplurals={}, but Babel has {} plural tags "
-                                "for this language {}"
-                                .format(nplurals, len(quantities), quantities))
+            formula = match.group(1)
+            quantities = QUANTITIES.get(formula)
 
         catalog = {}
         for entry in f:
@@ -113,12 +130,16 @@ def read_catalog(filename, lang, region):
 
                 msgid = fix_format(msgid)
                 if entry.msgid_plural:
-                    msgstr_plural = ({0: msgid, 1: entry.msgid_plural} if is_pot
-                                     else entry.msgstr_plural)
-                    if quantities is None:
-                        raise Exception("File contains a plural entry, but has no Plural-Forms")
-                    catalog[msgid] = {quantities[i]: fix_format(s)
-                                      for i, s in msgstr_plural.items()}
+                    if is_pot:
+                        catalog[msgid] = {"one": msgid,
+                                          "other": fix_format(entry.msgid_plural)}
+                    else:
+                        if quantities is None:
+                            raise Exception(
+                                "Unknown plural formula '{}': add it to QUANTITIES in {}"
+                                .format(formula, SCRIPT_NAME))
+                        catalog[msgid] = {quantities[i]: fix_format(s)
+                                          for i, s in entry.msgstr_plural.items()}
                 else:
                     catalog[msgid] = msgid if is_pot else fix_format(entry.msgstr)
             except Exception:
@@ -244,8 +265,7 @@ def write_xml(res_suffix, strings, ids):
     with open(join(abs_dir_name, base_name), "w", encoding="UTF-8") as f:
         print('<?xml version="1.0" encoding="utf-8"?>', file=f)
         print('<!-- Generated by {} at {} -->'.format(SCRIPT_NAME, timestamp), file=f)
-        print('<!-- DO NOT EDIT this file directly. Instead, edit the English strings in\n'
-              '     the source Python files, and other languages on Crowdin. -->', file=f)
+        print('<!-- DO NOT EDIT: edit the source Python files instead. -->', file=f)
         print('<resources>', file=f)
         for id, tgt in output:
             if isinstance(tgt, dict):
