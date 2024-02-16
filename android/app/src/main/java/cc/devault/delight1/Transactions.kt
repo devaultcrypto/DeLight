@@ -87,7 +87,7 @@ class TransactionModel(val txExport: Map<PyObject, PyObject>) {
         val confirmations = Integer.parseInt(get("confirmations"))
         return when {
             confirmations <= 0 -> ""
-            else -> app.resources.getQuantityString(R.plurals.confirmation,
+            else -> app.resources.getQuantityString(R.plurals.conf_confirmation,
                                                     confirmations, confirmations)
         }
     }
@@ -133,7 +133,7 @@ class TransactionDialog() : AlertDialogFragment() {
         } else {
             val feeSpb = (fee.toDouble() / size.toDouble()).roundToInt()
             tvFee.text = String.format("%s (%s)",
-                                              getString(R.string.sat_byte, feeSpb),
+                                              getString(R.string.sats_per, feeSpb),
                                               formatSatoshisAndUnit(fee))
         }
     }

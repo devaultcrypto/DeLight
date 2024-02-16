@@ -8,7 +8,9 @@
 def _(s):
     return s
 
+ngettext("%d address", "%d addresses", 1)
 _("Are you sure you want to delete your wallet \'%s\'?")
+_("BIP39 seed")
 _("Block explorer")
 _("Copyright 2019-2024 the DeVault developers.")
 _("Cannot specify private keys and addresses in the same wallet.")
